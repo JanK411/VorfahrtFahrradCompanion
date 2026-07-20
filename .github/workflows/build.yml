@@ -24,11 +24,36 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew :androidApp:assembleDebug
 
+      - name: Name APK after branch
+        id: apk
+        run: |
+          slug=$(echo "${{ github.ref_name }}" | tr '/' '-' | tr -cd 'A-Za-z0-9._-')
+          name="androidApp-debug-${slug}.apk"
+          cp androidApp/build/outputs/apk/debug/androidApp-debug.apk "$RUNNER_TEMP/$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "path=$RUNNER_TEMP/$name" >> "$GITHUB_OUTPUT"
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
         with:
-          name: androidApp-debug
-          path: androidApp/build/outputs/apk/debug/*.apk
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.path }}
+
+      - name: Upload APK to Dropbox
+        env:
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+        run: |
+          token=$(curl -sSf -X POST https://api.dropbox.com/oauth2/token \
+            -u "$DROPBOX_APP_KEY:$DROPBOX_APP_SECRET" \
+            -d grant_type=refresh_token \
+            -d refresh_token="$DROPBOX_REFRESH_TOKEN" | jq -r .access_token)
+          curl -sSf -X POST https://content.dropboxapi.com/2/files/upload \
+            --header "Authorization: Bearer $token" \
+            --header "Dropbox-API-Arg: {\"path\":\"/builds/${{ steps.apk.outputs.name }}\",\"mode\":\"overwrite\",\"mute\":true}" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary @"${{ steps.apk.outputs.path }}" > /dev/null
 
       - name: Upload test reports
         if: failure()
