@@ -4,14 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Kotlin Multiplatform + Compose Multiplatform app targeting Android and iOS. Currently at the KMP wizard template stage — the only domain code is the `Greeting`/`Platform` sample.
+Kotlin Multiplatform + Compose Multiplatform app. Currently at the KMP wizard template stage — the only domain code is the `Greeting`/`Platform` sample.
+
+**Android is the only target being developed.** The iOS target exists to keep a future port cheap, not because iOS is being worked on. See "Android-first, iOS-ready" below — it governs every other decision in this file.
 
 ## Commands
 
 ```bash
 ./gradlew :androidApp:assembleDebug        # build Android debug APK
 ./gradlew :shared:testAndroidHostTest      # JVM-side tests (commonTest + androidHostTest)
-./gradlew :shared:iosSimulatorArm64Test    # iOS simulator tests (commonTest + iosTest); needs macOS
+./gradlew :shared:iosSimulatorArm64Test    # iOS simulator tests; needs macOS — not part of the workflow
 ./gradlew build                            # everything buildable on this host
 ```
 
@@ -42,6 +44,26 @@ Platform-specific behaviour uses `expect`/`actual` (`Platform.kt` → `Platform.
 `:shared` uses AGP's `com.android.kotlin.multiplatform.library` plugin (not the classic `com.android.library`), so its Android config lives inside the `kotlin { android { … } }` block. Its test source-set names differ from a classic Android library: `androidHostTest` (unit tests) and a device-test builder wired to `sourceSetTreeName = "test"`.
 
 Compose resources under `shared/src/commonMain/composeResources/` generate the `vorfahrtfahrradcompanion.shared.generated.resources.Res` accessor — after adding a resource, build `:shared` to regenerate before referencing it.
+
+## Android-first, iOS-ready
+
+Spend no effort on iOS. Spend no effort making iOS *impossible* either. Concretely:
+
+**Do**
+
+- Write everything in `commonMain` by default — UI included. Compose Multiplatform is not extra work over Android-only Compose; there is no Android-only fast path to take.
+- Put platform APIs behind an interface (or `expect`) declared in `commonMain`, implemented in `androidMain`. Relevant here: location/GPS, sensors, permissions, background execution, file storage.
+- Give `iosMain` a `TODO("iOS not implemented")` actual so the source set keeps compiling. That stub *is* the entire iOS investment.
+- Prefer the KMP-capable library when there's a choice — the cost is zero now and a rewrite later. Ktor (not Retrofit/OkHttp), kotlinx-serialization (not Gson/Moshi), Room KMP or SQLDelight, Koin (not Hilt), coroutines/Flow (not LiveData), `androidx.navigation.compose` (multiplatform).
+
+**Don't**
+
+- Don't reference `android.*`, `Context`, `Activity`, or JVM-only APIs (`java.time`, `java.io.File`, `java.util.*`) from `commonMain` — use `kotlinx-datetime`, `kotlinx-io`, kotlin stdlib instead.
+- Don't let platform types into domain models or shared function signatures. Map `android.location.Location` to an own data class at the `androidMain` boundary.
+- Don't write iOS actuals, iOS tests, or Swift beyond the existing template plumbing. Don't design around an iOS constraint that isn't blocking Android today.
+- Don't delete `iosMain`/`iosApp` to "clean up".
+
+If an Android-only shortcut is genuinely worth it, take it in `androidMain` — never in `commonMain`.
 
 ## Conventions
 
