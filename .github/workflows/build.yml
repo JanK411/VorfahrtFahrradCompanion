@@ -25,14 +25,14 @@ jobs:
         run: ./gradlew :androidApp:assembleDebug
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: androidApp-debug
           path: androidApp/build/outputs/apk/debug/*.apk
 
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports
           path: shared/build/reports/tests/
