@@ -13,6 +13,6 @@ class IosLocationPermissions : LocationPermissions {
 }
 
 class IosLocationSettings : LocationSettings {
-    @Composable
-    override fun rememberState(): LocationSettingsState = TODO("iOS not implemented")
+    override val isEnabled: Flow<Boolean> get() = TODO("iOS not implemented")
+    override fun open(): Unit = TODO("iOS not implemented")
 }

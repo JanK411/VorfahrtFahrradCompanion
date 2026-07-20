@@ -6,7 +6,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val locationModule = module {
-    viewModel { LocationViewModel(get()) }
+    viewModel { LocationViewModel(get(), get()) }
 }
 
 val appModules: List<Module> = listOf(locationModule)
