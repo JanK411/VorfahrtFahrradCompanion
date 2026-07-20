@@ -114,7 +114,11 @@ private fun CriterionSection(
     onSelect: (Criterion, String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(criterion.id, style = MaterialTheme.typography.titleSmall)
+        Text(
+            criterion.id,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             criterion.values.forEach { value ->
                 FilterChip(
