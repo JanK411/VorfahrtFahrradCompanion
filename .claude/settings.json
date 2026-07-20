@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(./gradlew:*)",
-      "Bash(./gradlew :* | tail *)",
+      "Bash(tail:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
