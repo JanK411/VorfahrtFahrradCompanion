@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+# Windows batch parsing is unreliable without CRLF
+*.bat text eol=crlf
+
+# Xcode is sensitive about these
+*.pbxproj text eol=lf
+*.xcworkspacedata text eol=lf
+*.xcsettings text eol=lf
+
+*.jar binary
+*.png binary
