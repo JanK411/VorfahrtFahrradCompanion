@@ -11,6 +11,11 @@ plugins {
 }
 
 kotlin {
+    // Room's @ConstructedBy generates an `actual object`; expect/actual classes are Beta.
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
