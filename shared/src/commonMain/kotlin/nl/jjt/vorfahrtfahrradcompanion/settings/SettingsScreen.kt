@@ -74,8 +74,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             }
         }
 
-        Button(onClick = viewModel::save, enabled = state.canSubmit) {
-            Text("Save")
+        if (state.hasUnsavedChanges) {
+            Button(onClick = viewModel::save, enabled = state.canSubmit) {
+                Text("Save")
+            }
         }
     }
 }

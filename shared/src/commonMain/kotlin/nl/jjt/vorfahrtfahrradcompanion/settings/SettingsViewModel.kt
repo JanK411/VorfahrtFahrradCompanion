@@ -24,10 +24,13 @@ data class SettingsUiState(
     val username: String = "",
     val password: String = "",
     val connectionTest: ConnectionTestState = ConnectionTestState.Idle,
+    val savedSettings: Settings? = null,
 ) {
     val normalizedBaseUrl: String? = normalizeBaseUrl(baseUrl)
     val isBaseUrlInvalid: Boolean = baseUrl.isNotBlank() && normalizedBaseUrl == null
     val canSubmit: Boolean = normalizedBaseUrl != null
+    val hasUnsavedChanges: Boolean =
+        normalizedBaseUrl != null && Settings(normalizedBaseUrl, username, password) != savedSettings
 }
 
 class SettingsViewModel(
@@ -44,7 +47,12 @@ class SettingsViewModel(
         viewModelScope.launch {
             val saved = repository.settings.first()
             _state.update {
-                it.copy(baseUrl = saved.baseUrl, username = saved.username, password = saved.password)
+                it.copy(
+                    baseUrl = saved.baseUrl,
+                    username = saved.username,
+                    password = saved.password,
+                    savedSettings = saved,
+                )
             }
         }
     }
@@ -57,7 +65,10 @@ class SettingsViewModel(
 
     fun save() {
         val settings = currentSettings() ?: return
-        viewModelScope.launch { repository.save(settings) }
+        viewModelScope.launch {
+            repository.save(settings)
+            _state.update { it.copy(savedSettings = settings) }
+        }
     }
 
     fun testConnection() {
