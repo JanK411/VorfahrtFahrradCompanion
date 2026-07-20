@@ -1,5 +1,8 @@
 package nl.jjt.vorfahrtfahrradcompanion.di
 
+import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaApi
+import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaViewModel
+import nl.jjt.vorfahrtfahrradcompanion.criteria.KtorCriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationViewModel
 import nl.jjt.vorfahrtfahrradcompanion.net.createHttpClient
 import nl.jjt.vorfahrtfahrradcompanion.net.platformHttpClientEngine
@@ -15,6 +18,11 @@ val locationModule = module {
     viewModel { LocationViewModel(get(), get()) }
 }
 
+val criteriaModule = module {
+    single<CriteriaApi> { KtorCriteriaApi(get(), get()) }
+    viewModel { CriteriaViewModel(get(), get()) }
+}
+
 /** [AppDatabase] itself is bound per platform — its builder needs a platform context. */
 val settingsModule = module {
     single { createHttpClient(platformHttpClientEngine()) }
@@ -24,4 +32,4 @@ val settingsModule = module {
     viewModel { SettingsViewModel(get(), get()) }
 }
 
-val appModules: List<Module> = listOf(locationModule, settingsModule)
+val appModules: List<Module> = listOf(locationModule, settingsModule, criteriaModule)
