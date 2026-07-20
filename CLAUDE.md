@@ -50,3 +50,16 @@ Compose resources under `shared/src/commonMain/composeResources/` generate the `
 - iOS targets are `iosArm64` and `iosSimulatorArm64` only — no x64 simulator.
 - Configuration cache and build cache are on (`gradle.properties`); build logic must stay configuration-cache compatible (no reading `project` at execution time).
 - Package is `com.example.vorfahrtfahrradcompanion` — still the template default, worth renaming before release.
+
+## General Instructions
+
+- Be brief. Don't use many words when few do trick.
+- Before writing code, stop at the first rung that holds:
+    1. Does this need to exist? → no: skip it (YAGNI)
+    2. Stdlib does it? → use it
+    3. Native platform feature? → use it
+    4. Installed dependency? → use it
+    5. One line? → one line
+    6. Only then: the minimum that works
+- Always running in IntelliJ. Use IntelliJ MCP when necessary.
+- Always use best practices. If the user asks something that violates best practices give a notice first and do not implement anything.
