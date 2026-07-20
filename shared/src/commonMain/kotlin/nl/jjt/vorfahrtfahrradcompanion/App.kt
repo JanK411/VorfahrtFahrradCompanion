@@ -20,16 +20,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
+import nl.jjt.vorfahrtfahrradcompanion.di.appModules
+import nl.jjt.vorfahrtfahrradcompanion.location.LocationScreen
+import org.koin.compose.KoinApplication
+import org.koin.core.module.Module
 
-private enum class Tab(val label: String, val icon: ImageVector, val body: String) {
-    Dummy1("Dummy 1", Icons.Filled.Home, "Hello 1"),
-    Dummy2("Dummy 2", Icons.Filled.Place, "Hello 2"),
+private enum class Tab(val label: String, val icon: ImageVector) {
+    Dummy1("Dummy 1", Icons.Filled.Home),
+    Location("Location", Icons.Filled.Place),
 }
 
 @Composable
-@Preview
-fun App() {
+fun App(additionalModules: List<Module> = emptyList()) = KoinApplication(
+    application = { modules(appModules + additionalModules) },
+) {
     MaterialTheme {
         var selected by remember { mutableStateOf(Tab.Dummy1) }
         Scaffold(
@@ -46,11 +50,13 @@ fun App() {
                 }
             },
         ) { padding ->
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(selected.body, style = MaterialTheme.typography.headlineMedium)
+            val modifier = Modifier.fillMaxSize().padding(padding)
+            when (selected) {
+                Tab.Dummy1 -> Box(modifier, contentAlignment = Alignment.Center) {
+                    Text("Hello 1", style = MaterialTheme.typography.headlineMedium)
+                }
+
+                Tab.Location -> LocationScreen(modifier)
             }
         }
     }
