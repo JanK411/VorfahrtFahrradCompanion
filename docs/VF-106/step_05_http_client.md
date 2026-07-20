@@ -16,10 +16,9 @@ Per-platform engine bindings only:
 
 ## Auth note
 
-`http-testing/criterion-catalogue.http` uses IntelliJ's two-token
-`Authorization: Basic user pass` form, which the IDE base64-encodes for you. Ktor needs real
-base64 — use `basicAuth(user, pass)` per request (simplest, since credentials come from settings
-per call) or `ktor-client-auth`.
+`../../http-testing/criterion-catalogue.http` uses IntelliJ's two-token
+`Authorization: Basic user pass` form, which the IDE base64-encodes for you. Ktor needs real base64 — use
+`basicAuth(user, pass)` per request (simplest, since credentials come from settings per call) or `ktor-client-auth`.
 
 ## Done when
 

@@ -22,17 +22,17 @@ Rules, in order:
 
 The stored base URL is a **full URL — origin plus optional path prefix**, not a hostname.
 
-## Tests (`shared/src/commonTest/`)
+## Tests (`../../shared/src/commonTest`)
 
 Table-driven:
 
-| input | expected |
-| --- | --- |
-| `192.168.178.42:8080` | `http://192.168.178.42:8080` |
+| input                               | expected                           |
+|-------------------------------------|------------------------------------|
+| `192.168.178.42:8080`               | `http://192.168.178.42:8080`       |
 | `https://vorfahrt.example.com/api/` | `https://vorfahrt.example.com/api` |
-| `ftp://x` | `null` |
-| `""` | `null` |
-| `http://` | `null` |
+| `ftp://x`                           | `null`                             |
+| `""`                                | `null`                             |
+| `http://`                           | `null`                             |
 
 ## Done when
 
