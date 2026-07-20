@@ -11,6 +11,7 @@ import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationSettings
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationPermissions
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationSettings
+import nl.jjt.vorfahrtfahrradcompanion.settings.db.createAppDatabase
 import org.koin.dsl.module
 
 class MainActivity : ComponentActivity() {
@@ -23,6 +24,7 @@ class MainActivity : ComponentActivity() {
             single<LocationProvider> { AndroidLocationProvider(get()) }
             single<LocationPermissions> { AndroidLocationPermissions(get()) }
             single<LocationSettings> { AndroidLocationSettings(get()) }
+            single { createAppDatabase(get()) }
         }
 
         setContent {
