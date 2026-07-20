@@ -7,8 +7,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationPermissions
 import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationProvider
+import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationSettings
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationPermissions
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
+import nl.jjt.vorfahrtfahrradcompanion.location.LocationSettings
 import org.koin.dsl.module
 
 class MainActivity : ComponentActivity() {
@@ -20,6 +22,7 @@ class MainActivity : ComponentActivity() {
             single<Context> { applicationContext }
             single<LocationProvider> { AndroidLocationProvider(get()) }
             single<LocationPermissions> { AndroidLocationPermissions(get()) }
+            single<LocationSettings> { AndroidLocationSettings(get()) }
         }
 
         setContent {

@@ -11,3 +11,8 @@ class IosLocationPermissions : LocationPermissions {
     @Composable
     override fun rememberState(): LocationPermissionState = TODO("iOS not implemented")
 }
+
+class IosLocationSettings : LocationSettings {
+    @Composable
+    override fun rememberState(): LocationSettingsState = TODO("iOS not implemented")
+}

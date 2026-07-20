@@ -26,6 +26,8 @@ fun LocationScreen(modifier: Modifier = Modifier) {
         return
     }
 
+    val settingsState = koinInject<LocationSettings>().rememberState()
+
     val viewModel: LocationViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -35,7 +37,12 @@ fun LocationScreen(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         when (val s = state) {
-            LocationUiState.Waiting -> Text("Waiting for a GPS fix…")
+            LocationUiState.Waiting -> if (settingsState.isEnabled) {
+                Text("Waiting for a GPS fix…")
+            } else {
+                Text("Location services are switched off.")
+                Button(onClick = settingsState::open) { Text("Turn on location") }
+            }
             is LocationUiState.Failed -> Text(s.message, color = MaterialTheme.colorScheme.error)
             is LocationUiState.Fix -> {
                 Text("${s.location.latitude}, ${s.location.longitude}", style = MaterialTheme.typography.headlineSmall)
