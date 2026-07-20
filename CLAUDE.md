@@ -1,77 +1,62 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project
 
-Kotlin Multiplatform + Compose Multiplatform app. Currently at the KMP wizard template stage — the only domain code is the `Greeting`/`Platform` sample.
+Kotlin Multiplatform + Compose Multiplatform. Still at the KMP wizard template stage — only domain code is the `Greeting`/`Platform` sample. Package `nl.jjt.vorfahrtfahrradcompanion`.
 
-**Android is the only target being developed.** The iOS target exists to keep a future port cheap, not because iOS is being worked on. See "Android-first, iOS-ready" below — it governs every other decision in this file.
+**Android is the only target being developed.** iOS exists to keep a future port cheap.
 
 ## Commands
 
 ```bash
-./gradlew :androidApp:assembleDebug        # build Android debug APK
-./gradlew :shared:testAndroidHostTest      # JVM-side tests (commonTest + androidHostTest)
-./gradlew :shared:iosSimulatorArm64Test    # iOS simulator tests; needs macOS — not part of the workflow
-./gradlew build                            # everything buildable on this host
-```
-
-Single test (both test tasks accept the filter):
-
-```bash
-./gradlew :shared:testAndroidHostTest --tests "nl.jjt.vorfahrtfahrradcompanion.SharedCommonTest"
+./gradlew :androidApp:assembleDebug        # Android debug APK
+./gradlew :shared:testAndroidHostTest      # commonTest + androidHostTest
 ./gradlew :shared:testAndroidHostTest --tests "*.SharedCommonTest.example"
 ```
 
-The iOS app is built and run from Xcode: open `iosApp/` (`iosApp.xcodeproj`). Xcode invokes the Gradle framework task itself; `Configuration/Config.xcconfig` holds bundle id / team settings.
-
-On Linux only the Android and common targets resolve — iOS tasks will fail, so verify iOS-affecting changes by compiling `:shared` and reasoning about `iosMain` rather than running iOS tasks.
+iOS tasks need macOS and are not part of the workflow. On Linux, verify iOS-affecting changes by compiling `:shared`.
 
 ## Architecture
 
-Two Gradle modules (`settings.gradle.kts`): `:shared` and `:androidApp`. The iOS app is not a Gradle module.
+Modules: `:shared` and `:androidApp`. The iOS app is not a Gradle module (built from Xcode).
 
-`:shared` carries both the business logic **and the entire UI**. `App.kt` in `commonMain` is the single Composable root; the platform entry points are thin adapters into it:
+`:shared` carries the business logic **and the entire UI**. `App.kt` in `commonMain` is the single Composable root; `MainActivity` and `MainViewController.kt` are thin adapters. UI changes go in `shared/src/commonMain` — `androidApp`/`iosApp` change only for host plumbing.
 
-- Android: `MainActivity.setContent { App() }` → `androidApp`
-- iOS: `MainViewController.kt` wraps `App()` in `ComposeUIViewController`, exported as the static framework `Shared`, consumed by `ContentView.swift` via `MainViewControllerKt.MainViewController()`
+`:shared` uses AGP's `com.android.kotlin.multiplatform.library` plugin, so Android config lives in `kotlin { android { … } }` and test source sets are `androidHostTest` + a device-test builder with `sourceSetTreeName = "test"`.
 
-So UI changes belong in `shared/src/commonMain`, not in `androidApp` or `iosApp`. Those two directories should only ever change when the platform host/plumbing changes.
-
-Platform-specific behaviour uses `expect`/`actual` (`Platform.kt` → `Platform.android.kt` / `Platform.ios.kt`).
-
-`:shared` uses AGP's `com.android.kotlin.multiplatform.library` plugin (not the classic `com.android.library`), so its Android config lives inside the `kotlin { android { … } }` block. Its test source-set names differ from a classic Android library: `androidHostTest` (unit tests) and a device-test builder wired to `sourceSetTreeName = "test"`.
-
-Compose resources under `shared/src/commonMain/composeResources/` generate the `vorfahrtfahrradcompanion.shared.generated.resources.Res` accessor — after adding a resource, build `:shared` to regenerate before referencing it.
+After adding a file under `commonMain/composeResources/`, build `:shared` to regenerate `Res` before referencing it.
 
 ## Android-first, iOS-ready
 
-Spend no effort on iOS. Spend no effort making iOS *impossible* either. Concretely:
+Spend no effort on iOS; spend no effort making it impossible either.
 
-**Do**
+- Write everything in `commonMain` by default, UI included.
+- Platform APIs (GPS, sensors, permissions, background, storage) go behind an interface or `expect` in `commonMain`, `actual` in `androidMain`, and a `TODO("iOS not implemented")` in `iosMain`. That stub is the entire iOS investment.
+- No `android.*`, `Context`, `Activity`, or JVM-only APIs (`java.time`, `java.io`, `java.util`) in `commonMain` — use kotlinx-datetime, kotlinx-io, stdlib.
+- No platform types in domain models or shared signatures — map `android.location.Location` to an own data class at the `androidMain` boundary.
+- Don't write iOS actuals, iOS tests, or Swift. Don't delete `iosMain`/`iosApp`.
+- An Android-only shortcut, if genuinely worth it, goes in `androidMain` — never `commonMain`.
 
-- Write everything in `commonMain` by default — UI included. Compose Multiplatform is not extra work over Android-only Compose; there is no Android-only fast path to take.
-- Put platform APIs behind an interface (or `expect`) declared in `commonMain`, implemented in `androidMain`. Relevant here: location/GPS, sensors, permissions, background execution, file storage.
-- Give `iosMain` a `TODO("iOS not implemented")` actual so the source set keeps compiling. That stub *is* the entire iOS investment.
-- Prefer the KMP-capable library when there's a choice — the cost is zero now and a rewrite later. Ktor (not Retrofit/OkHttp), kotlinx-serialization (not Gson/Moshi), Room KMP or SQLDelight, Koin (not Hilt), coroutines/Flow (not LiveData), `androidx.navigation.compose` (multiplatform).
+## Stack
 
-**Don't**
+`~/Source/GpsTrackerApp` is a working KMP app in the same domain — prior art for reference implementations, not a dependency.
 
-- Don't reference `android.*`, `Context`, `Activity`, or JVM-only APIs (`java.time`, `java.io.File`, `java.util.*`) from `commonMain` — use `kotlinx-datetime`, `kotlinx-io`, kotlin stdlib instead.
-- Don't let platform types into domain models or shared function signatures. Map `android.location.Location` to an own data class at the `androidMain` boundary.
-- Don't write iOS actuals, iOS tests, or Swift beyond the existing template plumbing. Don't design around an iOS constraint that isn't blocking Android today.
-- Don't delete `iosMain`/`iosApp` to "clean up".
-
-If an Android-only shortcut is genuinely worth it, take it in `androidMain` — never in `commonMain`.
+- **DI**: Koin + `koin-compose-viewmodel`'s `viewModel { }`. Modules in `commonMain`; `Context`-needing bindings are built in `MainActivity` and passed to `App(additionalModules)` — register the `Context` itself rather than relying on `androidContext()`.
+- **Persistence**: Room KMP. `@ConstructedBy` + `expect object : RoomDatabaseConstructor` (needs `@Suppress("KotlinNoActualForExpect")`), `BundledSQLiteDriver`, `setQueryCoroutineContext(Dispatchers.IO)`. KSP registered per target; schemas exported via `room { schemaDirectory(...) }`.
+- **State**: multiplatform `ViewModel` + `StateFlow`; one sealed `UiState` per screen where states are genuinely exclusive.
+- **Networking / JSON**: Ktor + `kotlinx-serialization-json` (`-core` is not enough).
+- **Time**: kotlinx-datetime + `kotlin.time.Clock`; opt in to `kotlin.time.ExperimentalTime`.
+- **Navigation**: `androidx.navigation.compose` — multiplatform-stable, type-safe routes from `@Serializable`. Not Navigation3: it's Android-first, and its only real win is adaptive list-detail, which this app doesn't need.
+- **Streaming platform data uses `Flow`, not callbacks**: `fun locations(intervalMillis: Long): Flow<Location>` via `callbackFlow`, not `onUpdate(cb)`/`start()`/`stop()`. Applies to GPS, sensors, anything with a listener API.
+- **Permissions**: permission *screen* in `commonMain`; only the request mechanism behind an interface implemented in `androidMain` (`rememberLauncherForActivityResult`). No `@Composable expect fun`, no Accompanist.
+- **Pin stable versions.** No alpha/RC without a concrete reason.
 
 ## Conventions
 
-- All dependency and plugin versions go through `gradle/libs.versions.toml`; never hardcode a version in a `build.gradle.kts`.
-- JVM target is 11 across both modules; keep them in sync if you change one.
-- iOS targets are `iosArm64` and `iosSimulatorArm64` only — no x64 simulator.
-- Configuration cache and build cache are on (`gradle.properties`); build logic must stay configuration-cache compatible (no reading `project` at execution time).
-- Package is `nl.jjt.vorfahrtfahrradcompanion`.
+- All versions via `gradle/libs.versions.toml`; never hardcoded in a `build.gradle.kts`.
+- JVM target 11 in both modules.
+- iOS targets `iosArm64` + `iosSimulatorArm64` only.
+- Configuration cache and build cache are on; build logic must stay config-cache compatible.
 
 ## General Instructions
 
