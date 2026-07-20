@@ -20,11 +20,11 @@ dependencies {
 }
 
 android {
-    namespace = "com.example.vorfahrtfahrradcompanion"
+    namespace = "nl.jjt.vorfahrtfahrradcompanion"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.example.vorfahrtfahrradcompanion"
+        applicationId = "nl.jjt.vorfahrtfahrradcompanion"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

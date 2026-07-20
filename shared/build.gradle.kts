@@ -19,7 +19,7 @@ kotlin {
     }
 
     android {
-        namespace = "com.example.vorfahrtfahrradcompanion.shared"
+        namespace = "nl.jjt.vorfahrtfahrradcompanion.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

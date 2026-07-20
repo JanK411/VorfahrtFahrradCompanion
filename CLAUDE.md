@@ -20,7 +20,7 @@ Kotlin Multiplatform + Compose Multiplatform app. Currently at the KMP wizard te
 Single test (both test tasks accept the filter):
 
 ```bash
-./gradlew :shared:testAndroidHostTest --tests "com.example.vorfahrtfahrradcompanion.SharedCommonTest"
+./gradlew :shared:testAndroidHostTest --tests "nl.jjt.vorfahrtfahrradcompanion.SharedCommonTest"
 ./gradlew :shared:testAndroidHostTest --tests "*.SharedCommonTest.example"
 ```
 
@@ -71,7 +71,7 @@ If an Android-only shortcut is genuinely worth it, take it in `androidMain` — 
 - JVM target is 11 across both modules; keep them in sync if you change one.
 - iOS targets are `iosArm64` and `iosSimulatorArm64` only — no x64 simulator.
 - Configuration cache and build cache are on (`gradle.properties`); build logic must stay configuration-cache compatible (no reading `project` at execution time).
-- Package is `com.example.vorfahrtfahrradcompanion` — still the template default, worth renaming before release.
+- Package is `nl.jjt.vorfahrtfahrradcompanion`.
 
 ## General Instructions
 
