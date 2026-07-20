@@ -28,3 +28,6 @@ google-services.json
 # Crash and profiling dumps
 *.hprof
 *.log
+
+# http testing
+http-client.private.env.json

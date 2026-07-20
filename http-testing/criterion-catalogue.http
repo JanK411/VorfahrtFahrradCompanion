@@ -1,0 +1,3 @@
+### fetch the criterion catalogue
+GET {{host}}/admin/evaluation-model/criterion-catalogue
+Authorization: Basic {{username}} {{password}}
