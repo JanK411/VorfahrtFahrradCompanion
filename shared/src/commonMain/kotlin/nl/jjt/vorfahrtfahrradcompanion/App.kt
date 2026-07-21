@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaScreen
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationScreen
@@ -45,6 +46,8 @@ fun App(additionalModules: List<Module> = emptyList()) {
                 val settingsViewModel: SettingsViewModel = koinViewModel()
                 val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
                 var pendingTab by remember { mutableStateOf<Tab?>(null) }
+                var saving by remember { mutableStateOf(false) }
+                val scope = rememberCoroutineScope()
 
                 Scaffold(
                     topBar = {
@@ -98,22 +101,32 @@ fun App(additionalModules: List<Module> = emptyList()) {
 
                 pendingTab?.let { target ->
                     AlertDialog(
-                        onDismissRequest = { pendingTab = null },
+                        onDismissRequest = { if (!saving) pendingTab = null },
                         title = { Text("Unsaved changes") },
                         text = { Text("You have unsaved settings. Save them before leaving?") },
                         confirmButton = {
-                            TextButton(onClick = {
-                                settingsViewModel.save()
-                                selected = target
-                                pendingTab = null
-                            }) { Text("Save") }
+                            TextButton(
+                                enabled = !saving,
+                                onClick = {
+                                    saving = true
+                                    scope.launch {
+                                        settingsViewModel.saveAndWait()
+                                        saving = false
+                                        selected = target
+                                        pendingTab = null
+                                    }
+                                },
+                            ) { Text(if (saving) "Saving…" else "Save") }
                         },
                         dismissButton = {
-                            TextButton(onClick = {
-                                settingsViewModel.discardChanges()
-                                selected = target
-                                pendingTab = null
-                            }) { Text("Discard") }
+                            TextButton(
+                                enabled = !saving,
+                                onClick = {
+                                    settingsViewModel.discardChanges()
+                                    selected = target
+                                    pendingTab = null
+                                },
+                            ) { Text("Discard") }
                         },
                     )
                 }
