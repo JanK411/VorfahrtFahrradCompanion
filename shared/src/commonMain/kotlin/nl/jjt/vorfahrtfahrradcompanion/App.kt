@@ -15,9 +15,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaScreen
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationScreen
+import nl.jjt.vorfahrtfahrradcompanion.navigation.LocalNavigationGate
+import nl.jjt.vorfahrtfahrradcompanion.navigation.NavigationGate
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.AppTheme
 import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
@@ -41,8 +44,14 @@ fun App(additionalModules: List<Module> = emptyList()) {
         content = {
             AppTheme {
                 var selected by remember { mutableStateOf(Tab.Criteria) }
-                Scaffold(
-                    topBar = {
+                // The screen on display may ask the user before it lets go; see NavigationGate.
+                val gate = remember { NavigationGate() }
+                var navigating by remember { mutableStateOf(false) }
+                val scope = rememberCoroutineScope()
+
+                CompositionLocalProvider(LocalNavigationGate provides gate) {
+                    Scaffold(
+                        topBar = {
                         CenterAlignedTopAppBar(
                             title = {
                                 Row(
@@ -58,27 +67,33 @@ fun App(additionalModules: List<Module> = emptyList()) {
                                 titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             ),
                         )
-                    },
-                    bottomBar = {
-                        NavigationBar {
-                            Tab.entries.forEach { tab ->
-                                NavigationBarItem(
-                                    selected = tab == selected,
-                                    onClick = { selected = tab },
-                                    icon = { Icon(tab.icon, contentDescription = null) },
-                                    label = { Text(tab.label) },
-                                )
+                    },bottomBar = {
+                            NavigationBar {
+                                Tab.entries.forEach { tab ->
+                                    NavigationBarItem(
+                                        selected = tab == selected,
+                                        onClick = {
+                                            if (tab != selected && !navigating) scope.launch {
+                                                navigating = true
+                                                if (gate.canLeave()) selected = tab
+                                                navigating = false
+                                            }
+                                        },
+                                        icon = { Icon(tab.icon, contentDescription = null) },
+                                        label = { Text(tab.label) },
+                                    )
+                                }
                             }
+                        },
+                    ) { padding ->
+                        val modifier = Modifier.fillMaxSize().padding(padding)
+                        when (selected) {
+                            Tab.Criteria -> CriteriaScreen(modifier)
+
+                            Tab.Location -> LocationScreen(modifier)
+
+                            Tab.Settings -> SettingsScreen(modifier)
                         }
-                    },
-                ) { padding ->
-                    val modifier = Modifier.fillMaxSize().padding(padding)
-                    when (selected) {
-                        Tab.Criteria -> CriteriaScreen(modifier)
-
-                        Tab.Location -> LocationScreen(modifier)
-
-                        Tab.Settings -> SettingsScreen(modifier)
                     }
                 }
             }
