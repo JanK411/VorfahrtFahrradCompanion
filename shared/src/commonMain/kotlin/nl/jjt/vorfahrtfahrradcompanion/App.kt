@@ -13,13 +13,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaScreen
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationScreen
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.AppTheme
 import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
+import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsViewModel
 import org.koin.compose.KoinApplication
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.module.Module
 import org.koin.dsl.koinConfiguration
 
@@ -38,6 +41,11 @@ fun App(additionalModules: List<Module> = emptyList()) {
         content = {
             AppTheme {
                 var selected by remember { mutableStateOf(Tab.Criteria) }
+                // Hoisted so navigation can guard against leaving Settings with unsaved edits.
+                val settingsViewModel: SettingsViewModel = koinViewModel()
+                val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
+                var pendingTab by remember { mutableStateOf<Tab?>(null) }
+
                 Scaffold(
                     topBar = {
                         CenterAlignedTopAppBar(
@@ -61,7 +69,16 @@ fun App(additionalModules: List<Module> = emptyList()) {
                             Tab.entries.forEach { tab ->
                                 NavigationBarItem(
                                     selected = tab == selected,
-                                    onClick = { selected = tab },
+                                    onClick = {
+                                        if (tab != selected &&
+                                            selected == Tab.Settings &&
+                                            settingsState.hasUnsavedChanges
+                                        ) {
+                                            pendingTab = tab
+                                        } else {
+                                            selected = tab
+                                        }
+                                    },
                                     icon = { Icon(tab.icon, contentDescription = null) },
                                     label = { Text(tab.label) },
                                 )
@@ -75,8 +92,30 @@ fun App(additionalModules: List<Module> = emptyList()) {
 
                         Tab.Location -> LocationScreen(modifier)
 
-                        Tab.Settings -> SettingsScreen(modifier)
+                        Tab.Settings -> SettingsScreen(modifier, settingsViewModel)
                     }
+                }
+
+                pendingTab?.let { target ->
+                    AlertDialog(
+                        onDismissRequest = { pendingTab = null },
+                        title = { Text("Unsaved changes") },
+                        text = { Text("You have unsaved settings. Save them before leaving?") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                settingsViewModel.save()
+                                selected = target
+                                pendingTab = null
+                            }) { Text("Save") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = {
+                                settingsViewModel.discardChanges()
+                                selected = target
+                                pendingTab = null
+                            }) { Text("Discard") }
+                        },
+                    )
                 }
             }
         })
