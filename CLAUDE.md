@@ -91,4 +91,9 @@ dependency.
 - Don't commit any changes if I don't explicitly ask you to do so. But if I do, split your tasks into multiple small
   commits and write proper commit messages. If you have a ticket number in context, the message should start with the
   ticket number (for example "VF-123: <here the message>"). If you implemented a plan, reference the plan also in the
-  commit message. If the plan is fully implemented, add one commit in the end deleting the markdown file of the plan.
+  commit message. If the plan is fully implemented, add one commit in the end deleting the Markdown file of the plan.
+- if you see something that should be refactored, do the refactoring instead of building bloat around. If we are still
+  in discussion, discuss with me how the refactoring should be done. If you are already working on changes and I asked
+  you to commit, then - if possible - do separate commits for the refactorings.
+- When you are in planning mode, don't just leave the planning mode, but send a message instead asking if I want to make
+  changes to the plan or if you can execute it.
