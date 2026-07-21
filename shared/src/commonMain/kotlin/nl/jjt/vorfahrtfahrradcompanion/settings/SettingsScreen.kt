@@ -1,14 +1,32 @@
 package nl.jjt.vorfahrtfahrradcompanion.settings
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -16,8 +34,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
-    val viewModel: SettingsViewModel = koinViewModel()
+fun SettingsScreen(
+    modifier: Modifier = Modifier,
+    viewModel: SettingsViewModel = koinViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(
@@ -62,21 +82,116 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Button(onClick = viewModel::testConnection, enabled = state.canSubmit) {
-                Text("Test connection")
-            }
-            when (val test = state.connectionTest) {
-                ConnectionTestState.Idle -> {}
-                ConnectionTestState.Running -> Text("Testing…")
-                ConnectionTestState.Ok -> Text("Connection OK", color = MaterialTheme.colorScheme.primary)
-                is ConnectionTestState.Failed -> Text(test.message, color = MaterialTheme.colorScheme.error)
-            }
-        }
+        ConnectionTester(
+            state = state.connectionTest,
+            enabled = state.canSubmit,
+            onTest = viewModel::testConnection,
+        )
+
+        Spacer(Modifier.weight(1f))
 
         if (state.hasUnsavedChanges) {
-            Button(onClick = viewModel::save, enabled = state.canSubmit) {
+            Button(
+                onClick = viewModel::save,
+                enabled = state.canSubmit,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("Save")
+            }
+        }
+    }
+}
+
+/**
+ * A "Test connection" row whose action button morphs into a green tick on success and a red cross on
+ * failure, while the label keeps it obvious what the button does. Stays tappable so the test can be rerun.
+ */
+@Composable
+private fun ConnectionTester(
+    state: ConnectionTestState,
+    enabled: Boolean,
+    onTest: () -> Unit,
+) {
+    val ok = Color(0xFF2E7D32)
+    val onOk = Color.White
+    val error = MaterialTheme.colorScheme.error
+    val onError = MaterialTheme.colorScheme.onError
+    val neutral = MaterialTheme.colorScheme.secondaryContainer
+    val onNeutral = MaterialTheme.colorScheme.onSecondaryContainer
+
+    val container by animateColorAsState(
+        when (state) {
+            ConnectionTestState.Ok -> ok
+            is ConnectionTestState.Failed -> error
+            else -> neutral
+        },
+        tween(300),
+    )
+    val content by animateColorAsState(
+        when (state) {
+            ConnectionTestState.Ok -> onOk
+            is ConnectionTestState.Failed -> onError
+            else -> onNeutral
+        },
+        tween(300),
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("Test connection", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = when (state) {
+                    ConnectionTestState.Idle -> "Not tested yet"
+                    ConnectionTestState.Running -> "Testing…"
+                    ConnectionTestState.Ok -> "Connection OK"
+                    is ConnectionTestState.Failed -> state.message
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = when (state) {
+                    ConnectionTestState.Ok -> ok
+                    is ConnectionTestState.Failed -> error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+
+        FilledIconButton(
+            onClick = onTest,
+            enabled = enabled && state != ConnectionTestState.Running,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = container,
+                contentColor = content,
+            ),
+            modifier = Modifier.size(56.dp),
+        ) {
+            AnimatedContent(
+                targetState = state,
+                transitionSpec = {
+                    (scaleIn(tween(220)) + fadeIn(tween(220))) togetherWith
+                        (scaleOut(tween(220)) + fadeOut(tween(220)))
+                },
+                label = "connection-test-icon",
+            ) { s ->
+                when (s) {
+                    ConnectionTestState.Idle ->
+                        Icon(Icons.Default.Refresh, contentDescription = "Test connection")
+
+                    ConnectionTestState.Running ->
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = content,
+                        )
+
+                    ConnectionTestState.Ok ->
+                        Icon(Icons.Default.Check, contentDescription = "Connection OK")
+
+                    is ConnectionTestState.Failed ->
+                        Icon(Icons.Default.Close, contentDescription = "Connection failed")
+                }
             }
         }
     }
