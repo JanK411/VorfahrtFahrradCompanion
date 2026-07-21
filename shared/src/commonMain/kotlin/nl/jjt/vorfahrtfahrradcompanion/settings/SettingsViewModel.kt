@@ -64,11 +64,25 @@ class SettingsViewModel(
     fun onPasswordChange(value: String) = update { copy(password = value) }
 
     fun save() {
+        viewModelScope.launch { saveAndWait() }
+    }
+
+    /** Persists the current settings and updates the saved snapshot, suspending until done. */
+    suspend fun saveAndWait() {
         val settings = currentSettings() ?: return
-        viewModelScope.launch {
-            repository.save(settings)
-            _state.update { it.copy(savedSettings = settings) }
-        }
+        repository.save(settings)
+        _state.update { it.copy(savedSettings = settings) }
+    }
+
+    /** Reverts the editable fields back to the last-saved snapshot. */
+    fun discardChanges() = _state.update { s ->
+        val saved = s.savedSettings
+        s.copy(
+            baseUrl = saved?.baseUrl.orEmpty(),
+            username = saved?.username.orEmpty(),
+            password = saved?.password.orEmpty(),
+            connectionTest = ConnectionTestState.Idle,
+        )
     }
 
     fun testConnection() {
