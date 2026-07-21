@@ -11,10 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaScreen
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
@@ -24,7 +23,6 @@ import nl.jjt.vorfahrtfahrradcompanion.navigation.NavigationGate
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.AppTheme
 import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsViewModel
 import org.koin.compose.KoinApplication
 import org.koin.core.module.Module
 import org.koin.dsl.koinConfiguration
@@ -36,7 +34,6 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App(additionalModules: List<Module> = emptyList()) {
     KoinApplication(
@@ -52,22 +49,26 @@ fun App(additionalModules: List<Module> = emptyList()) {
                 CompositionLocalProvider(LocalNavigationGate provides gate) {
                     Scaffold(
                         topBar = {
-                        CenterAlignedTopAppBar(
-                            title = {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(BicycleIcon, contentDescription = null)
-                                    Text("Vorfahrt Companion")
-                                }
-                            },
-                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            ),
-                        )
-                    },bottomBar = {
+                            CenterAlignedTopAppBar(
+                                title = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(BicycleIcon, contentDescription = null)
+                                        Text("Vorfahrt Companion")
+                                    }
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    scrolledContainerColor = Color.Unspecified,
+                                    navigationIconContentColor = Color.Unspecified,
+                                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    actionIconContentColor = Color.Unspecified
+                                ),
+                            )
+                        },
+                        bottomBar = {
                             NavigationBar {
                                 Tab.entries.forEach { tab ->
                                     NavigationBarItem(
