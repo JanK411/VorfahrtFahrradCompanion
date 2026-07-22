@@ -38,6 +38,17 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        // Fixed debug keystore checked into the repo so every build (any machine,
+        // CI, ephemeral container) signs with the same key. Lets a new APK install
+        // over an existing one without uninstalling first.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false

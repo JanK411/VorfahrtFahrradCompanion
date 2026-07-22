@@ -24,6 +24,10 @@ node_modules/
 keystore.properties
 signing.properties
 google-services.json
+# Exception: shared debug keystore is intentionally committed so every build
+# signs with the same key (install-over-update without uninstalling first).
+# Debug-only, public password "android" — no security value.
+!androidApp/debug.keystore
 
 # Crash and profiling dumps
 *.hprof
