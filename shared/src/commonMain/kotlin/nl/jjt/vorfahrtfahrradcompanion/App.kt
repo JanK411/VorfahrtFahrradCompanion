@@ -29,6 +29,7 @@ import nl.jjt.vorfahrtfahrradcompanion.location.LocationScreen
 import nl.jjt.vorfahrtfahrradcompanion.navigation.LocalNavigationGate
 import nl.jjt.vorfahrtfahrradcompanion.navigation.NavigationGate
 import nl.jjt.vorfahrtfahrradcompanion.patchnotes.PatchNotesScreen
+import nl.jjt.vorfahrtfahrradcompanion.settings.ServerConnectionScreen
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.AppTheme
 import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
@@ -39,6 +40,7 @@ import org.koin.dsl.koinConfiguration
 @Serializable private data object CriteriaRoute
 @Serializable private data object RideRoute
 @Serializable private data object SettingsRoute
+@Serializable private data object ServerConnectionRoute
 @Serializable private data object PatchNotesRoute
 
 /** Bottom-bar destinations. [PatchNotesRoute] is a sub-page reached from Settings, not a tab. */
@@ -61,7 +63,11 @@ fun App(additionalModules: List<Module> = emptyList()) {
                 val scope = rememberCoroutineScope()
 
                 val currentDestination by navController.currentBackStackEntryAsState()
-                val onSubPage = currentDestination?.destination?.hasRoute(PatchNotesRoute::class) == true
+                val destination = currentDestination?.destination
+                val onServerConnection = destination?.hasRoute(ServerConnectionRoute::class) == true
+                val onPatchNotes = destination?.hasRoute(PatchNotesRoute::class) == true
+                val onSubPage = onServerConnection || onPatchNotes
+                val subPageTitle = if (onServerConnection) "Server connection" else "What's New"
 
                 val topBarColors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -76,9 +82,15 @@ fun App(additionalModules: List<Module> = emptyList()) {
                         topBar = {
                             if (onSubPage) {
                                 CenterAlignedTopAppBar(
-                                    title = { Text("What's New") },
+                                    title = { Text(subPageTitle) },
                                     navigationIcon = {
-                                        IconButton(onClick = { navController.navigateUp() }) {
+                                        IconButton(onClick = {
+                                            if (!navigating) scope.launch {
+                                                navigating = true
+                                                if (gate.canLeave()) navController.navigateUp()
+                                                navigating = false
+                                            }
+                                        }) {
                                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                                         }
                                     },
@@ -102,7 +114,6 @@ fun App(additionalModules: List<Module> = emptyList()) {
                         bottomBar = {
                             if (!onSubPage) {
                                 NavigationBar {
-                                    val destination = currentDestination?.destination
                                     Tab.entries.forEach { tab ->
                                         val selected =
                                             destination?.hierarchy?.any { it.hasRoute(tab.route::class) } == true
@@ -141,7 +152,15 @@ fun App(additionalModules: List<Module> = emptyList()) {
                             composable<SettingsRoute> {
                                 SettingsScreen(
                                     modifier = Modifier.fillMaxSize(),
+                                    onOpenServerConnection = { navController.navigate(ServerConnectionRoute) },
                                     onOpenPatchNotes = { navController.navigate(PatchNotesRoute) },
+                                )
+                            }
+
+                            composable<ServerConnectionRoute> {
+                                ServerConnectionScreen(
+                                    modifier = Modifier.fillMaxSize(),
+                                    onNavigateUp = { navController.navigateUp() },
                                 )
                             }
 
