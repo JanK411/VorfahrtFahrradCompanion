@@ -13,4 +13,5 @@ fun createAppDatabase(context: Context): AppDatabase =
     Room.databaseBuilder<AppDatabase>(context, context.getDatabasePath("vorfahrt.db").absolutePath)
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
+        .addMigrations(MIGRATION_1_2)
         .build()
