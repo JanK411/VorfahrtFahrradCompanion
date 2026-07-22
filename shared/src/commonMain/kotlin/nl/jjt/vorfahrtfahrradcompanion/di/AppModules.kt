@@ -5,6 +5,8 @@ import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaViewModel
 import nl.jjt.vorfahrtfahrradcompanion.criteria.KtorCriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationViewModel
 import nl.jjt.vorfahrtfahrradcompanion.net.createHttpClient
+import nl.jjt.vorfahrtfahrradcompanion.patchnotes.PatchNotesRepository
+import nl.jjt.vorfahrtfahrradcompanion.patchnotes.PatchNotesViewModel
 import nl.jjt.vorfahrtfahrradcompanion.net.platformHttpClientEngine
 import nl.jjt.vorfahrtfahrradcompanion.settings.ConnectionTester
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
@@ -32,4 +34,10 @@ val settingsModule = module {
     viewModel { SettingsViewModel(get(), get()) }
 }
 
-val appModules: List<Module> = listOf(locationModule, settingsModule, criteriaModule)
+val patchNotesModule = module {
+    single { get<AppDatabase>().patchNotesStateDao() }
+    single { PatchNotesRepository(get()) }
+    viewModel { PatchNotesViewModel(get()) }
+}
+
+val appModules: List<Module> = listOf(locationModule, settingsModule, criteriaModule, patchNotesModule)
