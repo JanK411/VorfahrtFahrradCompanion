@@ -24,11 +24,12 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew :androidApp:assembleDebug
 
-      - name: Name APK after branch
+      - name: Name APK with timestamp and branch
         id: apk
         run: |
+          ts=$(date -u +%Y%m%d-%H%M%S)
           slug=$(echo "${{ github.ref_name }}" | tr '/' '-' | tr -cd 'A-Za-z0-9._-')
-          name="androidApp-debug-${slug}.apk"
+          name="${ts}-androidApp-debug-${slug}.apk"
           cp androidApp/build/outputs/apk/debug/androidApp-debug.apk "$RUNNER_TEMP/$name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "path=$RUNNER_TEMP/$name" >> "$GITHUB_OUTPUT"
