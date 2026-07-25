@@ -1,12 +1,6 @@
 package nl.jjt.vorfahrtfahrradcompanion.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.backhandler.BackHandler
 import kotlinx.coroutines.launch
@@ -55,6 +49,11 @@ fun LeaveGuard(
     }
 
     val scope = rememberCoroutineScope()
+    /**
+     * Compose 1.11 deprecates [BackHandler] in favor of NavigationEventHandler, whose Compose binding is still
+     * RC. We stay on the shipped-stable [BackHandler] until we bump Compose.
+     */
+    @Suppress("DEPRECATION")
     BackHandler(enabled = blocked) {
         scope.launch { if (currentConfirm()) onLeave() }
     }
