@@ -37,11 +37,29 @@ import org.koin.compose.KoinApplication
 import org.koin.core.module.Module
 import org.koin.dsl.koinConfiguration
 
-@Serializable private data object CriteriaRoute
-@Serializable private data object RideRoute
-@Serializable private data object SettingsRoute
-@Serializable private data object ServerConnectionRoute
-@Serializable private data object PatchNotesRoute
+@Serializable
+private data object CriteriaRoute
+@Serializable
+private data object RideRoute
+@Serializable
+private data object SettingsRoute
+
+/** A sub-page pushed onto the back stack from a tab; each owns the title shown in the top bar. */
+private sealed interface SubPage {
+    val title: String
+}
+
+@Serializable
+private data object ServerConnectionRoute : SubPage {
+    override val title = "Server connection"
+}
+
+@Serializable
+private data object PatchNotesRoute : SubPage {
+    override val title = "What's New"
+}
+
+private val subPages = listOf(ServerConnectionRoute, PatchNotesRoute)
 
 /** Bottom-bar destinations. [PatchNotesRoute] is a sub-page reached from Settings, not a tab. */
 private enum class Tab(val label: String, val icon: ImageVector, val route: Any) {
@@ -64,10 +82,8 @@ fun App(additionalModules: List<Module> = emptyList()) {
 
                 val currentDestination by navController.currentBackStackEntryAsState()
                 val destination = currentDestination?.destination
-                val onServerConnection = destination?.hasRoute(ServerConnectionRoute::class) == true
-                val onPatchNotes = destination?.hasRoute(PatchNotesRoute::class) == true
-                val onSubPage = onServerConnection || onPatchNotes
-                val subPageTitle = if (onServerConnection) "Server connection" else "What's New"
+                val subPage = subPages.firstOrNull { destination?.hasRoute(it::class) == true }
+                val onSubPage = subPage != null
 
                 val topBarColors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -82,7 +98,7 @@ fun App(additionalModules: List<Module> = emptyList()) {
                         topBar = {
                             if (onSubPage) {
                                 CenterAlignedTopAppBar(
-                                    title = { Text(subPageTitle) },
+                                    title = { Text(subPage.title) },
                                     navigationIcon = {
                                         IconButton(onClick = {
                                             if (!navigating) scope.launch {
