@@ -1,5 +1,6 @@
 package nl.jjt.vorfahrtfahrradcompanion.di
 
+import nl.jjt.vorfahrtfahrradcompanion.criteria.CachingCriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaViewModel
 import nl.jjt.vorfahrtfahrradcompanion.criteria.KtorCriteriaApi
@@ -21,7 +22,8 @@ val locationModule = module {
 }
 
 val criteriaModule = module {
-    single<CriteriaApi> { KtorCriteriaApi(get(), get()) }
+    single { get<AppDatabase>().catalogueCacheDao() }
+    single<CriteriaApi> { CachingCriteriaApi(KtorCriteriaApi(get(), get()), get(), get()) }
     viewModel { CriteriaViewModel(get(), get()) }
 }
 
