@@ -16,6 +16,17 @@ internal fun CriterionDto.toDomain() = Criterion(
     values = values
 )
 
+internal fun Catalogue.toDto() = CatalogueDto(criteria.map { it.toDto() })
+
+internal fun Criterion.toDto() = CriterionDto(
+    id = id,
+    kind = when (kind) {
+        CriterionKind.SINGLE -> "SINGLE"
+        CriterionKind.MULTI -> "MULTI"
+    },
+    values = values
+)
+
 @Serializable
 internal data class ObservationDto(
     val latitude: Double,
