@@ -3,12 +3,18 @@ package nl.jjt.vorfahrtfahrradcompanion.settings.db
 import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheDao
+import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheEntity
 import nl.jjt.vorfahrtfahrradcompanion.patchnotes.db.PatchNotesStateDao
 import nl.jjt.vorfahrtfahrradcompanion.patchnotes.db.PatchNotesStateEntity
 
-@Database(entities = [SettingsEntity::class, PatchNotesStateEntity::class], version = 2)
+@Database(
+    entities = [SettingsEntity::class, PatchNotesStateEntity::class, CatalogueCacheEntity::class],
+    version = 3,
+)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun patchNotesStateDao(): PatchNotesStateDao
+    abstract fun catalogueCacheDao(): CatalogueCacheDao
 }
