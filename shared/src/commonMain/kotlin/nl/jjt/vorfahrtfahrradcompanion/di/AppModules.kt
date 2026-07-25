@@ -40,4 +40,9 @@ val patchNotesModule = module {
     viewModel { PatchNotesViewModel(get()) }
 }
 
-val appModules: List<Module> = listOf(locationModule, settingsModule, criteriaModule, patchNotesModule)
+val appModules: List<Module> = listOf(
+    locationModule,
+    settingsModule,
+    criteriaModule,
+    patchNotesModule
+)
