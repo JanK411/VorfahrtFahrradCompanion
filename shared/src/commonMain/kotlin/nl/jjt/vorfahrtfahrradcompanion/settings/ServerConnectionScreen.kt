@@ -11,9 +11,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -24,7 +22,6 @@ import nl.jjt.vorfahrtfahrradcompanion.navigation.LeaveGuard
 import nl.jjt.vorfahrtfahrradcompanion.navigation.rememberConfirmPrompt
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ServerConnectionScreen(
     modifier: Modifier = Modifier,
@@ -55,12 +52,12 @@ fun ServerConnectionScreen(
         )
     }
 
-    // Guards the toolbar back arrow (via NavigationGate in App).
-    LeaveGuard { !viewModel.state.value.hasUnsavedChanges || confirmLeave() }
-    // Guards the system/predictive back gesture, which the gate can't see.
-    BackHandler(enabled = state.hasUnsavedChanges) {
-        scope.launch { if (confirmLeave()) onNavigateUp() }
-    }
+    // Guards every exit path — tab switch, toolbar arrow, system/predictive back — with one check.
+    LeaveGuard(
+        blocked = state.hasUnsavedChanges,
+        onLeave = onNavigateUp,
+        confirm = { confirmLeave() },
+    )
 
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
