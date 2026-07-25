@@ -3,6 +3,13 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.1",
+        date = "2026-07-25",
+        changes = listOf(
+            "The criterion catalogue now works offline: it is stored on your device and shown even when the server can't be reached.",
+        ),
+    ),
+    PatchNote(
         version = "1.0",
         date = "2026-07-21",
         changes = listOf(
