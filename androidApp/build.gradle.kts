@@ -57,6 +57,13 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // we sign the debug app with the release keystore here. That is by design and not an issue.
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null) {
+                signingConfig = releaseSigning
+            }
+        }
         release {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
