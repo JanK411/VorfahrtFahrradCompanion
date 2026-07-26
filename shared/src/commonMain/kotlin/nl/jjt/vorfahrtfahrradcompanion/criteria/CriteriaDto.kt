@@ -26,20 +26,3 @@ internal fun Criterion.toDto() = CriterionDto(
     },
     values = values
 )
-
-@Serializable
-internal data class ObservationDto(
-    val latitude: Double,
-    val longitude: Double,
-    val accuracyMeters: Float,
-    val recordedAt: String,
-    val values: Map<String, List<String>>
-)
-
-internal fun Observation.toDto() = ObservationDto(
-    latitude = location.latitude,
-    longitude = location.longitude,
-    accuracyMeters = location.accuracyMeters,
-    recordedAt = location.timestamp.toString(),
-    values = values.mapValues { it.value.toList() }
-)
