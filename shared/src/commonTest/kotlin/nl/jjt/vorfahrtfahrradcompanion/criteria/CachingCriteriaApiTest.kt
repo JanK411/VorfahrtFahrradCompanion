@@ -40,8 +40,6 @@ private class FakeDelegate(
         error?.let { throw it }
         return result
     }
-
-    override suspend fun submit(o: Observation) = Unit
 }
 
 private class FakeSettingsDao : SettingsDao {

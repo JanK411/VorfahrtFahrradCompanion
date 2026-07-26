@@ -1,39 +1,48 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import nl.jjt.vorfahrtfahrradcompanion.location.Location
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
+import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
+import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationEntity
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 private val width = Criterion("WIDTH", CriterionKind.SINGLE, listOf("W_1", "W_2"))
 private val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI, listOf("CARS", "CYCLISTS"))
 private val catalogue = Catalogue(listOf(width, users))
 
-private val fix = Location(52.1, 4.3, 8.0f, null, null, Instant.parse("2026-07-20T12:43:37Z"))
+private val recordedAt = Instant.parse("2026-07-20T12:43:37Z")
+private val valuesSerializer = MapSerializer(String.serializer(), ListSerializer(String.serializer()))
 
 private class FakeApi : CriteriaApi {
-    var submitted: Observation? = null
     override suspend fun catalogue() = catalogue
-    override suspend fun submit(o: Observation) {
-        submitted = o
+}
+
+private class FakeObservationDao : ObservationDao {
+    var inserted: ObservationEntity? = null
+    override suspend fun insert(entity: ObservationEntity) {
+        inserted = entity
     }
 }
 
-private class FakeLocationProvider : LocationProvider {
-    override fun locations(intervalMillis: Long): Flow<Location> = flowOf(fix)
+@OptIn(ExperimentalTime::class)
+private class FakeClock(private val instant: Instant) : Clock {
+    override fun now() = instant
 }
 
-@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class CriteriaViewModelTest {
 
     @BeforeTest
@@ -41,6 +50,9 @@ class CriteriaViewModelTest {
 
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
+
+    private fun vmWith(dao: FakeObservationDao) =
+        CriteriaViewModel(FakeApi(), ObservationRepository(dao, FakeClock(recordedAt)))
 
     @Test
     fun singleSelectionReplacesAndClears() {
@@ -71,12 +83,12 @@ class CriteriaViewModelTest {
     }
 
     @Test
-    fun emptySelectionsAreOmittedFromTheSubmittedBody() = runTest {
-        val api = FakeApi()
-        val vm = CriteriaViewModel(api, FakeLocationProvider())
+    fun emptySelectionsAreOmittedFromTheStoredObservation() = runTest {
+        val dao = FakeObservationDao()
+        val vm = vmWith(dao)
         testScheduler.advanceUntilIdle()
 
-        // WIDTH ends up selected-then-cleared, so it must not reach the body at all.
+        // WIDTH ends up selected-then-cleared, so it must not reach the stored values at all.
         vm.onSelect(width, "W_1")
         vm.onSelect(width, "W_1")
         vm.onSelect(users, "CARS")
@@ -84,13 +96,17 @@ class CriteriaViewModelTest {
         vm.submit()
         testScheduler.advanceUntilIdle()
 
-        assertEquals(mapOf("ALLOWED_USERS" to setOf("CARS")), api.submitted?.values)
-        assertEquals(fix, api.submitted?.location)
+        val stored = dao.inserted
+        assertEquals(recordedAt.toEpochMilliseconds(), stored?.recordedAtEpochMs)
+        assertEquals(
+            mapOf("ALLOWED_USERS" to listOf("CARS")),
+            stored?.valuesJson?.let { Json.decodeFromString(valuesSerializer, it) },
+        )
     }
 
     @Test
     fun successfulSubmitClearsSelections() = runTest {
-        val vm = CriteriaViewModel(FakeApi(), FakeLocationProvider())
+        val vm = vmWith(FakeObservationDao())
         testScheduler.advanceUntilIdle()
 
         vm.onSelect(users, "CARS")
