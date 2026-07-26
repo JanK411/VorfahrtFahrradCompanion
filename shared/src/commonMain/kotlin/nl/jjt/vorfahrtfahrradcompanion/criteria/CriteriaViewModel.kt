@@ -2,16 +2,11 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
-import kotlin.time.Duration.Companion.seconds
 
 sealed interface CriteriaUiState {
     data object Loading : CriteriaUiState
@@ -28,8 +23,6 @@ sealed interface SubmitState {
     data object InFlight : SubmitState
     data class Error(val message: String) : SubmitState
 }
-
-private val FIX_TIMEOUT = 15.seconds
 
 /**
  * Applies a chip tap. [CriterionKind] is the only thing that differs between criteria, which is what
@@ -49,7 +42,7 @@ internal fun Map<String, Set<String>>.select(
 
 class CriteriaViewModel(
     private val api: CriteriaApi,
-    private val locations: LocationProvider,
+    private val observations: ObservationRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<CriteriaUiState>(CriteriaUiState.Loading)
@@ -59,7 +52,7 @@ class CriteriaViewModel(
         load()
     }
 
-    /** No cache: the catalogue is authoritative server-side, so it is fetched on every screen open. */
+    /** Reloads the catalogue; reachable from [CriteriaUiState.Failed], where no cached copy was available. */
     fun retry() = load()
 
     fun onSelect(criterion: Criterion, value: String) = updateReady {
@@ -73,20 +66,12 @@ class CriteriaViewModel(
         viewModelScope.launch {
             updateReady { copy(submitState = SubmitState.InFlight) }
 
-            val location = try {
-                withTimeout(FIX_TIMEOUT) { locations.locations().first() }
-            } catch (_: TimeoutCancellationException) {
-                return@launch fail("No GPS fix within ${FIX_TIMEOUT.inWholeSeconds} s")
-            } catch (e: Exception) {
-                return@launch fail(e.message ?: "Location unavailable — is the permission granted?")
-            }
-
             try {
                 // Unset criteria are simply omitted; there is no validation.
-                api.submit(Observation(location, ready.selections.filterValues { it.isNotEmpty() }))
+                observations.record(ready.selections.filterValues { it.isNotEmpty() })
                 updateReady { copy(selections = emptyMap(), submitState = SubmitState.Idle) }
             } catch (e: Exception) {
-                fail(e.message ?: "Submit failed")
+                fail(e.message ?: "Could not save the observation")
             }
         }
     }
