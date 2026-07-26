@@ -66,7 +66,7 @@ private fun Catalogue(
     var wasInFlight by remember { mutableStateOf(false) }
     LaunchedEffect(state.submitState) {
         if (wasInFlight && state.submitState is SubmitState.Idle) {
-            snackbarHostState.showSnackbar("Observation submitted")
+            snackbarHostState.showSnackbar("Observation saved")
         }
         wasInFlight = state.submitState is SubmitState.InFlight
     }
