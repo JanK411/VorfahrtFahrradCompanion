@@ -3,6 +3,13 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.2",
+        date = "2026-07-26",
+        changes = listOf(
+            "Observations are now saved on your device and submitting no longer waits for a GPS fix.",
+        ),
+    ),
+    PatchNote(
         version = "1.1",
         date = "2026-07-25",
         changes = listOf(
