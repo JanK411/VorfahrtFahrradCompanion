@@ -15,7 +15,7 @@ import kotlin.time.ExperimentalTime
  * open. The catalogue changes rarely, so a fetch happens at most once per [CATALOGUE_TTL]; a fresh copy
  * is served straight from the cache, and a stale copy is still served when the server is unreachable.
  * The cache is keyed by the current base URL so a previous server's catalogue is never shown after the
- * server is changed. Wraps [delegate] and passes [submit] straight through.
+ * server is changed. Wraps [delegate].
  */
 @OptIn(ExperimentalTime::class)
 class CachingCriteriaApi(
@@ -39,8 +39,6 @@ class CachingCriteriaApi(
             cached?.decode() ?: throw e
         }
     }
-
-    override suspend fun submit(o: Observation) = delegate.submit(o)
 
     private suspend fun currentBaseUrl(): String {
         val raw = settings.settings.first().baseUrl
