@@ -30,3 +30,17 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+/**
+ * v3 → v4: adds the `observations` table where submitted observations are stored locally (timestamp +
+ * selected values) instead of being sent to the server. Additive only — existing tables are untouched.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `observations` " +
+                "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `recordedAtEpochMs` INTEGER NOT NULL, " +
+                "`valuesJson` TEXT NOT NULL)",
+        )
+    }
+}
