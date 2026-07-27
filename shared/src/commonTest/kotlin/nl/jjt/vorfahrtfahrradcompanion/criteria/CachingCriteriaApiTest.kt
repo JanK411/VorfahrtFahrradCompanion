@@ -13,15 +13,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 private val catalogue = Catalogue(listOf(Criterion("WIDTH", CriterionKind.SINGLE, listOf("W_1", "W_2"))))
 
 private const val BASE_URL = "http://example.test"
-private val json = Json { ignoreUnknownKeys = true }
+private val json = Json
 
 private class FakeCacheDao(var row: CatalogueCacheEntity? = null) : CatalogueCacheDao {
     override suspend fun get(id: Int) = row
@@ -49,12 +47,6 @@ private class FakeSettingsDao : SettingsDao {
     override suspend fun upsert(entity: SettingsEntity) = Unit
 }
 
-@OptIn(ExperimentalTime::class)
-private class FakeClock(val instant: Instant) : Clock {
-    override fun now() = instant
-}
-
-@OptIn(ExperimentalTime::class)
 class CachingCriteriaApiTest {
 
     private val now = Instant.parse("2026-07-25T12:00:00Z")

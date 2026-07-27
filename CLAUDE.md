@@ -59,11 +59,11 @@ dependency.
 - **State**: multiplatform `ViewModel` + `StateFlow`; one sealed `UiState` per screen where states are genuinely
   exclusive.
 - **Networking / JSON**: Ktor + `kotlinx-serialization-json` (`-core` is not enough).
-- **Time**: kotlinx-datetime + `kotlin.time.Clock`; opt in to `kotlin.time.ExperimentalTime`.
+- **Time**: kotlinx-datetime + `kotlin.time.Clock`;
 - **Navigation**: `androidx.navigation.compose` — multiplatform-stable, type-safe routes from `@Serializable`. Not
-  Navigation3: it's Android-first, and its only real win is adaptive list-detail, which this app doesn't need. Wired
-  in `App.kt` as a `NavHost`: the three bottom-bar tabs are top-level routes, sub-pages (e.g. What's New) are pushed
-  onto the back stack. Leaving a screen with unsaved work still goes through `NavigationGate`/`LeaveGuard`.
+  Navigation3: it's Android-first, and its only real win is adaptive list-detail, which this app doesn't need. Wired in
+  `App.kt` as a `NavHost`: the three bottom-bar tabs are top-level routes, sub-pages (e.g. What's New) are pushed onto
+  the back stack. Leaving a screen with unsaved work still goes through `NavigationGate`/`LeaveGuard`.
 - **Streaming platform data uses `Flow`, not callbacks**: `fun locations(intervalMillis: Long): Flow<Location>` via
   `callbackFlow`, not `onUpdate(cb)`/`start()`/`stop()`. Applies to GPS, sensors, anything with a listener API.
 - **Permissions**: permission *screen* in `commonMain`; only the request mechanism behind an interface implemented in
@@ -82,8 +82,8 @@ dependency.
 User-facing changelog lives in `patchnotes/PatchNotes.kt` as a static newest-first `List<PatchNote>`, shown on the
 Settings → "What's New" sub-page. On any user-visible change, **prepend** a new `PatchNote(version, date, changes)`
 entry: the newest entry is treated as the current release, and each user sees every note newer than the version they
-last opened (tracked in the `patch_notes_state` Room table). `splitPatchNotes` derives new-vs-older by list position,
-so ordering — not version parsing — is what matters; keep the list newest-first.
+last opened (tracked in the `patch_notes_state` Room table). `splitPatchNotes` derives new-vs-older by list position, so
+ordering — not version parsing — is what matters; keep the list newest-first.
 
 ## General Instructions
 

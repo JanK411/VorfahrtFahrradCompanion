@@ -8,24 +8,23 @@ import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
 import nl.jjt.vorfahrtfahrradcompanion.settings.normalizeBaseUrl
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.ExperimentalTime
 
 /**
  * Caches the criterion catalogue in Room so the app works offline and does not re-fetch on every screen
- * open. The catalogue changes rarely, so a fetch happens at most once per [CATALOGUE_TTL]; a fresh copy
+ * open. The catalogue changes rarely, so a fetch happens at most once per [CACHE_INVALIDATION_TIME]; a fresh copy
  * is served straight from the cache, and a stale copy is still served when the server is unreachable.
  * The cache is keyed by the current base URL so a previous server's catalogue is never shown after the
  * server is changed. Wraps [delegate].
  */
-@OptIn(ExperimentalTime::class)
 class CachingCriteriaApi(
     private val delegate: CriteriaApi,
     private val dao: CatalogueCacheDao,
     private val settings: SettingsRepository,
     private val clock: Clock = Clock.System,
 ) : CriteriaApi {
-
-    private val json = Json { ignoreUnknownKeys = true }
+    private companion object {
+        val CACHE_INVALIDATION_TIME = 24.hours
+    }
 
     override suspend fun catalogue(): Catalogue {
         val baseUrl = currentBaseUrl()
@@ -36,6 +35,7 @@ class CachingCriteriaApi(
         return try {
             delegate.catalogue().also { store(baseUrl, it) }
         } catch (e: Exception) {
+            // failed to fetch from the delegate. Fallback to the cached one.
             cached?.decode() ?: throw e
         }
     }
@@ -48,18 +48,14 @@ class CachingCriteriaApi(
     private suspend fun store(baseUrl: String, catalogue: Catalogue) = dao.upsert(
         CatalogueCacheEntity(
             baseUrl = baseUrl,
-            catalogueJson = json.encodeToString(CatalogueDto.serializer(), catalogue.toDto()),
+            catalogueJson = Json.encodeToString(CatalogueDto.serializer(), catalogue.toDto()),
             fetchedAtEpochMs = clock.now().toEpochMilliseconds(),
         ),
     )
 
     private fun CatalogueCacheEntity.isStale() =
-        clock.now().toEpochMilliseconds() - fetchedAtEpochMs > CATALOGUE_TTL.inWholeMilliseconds
+        clock.now().toEpochMilliseconds() - fetchedAtEpochMs > CACHE_INVALIDATION_TIME.inWholeMilliseconds
 
     private fun CatalogueCacheEntity.decode() =
-        json.decodeFromString(CatalogueDto.serializer(), catalogueJson).toDomain()
-
-    private companion object {
-        val CATALOGUE_TTL = 24.hours
-    }
+        Json.decodeFromString(CatalogueDto.serializer(), catalogueJson).toDomain()
 }

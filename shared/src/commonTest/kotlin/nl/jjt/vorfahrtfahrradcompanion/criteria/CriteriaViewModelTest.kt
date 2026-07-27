@@ -15,8 +15,6 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 private val width = Criterion("WIDTH", CriterionKind.SINGLE, listOf("W_1", "W_2"))
@@ -37,12 +35,7 @@ private class FakeObservationDao : ObservationDao {
     }
 }
 
-@OptIn(ExperimentalTime::class)
-private class FakeClock(private val instant: Instant) : Clock {
-    override fun now() = instant
-}
-
-@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, ExperimentalTime::class)
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class CriteriaViewModelTest {
 
     @BeforeTest
