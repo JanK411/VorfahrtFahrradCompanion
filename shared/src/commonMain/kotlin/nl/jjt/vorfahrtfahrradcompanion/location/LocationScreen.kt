@@ -11,16 +11,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
+import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.Instant
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -66,17 +62,6 @@ fun LocationScreen(modifier: Modifier = Modifier) {
             }
         }
     }
-}
-
-@Composable
-private fun secondsSince(timestamp: Instant): Long {
-    val seconds by produceState(0L, timestamp) {
-        while (true) {
-            value = (Clock.System.now() - timestamp).inWholeSeconds
-            delay(1.seconds)
-        }
-    }
-    return seconds
 }
 
 @Composable
