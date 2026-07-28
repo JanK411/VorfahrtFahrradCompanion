@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
  * it is read from settings per call, so editing it takes effect without rebuilding the client.
  */
 fun createHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(engine) {
+    install(InsecureTransportGuard)
     install(ContentNegotiation) {
         json(Json { ignoreUnknownKeys = true })
     }
