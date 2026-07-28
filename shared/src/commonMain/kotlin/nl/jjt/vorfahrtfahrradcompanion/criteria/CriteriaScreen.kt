@@ -86,13 +86,24 @@ private fun Catalogue(
 
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
-            LazyColumn(
-                contentPadding = PaddingValues(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                items(state.catalogue.criteria, key = Criterion::id) { criterion ->
-                    CriterionSection(criterion, state.selections[criterion], onSelect)
+            // The criteria describe the stretch being recorded, so they only make sense once one is open.
+            if (state.segment is Segment.Open) {
+                LazyColumn(
+                    contentPadding = PaddingValues(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    items(state.catalogue.criteria, key = Criterion::id) { criterion ->
+                        CriterionSection(criterion, state.selections[criterion], onSelect)
+                    }
                 }
+            } else {
+                Text(
+                    "Start a segment to describe it.",
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
             }
             SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
         }

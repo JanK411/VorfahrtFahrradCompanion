@@ -10,6 +10,7 @@ val patchNotes: List<PatchNote> = listOf(
             "Missed the exact moment? Use the amber \"Started earlier\" / \"Ended earlier\" buttons and the segment is stored as having begun or ended before you pressed.",
             "\"End now, start next\" closes one segment and opens the next on the same spot, for surveying a path in one go.",
             "Your selections stay put when a segment ends, so you only change what actually differs.",
+            "The criteria are only shown while a segment is running — before you start, the screen stays out of the way.",
         ),
     ),
     PatchNote(
