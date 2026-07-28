@@ -13,7 +13,7 @@ sealed interface CriteriaUiState {
     data class Failed(val message: String) : CriteriaUiState
     data class Ready(
         val catalogue: Catalogue,
-        val selections: Map<String, Set<String>> = emptyMap(),
+        val selections: Selections = Selections(),
         val submitState: SubmitState = SubmitState.Idle,
     ) : CriteriaUiState
 }
@@ -22,22 +22,6 @@ sealed interface SubmitState {
     data object Idle : SubmitState
     data object InFlight : SubmitState
     data class Error(val message: String) : SubmitState
-}
-
-/**
- * Applies a chip tap. [CriterionKind] is the only thing that differs between criteria, which is what
- * lets one screen render a catalogue it has never seen.
- */
-internal fun Map<String, Set<String>>.select(
-    criterion: Criterion,
-    value: String,
-): Map<String, Set<String>> {
-    val current = this[criterion.id].orEmpty()
-    val next = when (criterion.kind) {
-        CriterionKind.SINGLE -> if (value in current) emptySet() else setOf(value)
-        CriterionKind.MULTI -> if (value in current) current - value else current + value
-    }
-    return this + (criterion.id to next)
 }
 
 class CriteriaViewModel(
@@ -67,9 +51,8 @@ class CriteriaViewModel(
             updateReady { copy(submitState = SubmitState.InFlight) }
 
             try {
-                // Unset criteria are simply omitted; there is no validation.
-                observations.record(ready.selections.filterValues { it.isNotEmpty() })
-                updateReady { copy(selections = emptyMap(), submitState = SubmitState.Idle) }
+                observations.record(ready.selections)
+                updateReady { copy(selections = Selections(), submitState = SubmitState.Idle) }
             } catch (e: Exception) {
                 fail(e.message ?: "Could not save the observation")
             }

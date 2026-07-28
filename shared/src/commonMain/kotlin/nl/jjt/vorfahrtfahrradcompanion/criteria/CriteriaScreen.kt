@@ -78,7 +78,7 @@ private fun Catalogue(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(state.catalogue.criteria, key = Criterion::id) { criterion ->
-                    CriterionSection(criterion, state.selections[criterion.id].orEmpty(), onSelect)
+                    CriterionSection(criterion, state.selections[criterion], onSelect)
                 }
             }
             SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))

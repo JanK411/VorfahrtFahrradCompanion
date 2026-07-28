@@ -6,9 +6,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationEntity
@@ -23,7 +20,6 @@ private val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI, listOf("CARS
 private val catalogue = Catalogue(listOf(width, users))
 
 private val recordedAt = Instant.parse("2026-07-20T12:43:37Z")
-private val valuesSerializer = MapSerializer(String.serializer(), ListSerializer(String.serializer()))
 
 private class FakeApi : CriteriaApi {
     override suspend fun catalogue() = catalogue
@@ -51,30 +47,30 @@ class CriteriaViewModelTest {
 
     @Test
     fun singleSelectionReplacesAndClears() {
-        var selections: Map<String, Set<String>> = emptyMap()
+        var selections = Selections()
 
         selections = selections.select(width, "W_1")
-        assertEquals(setOf("W_1"), selections["WIDTH"])
+        assertEquals(setOf("W_1"), selections[width])
 
         // A different chip replaces
         selections = selections.select(width, "W_2")
-        assertEquals(setOf("W_2"), selections["WIDTH"])
+        assertEquals(setOf("W_2"), selections[width])
 
         // The selected chip clears
         selections = selections.select(width, "W_2")
-        assertEquals(emptySet(), selections["WIDTH"])
+        assertEquals(emptySet(), selections[width])
     }
 
     @Test
     fun multiSelectionToggles() {
-        var selections: Map<String, Set<String>> = emptyMap()
+        var selections = Selections()
 
         selections = selections.select(users, "CARS")
         selections = selections.select(users, "CYCLISTS")
-        assertEquals(setOf("CARS", "CYCLISTS"), selections["ALLOWED_USERS"])
+        assertEquals(setOf("CARS", "CYCLISTS"), selections[users])
 
         selections = selections.select(users, "CARS")
-        assertEquals(setOf("CYCLISTS"), selections["ALLOWED_USERS"])
+        assertEquals(setOf("CYCLISTS"), selections[users])
     }
 
     @Test
@@ -94,8 +90,8 @@ class CriteriaViewModelTest {
         val stored = dao.inserted
         assertEquals(recordedAt.toEpochMilliseconds(), stored?.recordedAtEpochMs)
         assertEquals(
-            mapOf("ALLOWED_USERS" to listOf("CARS")),
-            stored?.valuesJson?.let { Json.decodeFromString(valuesSerializer, it) },
+            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
+            stored?.valuesJson?.let { Json.decodeFromString<Selections>(it) },
         )
     }
 
@@ -109,7 +105,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         val ready = vm.state.value as CriteriaUiState.Ready
-        assertEquals(emptyMap(), ready.selections)
+        assertEquals(Selections(), ready.selections)
         assertEquals(SubmitState.Idle, ready.submitState)
     }
 }
