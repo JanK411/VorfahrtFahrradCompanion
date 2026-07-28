@@ -3,6 +3,16 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.3",
+        date = "2026-07-28",
+        changes = listOf(
+            "An observation now covers a whole segment: mark where it starts, mark where it ends.",
+            "Missed the exact moment? Use the amber \"Started earlier\" / \"Ended earlier\" buttons and the segment is stored as having begun or ended before you pressed.",
+            "\"End now, start next\" closes one segment and opens the next on the same spot, for surveying a path in one go.",
+            "Your selections stay put when a segment ends, so you only change what actually differs.",
+        ),
+    ),
+    PatchNote(
         version = "1.2",
         date = "2026-07-26",
         changes = listOf(
