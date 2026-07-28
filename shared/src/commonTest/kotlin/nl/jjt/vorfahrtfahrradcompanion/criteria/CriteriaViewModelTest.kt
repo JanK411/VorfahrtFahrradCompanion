@@ -1,6 +1,7 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -35,12 +36,13 @@ private class FakeObservationDao : ObservationDao {
     }
 }
 
-@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class CriteriaViewModelTest {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @BeforeTest
     fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
