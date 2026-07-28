@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Debug only: talk to a LAN server that has no certificate. InsecureTransportGuard still
+         limits plain http to local addresses. -->
+    <application android:usesCleartextTraffic="true"
+                 tools:replace="android:usesCleartextTraffic"/>
+
+</manifest>

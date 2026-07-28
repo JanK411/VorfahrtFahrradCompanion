@@ -6,8 +6,7 @@ val patchNotes: List<PatchNote> = listOf(
         version = "1.3",
         date = "2026-07-28",
         changes = listOf(
-            "The app now only talks to servers over https — plain http is accepted for servers on your own network only.",
-            "A base URL typed without http:// or https:// now defaults to https, unless it points at your own network.",
+            "The app now only talks to servers over https, and a base URL typed without a scheme defaults to https.",
         ),
     ),
     PatchNote(
