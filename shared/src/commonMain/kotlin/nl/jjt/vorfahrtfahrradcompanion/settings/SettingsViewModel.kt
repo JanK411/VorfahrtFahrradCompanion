@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import nl.jjt.vorfahrtfahrradcompanion.net.isAllowedUrl
 
 sealed interface ConnectionTestState {
     data object Idle : ConnectionTestState
@@ -26,7 +27,11 @@ data class SettingsUiState(
     val connectionTest: ConnectionTestState = ConnectionTestState.Idle,
     val savedSettings: Settings? = null,
 ) {
-    val normalizedBaseUrl: String? = normalizeBaseUrl(baseUrl)
+    private val parsedBaseUrl: String? = normalizeBaseUrl(baseUrl)
+
+    /** Parses fine, but plain http:// towards a server outside the local network. */
+    val isBaseUrlInsecure: Boolean = parsedBaseUrl != null && !isAllowedUrl(parsedBaseUrl)
+    val normalizedBaseUrl: String? = parsedBaseUrl.takeIf { !isBaseUrlInsecure }
     val isBaseUrlInvalid: Boolean = baseUrl.isNotBlank() && normalizedBaseUrl == null
     val canSubmit: Boolean = normalizedBaseUrl != null
     val hasUnsavedChanges: Boolean =

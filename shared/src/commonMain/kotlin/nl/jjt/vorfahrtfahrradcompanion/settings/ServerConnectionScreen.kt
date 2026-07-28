@@ -70,10 +70,14 @@ fun ServerConnectionScreen(
             placeholder = { Text("http://192.168.178.123:8080") },
             supportingText = {
                 Text(
-                    if (state.isBaseUrlInvalid) {
-                        "Enter a valid URL, e.g. http://192.168.178.123:8080 or https://vorfahrt.example.com"
-                    } else {
-                        state.normalizedBaseUrl.orEmpty()
+                    when {
+                        state.isBaseUrlInsecure ->
+                            "http:// only works for servers on your own network — use https:// here"
+
+                        state.isBaseUrlInvalid ->
+                            "Enter a valid URL, e.g. http://192.168.178.123:8080 or https://vorfahrt.example.com"
+
+                        else -> state.normalizedBaseUrl.orEmpty()
                     }
                 )
             },
