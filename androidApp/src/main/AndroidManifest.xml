@@ -8,13 +8,13 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
 
     <!--
-        Cleartext must be permitted at the platform level because the server is typically a box on
-        the user's own LAN without a certificate. The platform can't express "private ranges only"
-        (network security config takes domains, not CIDRs), so the actual policy — https everywhere,
-        http only towards the local network — is enforced by InsecureTransportGuard on the Ktor client.
+        https-only, enforced by the platform. Spelled out rather than left to the default, which
+        still permits cleartext below API 28. The debug overlay opens cleartext up for LAN servers,
+        where InsecureTransportGuard on the Ktor client keeps it to local addresses — a range the
+        platform itself can't express, as network security config takes domains, not CIDRs.
     -->
     <application
-            android:usesCleartextTraffic="true"
+            android:usesCleartextTraffic="false"
             android:allowBackup="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
