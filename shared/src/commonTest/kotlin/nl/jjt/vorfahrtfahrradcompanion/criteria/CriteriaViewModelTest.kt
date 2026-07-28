@@ -13,26 +13,31 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 private val width = Criterion("WIDTH", CriterionKind.SINGLE, listOf("W_1", "W_2"))
 private val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI, listOf("CARS", "CYCLISTS"))
 private val catalogue = Catalogue(listOf(width, users))
 
-private val recordedAt = Instant.parse("2026-07-20T12:43:37Z")
+private val startedAt = Instant.parse("2026-07-20T12:43:37Z")
+private val ride = 3.minutes
 
 private class FakeApi : CriteriaApi {
     override suspend fun catalogue() = catalogue
 }
 
 private class FakeObservationDao : ObservationDao {
-    var inserted: ObservationEntity? = null
+    val inserted = mutableListOf<ObservationEntity>()
     override suspend fun insert(entity: ObservationEntity) {
-        inserted = entity
+        inserted += entity
     }
 }
 
 class CriteriaViewModelTest {
+
+    private val dao = FakeObservationDao()
+    private val clock = FakeClock(startedAt)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @BeforeTest
@@ -42,8 +47,9 @@ class CriteriaViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vmWith(dao: FakeObservationDao) =
-        CriteriaViewModel(FakeApi(), ObservationRepository(dao, FakeClock(recordedAt)))
+    private fun vm() = CriteriaViewModel(FakeApi(), ObservationRepository(dao, clock))
+
+    private val stored get() = dao.inserted.single()
 
     @Test
     fun singleSelectionReplacesAndClears() {
@@ -74,9 +80,8 @@ class CriteriaViewModelTest {
     }
 
     @Test
-    fun emptySelectionsAreOmittedFromTheStoredObservation() = runTest {
-        val dao = FakeObservationDao()
-        val vm = vmWith(dao)
+    fun aSegmentIsStoredWithBothBoundaries() = runTest {
+        val vm = vm()
         testScheduler.advanceUntilIdle()
 
         // WIDTH ends up selected-then-cleared, so it must not reach the stored values at all.
@@ -84,28 +89,90 @@ class CriteriaViewModelTest {
         vm.onSelect(width, "W_1")
         vm.onSelect(users, "CARS")
 
-        vm.submit()
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        vm.end(BoundaryKind.EXACT)
         testScheduler.advanceUntilIdle()
 
-        val stored = dao.inserted
-        assertEquals(recordedAt.toEpochMilliseconds(), stored?.recordedAtEpochMs)
+        assertEquals(startedAt.toEpochMilliseconds(), stored.startedAtEpochMs)
+        assertEquals(BoundaryKind.EXACT, stored.startKind)
+        assertEquals((startedAt + ride).toEpochMilliseconds(), stored.endedAtEpochMs)
+        assertEquals(BoundaryKind.EXACT, stored.endKind)
         assertEquals(
             Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
-            stored?.valuesJson?.let { Json.decodeFromString<Selections>(it) },
+            Json.decodeFromString<Selections>(stored.valuesJson),
         )
     }
 
     @Test
-    fun successfulSubmitClearsSelections() = runTest {
-        val vm = vmWith(FakeObservationDao())
+    fun aMissedBoundaryIsStoredAsSuch() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.start(BoundaryKind.EARLIER)
+        clock += ride
+        vm.end(BoundaryKind.EARLIER)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(BoundaryKind.EARLIER, stored.startKind)
+        assertEquals(BoundaryKind.EARLIER, stored.endKind)
+    }
+
+    @Test
+    fun endingWithoutAStartIsIgnored() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.end(BoundaryKind.EXACT)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), dao.inserted)
+        assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
+    }
+
+    @Test
+    fun startingTwiceKeepsTheFirstBoundary() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        vm.start(BoundaryKind.EARLIER)
+        testScheduler.advanceUntilIdle()
+
+        val segment = (vm.state.value as CriteriaUiState.Ready).segment
+        assertEquals(Segment.Open(startedAt, BoundaryKind.EXACT), segment)
+    }
+
+    @Test
+    fun theChainedSegmentContinuesFromTheSameBoundary() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        vm.end(BoundaryKind.EARLIER, startNext = true)
+        testScheduler.advanceUntilIdle()
+
+        // The end of one stretch is the start of the next — including how late it was marked.
+        val segment = (vm.state.value as CriteriaUiState.Ready).segment
+        assertEquals(Segment.Open(startedAt + ride, BoundaryKind.EARLIER), segment)
+        assertEquals(BoundaryKind.EARLIER, stored.endKind)
+    }
+
+    @Test
+    fun selectionsCarryOverIntoTheNextSegment() = runTest {
+        val vm = vm()
         testScheduler.advanceUntilIdle()
 
         vm.onSelect(users, "CARS")
-        vm.submit()
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        vm.end(BoundaryKind.EXACT)
         testScheduler.advanceUntilIdle()
 
-        val ready = vm.state.value as CriteriaUiState.Ready
-        assertEquals(Selections(), ready.selections)
-        assertEquals(SubmitState.Idle, ready.submitState)
+        val state = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), state.selections[users])
+        assertEquals(SaveState.Idle, state.saveState)
     }
 }

@@ -14,14 +14,15 @@ sealed interface CriteriaUiState {
     data class Ready(
         val catalogue: Catalogue,
         val selections: Selections = Selections(),
-        val submitState: SubmitState = SubmitState.Idle,
+        val segment: Segment = Segment.Idle,
+        val saveState: SaveState = SaveState.Idle,
     ) : CriteriaUiState
 }
 
-sealed interface SubmitState {
-    data object Idle : SubmitState
-    data object InFlight : SubmitState
-    data class Error(val message: String) : SubmitState
+sealed interface SaveState {
+    data object Idle : SaveState
+    data object InFlight : SaveState
+    data class Error(val message: String) : SaveState
 }
 
 class CriteriaViewModel(
@@ -34,27 +35,36 @@ class CriteriaViewModel(
 
     init {
         load()
+        viewModelScope.launch {
+            observations.draft.collect { draft ->
+                updateReady { copy(selections = draft.selections, segment = draft.segment) }
+            }
+        }
     }
 
     /** Reloads the catalogue; reachable from [CriteriaUiState.Failed], where no cached copy was available. */
     fun retry() = load()
 
-    fun onSelect(criterion: Criterion, value: String) = updateReady {
-        copy(selections = selections.select(criterion, value), submitState = SubmitState.Idle)
+    fun onSelect(criterion: Criterion, value: String) {
+        observations.select(criterion, value)
+        updateReady { copy(saveState = SaveState.Idle) }
     }
 
-    fun submit() {
+    fun start(kind: BoundaryKind) = observations.start(kind)
+
+    /** Ends the open segment and stores it; see [ObservationRepository.end] for what [startNext] does. */
+    fun end(kind: BoundaryKind, startNext: Boolean = false) {
         val ready = _state.value as? CriteriaUiState.Ready ?: return
-        if (ready.submitState is SubmitState.InFlight) return
+        if (ready.saveState is SaveState.InFlight) return
 
         viewModelScope.launch {
-            updateReady { copy(submitState = SubmitState.InFlight) }
+            updateReady { copy(saveState = SaveState.InFlight) }
 
             try {
-                observations.record(ready.selections)
-                updateReady { copy(selections = Selections(), submitState = SubmitState.Idle) }
+                observations.end(kind, startNext)
+                updateReady { copy(saveState = SaveState.Idle) }
             } catch (e: Exception) {
-                fail(e.message ?: "Could not save the observation")
+                fail(e.message ?: "Could not save the segment")
             }
         }
     }
@@ -63,14 +73,15 @@ class CriteriaViewModel(
         _state.value = CriteriaUiState.Loading
         viewModelScope.launch {
             _state.value = try {
-                CriteriaUiState.Ready(api.catalogue())
+                val draft = observations.draft.value
+                CriteriaUiState.Ready(api.catalogue(), draft.selections, draft.segment)
             } catch (e: Exception) {
                 CriteriaUiState.Failed(e.message ?: "Could not load the criterion catalogue")
             }
         }
     }
 
-    private fun fail(message: String) = updateReady { copy(submitState = SubmitState.Error(message)) }
+    private fun fail(message: String) = updateReady { copy(saveState = SaveState.Error(message)) }
 
     private fun updateReady(edit: CriteriaUiState.Ready.() -> CriteriaUiState.Ready) {
         _state.update { if (it is CriteriaUiState.Ready) it.edit() else it }

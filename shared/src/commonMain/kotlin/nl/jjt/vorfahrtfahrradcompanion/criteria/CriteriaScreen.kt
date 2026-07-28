@@ -5,16 +5,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -26,10 +33,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
 import org.koin.compose.viewmodel.koinViewModel
 
+// TODO: guard an open segment with a LeaveGuard (see ServerConnectionScreen), so navigating away
+//  mid-segment asks first instead of relying on the repository quietly holding on to it.
 @Composable
 fun CriteriaScreen(modifier: Modifier = Modifier) {
     val viewModel: CriteriaViewModel = koinViewModel()
@@ -49,7 +60,8 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             Button(onClick = viewModel::retry) { Text("Retry") }
         }
 
-        is CriteriaUiState.Ready -> Catalogue(s, viewModel::onSelect, viewModel::submit, modifier)
+        is CriteriaUiState.Ready ->
+            Catalogue(s, viewModel::onSelect, viewModel::start, viewModel::end, modifier)
     }
 }
 
@@ -57,18 +69,19 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
 private fun Catalogue(
     state: CriteriaUiState.Ready,
     onSelect: (Criterion, String) -> Unit,
-    onSubmit: () -> Unit,
+    onStart: (BoundaryKind) -> Unit,
+    onEnd: (BoundaryKind, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // The ViewModel returns to Idle only after a successful POST, so InFlight → Idle is the success edge.
+    // The ViewModel returns to Idle only after a successful write, so InFlight → Idle is the success edge.
     var wasInFlight by remember { mutableStateOf(false) }
-    LaunchedEffect(state.submitState) {
-        if (wasInFlight && state.submitState is SubmitState.Idle) {
-            snackbarHostState.showSnackbar("Observation saved")
+    LaunchedEffect(state.saveState) {
+        if (wasInFlight && state.saveState is SaveState.Idle) {
+            snackbarHostState.showSnackbar("Segment saved")
         }
-        wasInFlight = state.submitState is SubmitState.InFlight
+        wasInFlight = state.saveState is SaveState.InFlight
     }
 
     Column(modifier.fillMaxSize()) {
@@ -86,19 +99,79 @@ private fun Catalogue(
 
         Column(
             modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            (state.submitState as? SubmitState.Error)?.let {
+            (state.saveState as? SaveState.Error)?.let {
                 Text(it.message, color = MaterialTheme.colorScheme.error)
             }
-            Button(
-                onClick = onSubmit,
-                enabled = state.submitState !is SubmitState.InFlight,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (state.submitState is SubmitState.InFlight) "Submitting…" else "Submit")
+
+            val enabled = state.saveState !is SaveState.InFlight
+            when (val segment = state.segment) {
+                Segment.Idle -> ButtonRow {
+                    RecorderButton("Start now", enabled, BoundaryKind.EXACT, onStart)
+                    RecorderButton("Started earlier", enabled, BoundaryKind.EARLIER, onStart)
+                }
+
+                is Segment.Open -> {
+                    RecordingStatus(segment)
+                    ButtonRow {
+                        RecorderButton("End now", enabled, BoundaryKind.EXACT) { onEnd(it, false) }
+                        RecorderButton("End now, start next", enabled, BoundaryKind.EXACT) { onEnd(it, true) }
+                    }
+                    ButtonRow {
+                        RecorderButton("Ended earlier", enabled, BoundaryKind.EARLIER) { onEnd(it, false) }
+                        RecorderButton("Ended earlier, start next", enabled, BoundaryKind.EARLIER) {
+                            onEnd(it, true)
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+/** How long the open segment has been running, and whether its start was already a late one. */
+@Composable
+private fun RecordingStatus(segment: Segment.Open) {
+    val elapsed = secondsSince(segment.startedAt)
+    val startedEarlier = if (segment.startKind == BoundaryKind.EARLIER) " · started earlier" else ""
+    Text(
+        "● Recording ${elapsed / 60}:${(elapsed % 60).toString().padStart(2, '0')}$startedEarlier",
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+    )
+}
+
+/** Keeps both buttons the same height when one of them wraps onto a second line. */
+@Composable
+private fun ButtonRow(content: @Composable RowScope.() -> Unit) = Row(
+    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    content = content,
+)
+
+/**
+ * One boundary marker, styled after the [kind] it records: filled for "I pressed at the boundary", amber
+ * outline for the "it already happened earlier" correction a rider reaches for after missing the moment.
+ */
+@Composable
+private fun RowScope.RecorderButton(
+    label: String,
+    enabled: Boolean,
+    kind: BoundaryKind,
+    onClick: (BoundaryKind) -> Unit,
+) {
+    val modifier = Modifier.weight(1f).fillMaxHeight()
+    val text = @Composable { Text(label, textAlign = TextAlign.Center) }
+
+    when (kind) {
+        BoundaryKind.EXACT -> Button({ onClick(kind) }, modifier, enabled) { text() }
+        BoundaryKind.EARLIER -> OutlinedButton(
+            { onClick(kind) },
+            modifier,
+            enabled,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.tertiary),
+        ) { text() }
     }
 }
 

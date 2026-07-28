@@ -17,7 +17,7 @@ import nl.jjt.vorfahrtfahrradcompanion.patchnotes.db.PatchNotesStateEntity
         CatalogueCacheEntity::class,
         ObservationEntity::class,
     ],
-    version = 4,
+    version = 5,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
