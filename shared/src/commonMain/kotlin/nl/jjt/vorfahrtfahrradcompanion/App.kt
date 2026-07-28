@@ -59,7 +59,7 @@ private data object PatchNotesRoute : SubPage {
     override val title = "What's New"
 }
 
-private val subPages = listOf(ServerConnectionRoute, PatchNotesRoute)
+private val subPages: List<SubPage> = listOf(ServerConnectionRoute, PatchNotesRoute)
 
 /** Bottom-bar destinations. [PatchNotesRoute] is a sub-page reached from Settings, not a tab. */
 private enum class Tab(val label: String, val icon: ImageVector, val route: Any) {
