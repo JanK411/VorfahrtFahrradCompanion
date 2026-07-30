@@ -38,7 +38,7 @@ jobs:
       - name: Name APK with timestamp and branch
         id: apk
         run: |
-          ts=$(date -u +%Y%m%d-%H%M%S)
+          ts=$(TZ=Europe/Amsterdam date +%Y%m%d-%H%M%S)
           slug=$(echo "${{ github.ref_name }}" | tr '/' '-' | tr -cd 'A-Za-z0-9._-')
           name="${ts}-androidApp-debug-${slug}.apk"
           cp androidApp/build/outputs/apk/debug/androidApp-debug.apk "$RUNNER_TEMP/$name"
