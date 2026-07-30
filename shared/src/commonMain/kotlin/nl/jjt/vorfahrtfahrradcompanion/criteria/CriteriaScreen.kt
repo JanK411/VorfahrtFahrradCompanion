@@ -108,7 +108,12 @@ private fun Catalogue(
     var pinned by remember { mutableStateOf<String?>(null) }
     val expanded = state.catalogue.criteria.firstOrNull { it.id == pinned } ?: state.nextOpen
 
-    LaunchedEffect(state.segment) { pinned = null }
+    // A new segment starts at the top. The list keeps its scroll position across an end, and the first
+    // open criterion is usually the same one as before, so nothing below would move the view back up.
+    LaunchedEffect(state.segment) {
+        pinned = null
+        listState.scrollToItem(0)
+    }
 
     LaunchedEffect(advances) {
         // collectLatest, so every further tap restarts the wait instead of stacking up advances.
