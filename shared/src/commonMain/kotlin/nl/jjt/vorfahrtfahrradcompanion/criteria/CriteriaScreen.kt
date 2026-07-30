@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,6 +64,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             onEnd = viewModel::end,
             onConfirmEnd = viewModel::confirmEnd,
             onCancelEnd = viewModel::cancelEnd,
+            onDiscardSegment = viewModel::discardSegment,
             modifier = modifier,
         )
     }
@@ -78,6 +81,7 @@ private fun Catalogue(
     onEnd: (BoundaryKind, SegmentAction) -> Unit,
     onConfirmEnd: (Set<String>) -> Unit,
     onCancelEnd: () -> Unit,
+    onDiscardSegment: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -85,11 +89,12 @@ private fun Catalogue(
     var discarded by remember { mutableStateOf(false) }
     LaunchedEffect(outcomes) {
         outcomes.collect { outcome ->
-            discarded = outcome == SegmentOutcome.DISCARDED
+            discarded = outcome != SegmentOutcome.SAVED
             snackbarHostState.showSnackbar(
                 when (outcome) {
                     SegmentOutcome.SAVED -> "Segment saved"
-                    SegmentOutcome.DISCARDED -> "Nothing confirmed — segment discarded"
+                    SegmentOutcome.NOTHING_TO_STORE -> "Nothing approved — segment discarded"
+                    SegmentOutcome.DISCARDED -> "Segment discarded"
                 },
             )
         }
@@ -152,6 +157,17 @@ private fun Catalogue(
 
     var explaining by remember { mutableStateOf(false) }
     if (explaining) BoundaryHelpDialog(onDismiss = { explaining = false })
+
+    var discarding by remember { mutableStateOf(false) }
+    if (discarding) {
+        DiscardSegmentDialog(
+            onConfirm = {
+                discarding = false
+                onDiscardSegment()
+            },
+            onDismiss = { discarding = false },
+        )
+    }
 
     state.pendingEnd?.let {
         EndSegmentDialog(
@@ -231,7 +247,13 @@ private fun Catalogue(
                 Segment.Idle -> ButtonRow { RecorderButton("Start", enabled, onStart) }
 
                 is Segment.Open -> {
-                    Progress(segment, state.confirmed.size, state.carriedOver.size, state.catalogue.criteria.size)
+                    Progress(
+                        segment = segment,
+                        confirmed = state.confirmed.size,
+                        carried = state.carriedOver.size,
+                        total = state.catalogue.criteria.size,
+                        onDiscard = { discarding = true },
+                    )
 
                     ButtonRow {
                         RecorderButton("End", enabled) { onEnd(it, SegmentAction.STOP) }
@@ -266,6 +288,33 @@ private fun HoldHint(onExplain: () -> Unit) = Row(
     }
 }
 
+/**
+ * The question in front of throwing a segment away. Unlike a boundary, nothing about this is
+ * time-critical, so it can afford to be asked.
+ */
+@Composable
+private fun DiscardSegmentDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) = AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text("Discard this segment?") },
+    text = {
+        Text(
+            "Nothing about the stretch you are recording is stored, and whatever you described it " +
+                "with is cleared. The next segment starts from scratch.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    },
+    confirmButton = {
+        Button(
+            onConfirm,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            ),
+        ) { Text("Discard") }
+    },
+    dismissButton = { TextButton(onDismiss) { Text("Keep recording") } },
+)
+
 /** What the hold gesture is for, for a rider who has not met it before. */
 @Composable
 private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
@@ -299,15 +348,20 @@ private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
  * unconfirmed values are not stored — how much of it would be dropped right now.
  */
 @Composable
-private fun Progress(segment: Segment.Open, confirmed: Int, carried: Int, total: Int) = Column(
-    verticalArrangement = Arrangement.spacedBy(2.dp),
-) {
+private fun Progress(
+    segment: Segment.Open,
+    confirmed: Int,
+    carried: Int,
+    total: Int,
+    onDiscard: () -> Unit,
+) = Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
     val elapsed = secondsSince(segment.startedAt)
     val startedEarlier = if (segment.startKind == BoundaryKind.EARLIER) " · started earlier" else ""
 
-    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
         Text(
             "● Recording ${elapsed / 60}:${(elapsed % 60).toString().padStart(2, '0')}$startedEarlier",
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -316,6 +370,13 @@ private fun Progress(segment: Segment.Open, confirmed: Int, carried: Int, total:
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
         )
+        IconButton(onDiscard, Modifier.size(40.dp)) {
+            Icon(
+                Icons.Filled.Delete,
+                contentDescription = "Discard segment",
+                tint = MaterialTheme.colorScheme.error,
+            )
+        }
     }
 
     if (carried > 0) {

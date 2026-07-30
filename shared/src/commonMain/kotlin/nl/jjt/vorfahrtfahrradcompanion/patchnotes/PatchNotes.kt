@@ -14,6 +14,7 @@ val patchNotes: List<PatchNote> = listOf(
             "The boundary is stamped the moment you press End, so answering that question costs the recording nothing.",
             "Values only carry over through \"End, start next\", which continues along the same path. Plain \"End\" finishes the survey and leaves the next segment empty.",
             "Only what you confirmed is saved. A segment where you confirmed nothing is discarded instead of stored empty, and says so.",
+            "A stretch you would rather not keep at all can be thrown away with the bin next to the recording time — it asks first, then stores nothing and starts the next segment from scratch.",
             "Multiple-choice criteria wait a moment before moving on, or move on right away with \"Next\".",
             "The screen no longer sleeps while a segment is running.",
             "Missed the moment? Hold the Start or End button instead of tapping it, and the boundary is marked as already passed. The two \"earlier\" buttons are gone, which leaves Start a full-width target and End half the screen — and a hold feels different from a tap, so you know which one you got without looking.",
