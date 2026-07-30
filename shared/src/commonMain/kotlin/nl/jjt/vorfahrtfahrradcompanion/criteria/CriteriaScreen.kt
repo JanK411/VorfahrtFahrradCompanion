@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -73,6 +74,8 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             onConfirmEnd = viewModel::confirmEnd,
             onCancelEnd = viewModel::cancelEnd,
             onDiscardSegment = viewModel::discardSegment,
+            onClearCarriedOver = viewModel::clearCarriedOver,
+            onUndoClear = viewModel::undoClear,
             modifier = modifier,
         )
     }
@@ -90,6 +93,8 @@ private fun Catalogue(
     onConfirmEnd: (Set<String>) -> Unit,
     onCancelEnd: () -> Unit,
     onDiscardSegment: () -> Unit,
+    onClearCarriedOver: () -> Unit,
+    onUndoClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -198,37 +203,59 @@ private fun Catalogue(
         Box(Modifier.weight(1f)) {
             // The criteria describe the stretch being recorded, so they only make sense once one is open.
             if (state.segment is Segment.Open) {
-                LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(state.catalogue.criteria, key = Criterion::id) { criterion ->
-                        CriterionCard(
-                            criterion = criterion,
-                            selected = state.selections[criterion],
-                            review = state.reviewOf(criterion),
-                            expanded = criterion.id == expanded?.id,
-                            onTapValue = { value ->
-                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                pinned = criterion.id
-                                onTap(criterion, value)
-                            },
-                            onOpen = {
-                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                pinned = criterion.id
-                            },
-                            onApprove = {
-                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                onConfirm(criterion)
-                                settled = criterion
-                                moveOnFrom(criterion)
-                            },
-                            onNext = {
-                                onConfirm(criterion)
-                                pinned = null
-                            },
-                        )
+                Column {
+                    // Pinned above the criteria, where a segment that inherited its answers starts out, and
+                    // out of the list so that nothing it holds moves down a row while it is there.
+                    if (state.carriedOver.isNotEmpty()) {
+                        ClearCarriedOverButton(
+                            carried = state.carriedOver.size,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                        ) {
+                            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                            onClearCarriedOver()
+                            discarded = false
+                            scope.launch {
+                                val undo = snackbarHostState.showSnackbar(
+                                    message = "Cleared — filling in from scratch",
+                                    actionLabel = "Undo",
+                                )
+                                if (undo == SnackbarResult.ActionPerformed) onUndoClear()
+                            }
+                        }
+                    }
+
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(state.catalogue.criteria, key = Criterion::id) { criterion ->
+                            CriterionCard(
+                                criterion = criterion,
+                                selected = state.selections[criterion],
+                                review = state.reviewOf(criterion),
+                                expanded = criterion.id == expanded?.id,
+                                onTapValue = { value ->
+                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    pinned = criterion.id
+                                    onTap(criterion, value)
+                                },
+                                onOpen = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    pinned = criterion.id
+                                },
+                                onApprove = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    onConfirm(criterion)
+                                    settled = criterion
+                                    moveOnFrom(criterion)
+                                },
+                                onNext = {
+                                    onConfirm(criterion)
+                                    pinned = null
+                                },
+                            )
+                        }
                     }
                 }
             } else {
@@ -294,6 +321,26 @@ private fun Catalogue(
             HoldHint(onExplain = { explaining = true })
         }
     }
+}
+
+/**
+ * The way out of a segment that inherited answers describing somewhere else entirely. It sits above the
+ * criteria rather than among them, because it is the first thing a rider decides about a new segment and
+ * nothing they should meet again halfway down the list.
+ */
+@Composable
+private fun ClearCarriedOverButton(
+    carried: Int,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) = OutlinedButton(
+    onClick = onClick,
+    modifier = modifier.fillMaxWidth().heightIn(min = 56.dp),
+    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+) {
+    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(20.dp))
+    Spacer(Modifier.width(8.dp))
+    Text("Clear $carried preselected", style = MaterialTheme.typography.titleMedium)
 }
 
 /**

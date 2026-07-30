@@ -155,6 +155,11 @@ class CriteriaViewModel(
         store(request)
     }
 
+    /** Drops the values carried over but not approved, for a stretch unlike the one before it. */
+    fun clearCarriedOver() = observations.clearCarriedOver()
+
+    fun undoClear() = observations.undoClear()
+
     /** Throws the open segment away — a stretch not worth recording, or one recorded wrong. */
     fun discardSegment() {
         updateReady { copy(pendingEnd = null) }

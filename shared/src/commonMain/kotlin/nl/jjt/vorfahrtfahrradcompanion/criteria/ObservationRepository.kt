@@ -55,6 +55,9 @@ class ObservationRepository(
     private val _draft = MutableStateFlow(Draft())
     val draft: StateFlow<Draft> = _draft.asStateFlow()
 
+    /** What [clearCarriedOver] dropped, held for as long as the rider might take it back. */
+    private var cleared: Draft? = null
+
     /** The clock this repository stamps boundaries with, for a caller that has to mark one early. */
     val now: Instant get() = clock.now()
 
@@ -84,11 +87,29 @@ class ObservationRepository(
     }
 
     /**
+     * Drops every value the rider has not approved, leaving those criteria open to be answered from
+     * scratch — for the stretch that has nothing in common with the last one. What they have already
+     * approved for this segment is their own work and stays. Reversible via [undoClear].
+     */
+    fun clearCarriedOver() {
+        cleared = _draft.value
+        _draft.update { it.copy(selections = it.selections.retain(it.reviewed)) }
+    }
+
+    /** Puts back what [clearCarriedOver] dropped. Does nothing if there is nothing to take back. */
+    fun undoClear() {
+        val previous = cleared ?: return
+        cleared = null
+        _draft.update { it.copy(selections = previous.selections, reviewed = previous.reviewed) }
+    }
+
+    /**
      * Throws the open segment away: nothing is stored, and nothing of it is carried into what comes
      * next. Reports whether there was anything to throw away.
      */
     fun discardSegment(): Boolean {
         if (_draft.value.segment !is Segment.Open) return false
+        cleared = null
         _draft.value = Draft()
         return true
     }
@@ -135,6 +156,7 @@ class ObservationRepository(
             )
         }
 
+        cleared = null
         _draft.update {
             if (action == SegmentAction.START_NEXT) {
                 it.copy(segment = Segment.Open(boundary, kind), reviewed = emptySet())
