@@ -74,7 +74,7 @@ internal fun EndSegmentDialog(
                 ) {
                     unapproved.forEach { criterion ->
                         UnapprovedRow(criterion, selections[criterion], criterion.id in keep) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                             keep = if (criterion.id in keep) keep - criterion.id else keep + criterion.id
                         }
                     }

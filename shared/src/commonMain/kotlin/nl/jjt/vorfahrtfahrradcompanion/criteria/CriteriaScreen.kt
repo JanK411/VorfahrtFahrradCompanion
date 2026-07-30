@@ -1,6 +1,7 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -149,6 +150,9 @@ private fun Catalogue(
         if (index >= 0) listState.animateScrollToItem(index)
     }
 
+    var explaining by remember { mutableStateOf(false) }
+    if (explaining) BoundaryHelpDialog(onDismiss = { explaining = false })
+
     state.pendingEnd?.let {
         EndSegmentDialog(
             unapproved = state.carriedOver,
@@ -174,16 +178,16 @@ private fun Catalogue(
                             review = state.reviewOf(criterion),
                             expanded = criterion.id == expanded?.id,
                             onTapValue = { value ->
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                                 pinned = criterion.id
                                 onTap(criterion, value)
                             },
                             onOpen = {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                                 pinned = criterion.id
                             },
                             onApprove = {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                                 onConfirm(criterion)
                                 moveOnFrom(criterion)
                             },
@@ -224,47 +228,71 @@ private fun Catalogue(
 
             val enabled = state.saveState !is SaveState.InFlight
             when (val segment = state.segment) {
-                Segment.Idle -> ButtonRow {
-                    RecorderButton("Start now", enabled, BoundaryKind.EXACT, onStart)
-                    RecorderButton("Started earlier", enabled, BoundaryKind.EARLIER, onStart)
-                }
+                Segment.Idle -> ButtonRow { RecorderButton("Start", enabled, onStart) }
 
                 is Segment.Open -> {
                     Progress(segment, state.confirmed.size, state.carriedOver.size, state.catalogue.criteria.size)
 
                     ButtonRow {
-                        RecorderButton("End now", enabled, BoundaryKind.EXACT) { onEnd(it, SegmentAction.STOP) }
-                        RecorderButton("End now, start next", enabled, BoundaryKind.EXACT) {
-                            onEnd(it, SegmentAction.START_NEXT)
-                        }
-                    }
-
-                    // The late-boundary corrections are the exception, so they stay out of the way until
-                    // the rider actually missed the moment.
-                    var showEarlier by remember { mutableStateOf(false) }
-                    TextButton(
-                        onClick = { showEarlier = !showEarlier },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.tertiary,
-                        ),
-                    ) {
-                        Text(if (showEarlier) "Hide" else "Missed the moment?")
-                    }
-                    AnimatedVisibility(showEarlier) {
-                        ButtonRow {
-                            RecorderButton("Ended earlier", enabled, BoundaryKind.EARLIER) {
-                                onEnd(it, SegmentAction.STOP)
-                            }
-                            RecorderButton("Ended earlier, start next", enabled, BoundaryKind.EARLIER) {
-                                onEnd(it, SegmentAction.START_NEXT)
-                            }
-                        }
+                        RecorderButton("End", enabled) { onEnd(it, SegmentAction.STOP) }
+                        RecorderButton("End, start next", enabled) { onEnd(it, SegmentAction.START_NEXT) }
                     }
                 }
             }
+
+            HoldHint(onExplain = { explaining = true })
         }
     }
 }
+
+/**
+ * The one line that has to carry the hold gesture, since nothing on screen shows it any more, next to
+ * the way out for a rider who wants the whole story.
+ */
+@Composable
+private fun HoldHint(onExplain: () -> Unit) = Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    Text(
+        "Missed the moment? Hold the button instead.",
+        modifier = Modifier.weight(1f),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.tertiary,
+    )
+    OutlinedIconButton(onExplain, Modifier.size(44.dp)) {
+        Text("?", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/** What the hold gesture is for, for a rider who has not met it before. */
+@Composable
+private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text("Marking a boundary") },
+    text = {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "Tap a button and the boundary is where you are now — the start or end of the stretch " +
+                    "you are describing.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                "Hold it instead and the boundary is marked as already passed. Use it when you notice a " +
+                    "change in the path only after riding onto it: the segment is stored as having begun " +
+                    "or ended before you pressed, and the exact spot is worked out later from your track.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                "A segment started that way says so under the recording time, so you can see which of " +
+                    "the two you got.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    },
+    confirmButton = { Button(onDismiss) { Text("Got it") } },
+)
 
 /**
  * How long the open segment has been running, how much of the catalogue it carries, and — because
@@ -308,33 +336,40 @@ private fun ButtonRow(content: @Composable RowScope.() -> Unit) = Row(
 )
 
 /**
- * One boundary marker, styled after the [kind] it records: filled for "I pressed at the boundary", amber
- * outline for the "it already happened earlier" correction a rider reaches for after missing the moment.
+ * A boundary marker. A tap marks the boundary here and now; holding it marks one already passed — the
+ * correction a rider reaches for after missing the moment, on the same button rather than beside it.
+ *
+ * Built out of a Surface because a Button has no room for a long press.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun RowScope.RecorderButton(
     label: String,
     enabled: Boolean,
-    kind: BoundaryKind,
     onClick: (BoundaryKind) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
-    val click = {
-        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-        onClick(kind)
-    }
-    val modifier = Modifier.weight(1f).heightIn(min = ActionButtonHeight).fillMaxHeight()
-    val text = @Composable {
-        Text(label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-    }
+    val scheme = MaterialTheme.colorScheme
 
-    when (kind) {
-        BoundaryKind.EXACT -> Button(click, modifier, enabled) { text() }
-        BoundaryKind.EARLIER -> OutlinedButton(
-            click,
-            modifier,
-            enabled,
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.tertiary),
-        ) { text() }
+    Surface(
+        modifier = Modifier.weight(1f).heightIn(min = ActionButtonHeight).fillMaxHeight().combinedClickable(
+            enabled = enabled,
+            onClick = {
+                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                onClick(BoundaryKind.EXACT)
+            },
+            onLongClick = {
+                // The heavier buzz, so the two boundaries feel apart without a look at the screen.
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick(BoundaryKind.EARLIER)
+            },
+        ),
+        shape = ButtonDefaults.shape,
+        color = if (enabled) scheme.primary else scheme.onSurface.copy(alpha = 0.12f),
+        contentColor = if (enabled) scheme.onPrimary else scheme.onSurface.copy(alpha = 0.38f),
+    ) {
+        Box(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
+            Text(label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        }
     }
 }
