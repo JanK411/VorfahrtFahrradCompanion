@@ -44,8 +44,8 @@ class ObservationRepository(
     private val _draft = MutableStateFlow(Draft())
     val draft: StateFlow<Draft> = _draft.asStateFlow()
 
-    /** What [discardUnapproved] dropped, held for as long as the rider might take it back. */
-    private var cleared: Draft? = null
+    /** The clock this repository stamps boundaries with, for a caller that has to mark one early. */
+    val now: Instant get() = clock.now()
 
     /**
      * Applies a tap on [value]. The first tap on a value still carried over from the previous segment only
@@ -63,26 +63,13 @@ class ObservationRepository(
     /** Stands by [criterion] as it is, without touching its values. */
     fun confirm(criterion: Criterion) = _draft.update { it.copy(reviewed = it.reviewed + criterion.id) }
 
-    /** Confirms everything at once, for the common segment where nothing changed. */
-    fun keepAll(criteria: List<Criterion>) =
-        _draft.update { it.copy(reviewed = it.reviewed + criteria.map(Criterion::id)) }
-
     /**
-     * Drops what the rider has not approved, leaving those criteria empty and open to be answered again —
-     * for the stretch that has little in common with the last one. Approved values stay, and so does the
-     * open segment. Reversible via [undoClear], because hitting this by mistake would otherwise cost the
-     * rider a whole catalogue's worth of taps.
+     * Settles every criterion still carried over in one go: those in [approve] are stood by, the rest
+     * lose their values. This is what the rider answers on their way out of a segment.
      */
-    fun discardUnapproved() {
-        cleared = _draft.value
-        _draft.update { it.copy(selections = it.selections.retain(it.reviewed)) }
-    }
-
-    /** Puts back what [discardUnapproved] dropped. Does nothing if there is no discard to take back. */
-    fun undoClear() {
-        val previous = cleared ?: return
-        cleared = null
-        _draft.update { it.copy(selections = previous.selections, reviewed = previous.reviewed) }
+    fun resolveCarriedOver(approve: Set<String>) = _draft.update {
+        val reviewed = it.reviewed + approve
+        it.copy(selections = it.selections.retain(reviewed), reviewed = reviewed)
     }
 
     /** Marks the start of a segment. Ignored while one is already open. */
@@ -103,11 +90,13 @@ class ObservationRepository(
      * unreviewed again, because consecutive stretches of path usually differ in only one criterion.
      * [SegmentAction.STOP] instead ends the survey: it leaves nothing behind for whatever the rider
      * describes next.
+     *
+     * [endedAt] defaults to now, but is passed explicitly when the rider was asked something on the way
+     * out: the boundary is where they pressed the button, not where they finished answering.
      */
-    suspend fun end(kind: BoundaryKind, action: SegmentAction): SegmentOutcome? {
+    suspend fun end(kind: BoundaryKind, action: SegmentAction, endedAt: Instant = clock.now()): SegmentOutcome? {
         val draft = _draft.value
         val open = draft.segment as? Segment.Open ?: return null
-        val endedAt = clock.now()
         val values = draft.selections.retain(draft.reviewed).compact()
 
         if (!values.isEmpty()) {
@@ -122,7 +111,6 @@ class ObservationRepository(
             )
         }
 
-        cleared = null
         _draft.update {
             if (action == SegmentAction.START_NEXT) {
                 it.copy(segment = Segment.Open(endedAt, kind), reviewed = emptySet())

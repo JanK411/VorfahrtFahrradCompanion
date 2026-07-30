@@ -57,11 +57,10 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             advances = viewModel.advances,
             onTap = viewModel::onTap,
             onConfirm = viewModel::onConfirm,
-            onKeepAll = viewModel::onKeepAll,
-            onDiscardUnapproved = viewModel::onDiscardUnapproved,
-            onUndoClear = viewModel::onUndoClear,
             onStart = viewModel::start,
             onEnd = viewModel::end,
+            onConfirmEnd = viewModel::confirmEnd,
+            onCancelEnd = viewModel::cancelEnd,
             modifier = modifier,
         )
     }
@@ -74,11 +73,10 @@ private fun Catalogue(
     advances: Flow<Criterion>,
     onTap: (Criterion, String) -> Unit,
     onConfirm: (Criterion) -> Unit,
-    onKeepAll: () -> Unit,
-    onDiscardUnapproved: () -> Unit,
-    onUndoClear: () -> Unit,
     onStart: (BoundaryKind) -> Unit,
     onEnd: (BoundaryKind, SegmentAction) -> Unit,
+    onConfirmEnd: (Set<String>) -> Unit,
+    onCancelEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -149,6 +147,15 @@ private fun Catalogue(
     LaunchedEffect(expanded?.id) {
         val index = state.catalogue.criteria.indexOfFirst { it.id == expanded?.id }
         if (index >= 0) listState.animateScrollToItem(index)
+    }
+
+    state.pendingEnd?.let {
+        EndSegmentDialog(
+            unapproved = state.carriedOver,
+            selections = state.selections,
+            onConfirm = onConfirmEnd,
+            onDismiss = onCancelEnd,
+        )
     }
 
     Column(modifier.fillMaxSize()) {
@@ -225,49 +232,6 @@ private fun Catalogue(
                 is Segment.Open -> {
                     Progress(segment, state.confirmed.size, state.carriedOver.size, state.catalogue.criteria.size)
 
-                    // The wholesale answers to a segment full of carried-over values: all of it still
-                    // holds, or none of it does.
-                    val carried = state.carriedOver.size
-                    if (carried > 0) {
-                        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                            FilledTonalButton(
-                                onClick = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onKeepAll()
-                                },
-                                modifier = Modifier.weight(1f).height(56.dp),
-                            ) {
-                                Text(
-                                    "Approve all $carried",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
-
-                            OutlinedButton(
-                                onClick = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onDiscardUnapproved()
-                                    discarded = false
-                                    scope.launch {
-                                        val undo = snackbarHostState.showSnackbar(
-                                            message = "Discarded $carried",
-                                            actionLabel = "Undo",
-                                        )
-                                        if (undo == SnackbarResult.ActionPerformed) onUndoClear()
-                                    }
-                                },
-                                modifier = Modifier.weight(1f).height(56.dp),
-                            ) {
-                                Text(
-                                    "Discard $carried",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
-                        }
-                    }
-
                     ButtonRow {
                         RecorderButton("End now", enabled, BoundaryKind.EXACT) { onEnd(it, SegmentAction.STOP) }
                         RecorderButton("End now, start next", enabled, BoundaryKind.EXACT) {
@@ -328,7 +292,7 @@ private fun Progress(segment: Segment.Open, confirmed: Int, carried: Int, total:
 
     if (carried > 0) {
         Text(
-            "$carried carried over, won't be saved unless you keep them",
+            "$carried still unapproved — you are asked about them when the segment ends",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.tertiary,
         )
