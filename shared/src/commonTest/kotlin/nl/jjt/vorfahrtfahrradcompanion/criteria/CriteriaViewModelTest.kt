@@ -210,8 +210,55 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
     }
 
+    /** Rides one segment with both criteria filled, so both carry over into the next one. */
+    private suspend fun TestScope.bothCarriedOverIntoTheNextSegment(vm: CriteriaViewModel) {
+        vm.onTap(width, "W_1")
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        vm.end(BoundaryKind.EXACT, SegmentAction.START_NEXT)
+        testScheduler.advanceUntilIdle()
+    }
+
     @Test
-    fun anUnconfirmedCarryOverIsNotStoredAndItsSegmentIsDiscarded() = runTest {
+    fun endingWithCarriedOverValuesAsksBeforeStoringAnything() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
+        clock += ride
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        // Only the first segment is stored; the second waits on an answer.
+        assertEquals(1, dao.inserted.size)
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(listOf(users), ready.carriedOver)
+        assertEquals(BoundaryKind.EXACT, ready.pendingEnd?.kind)
+        assertEquals(SegmentAction.STOP, ready.pendingEnd?.action)
+    }
+
+    @Test
+    fun theAnswerKeepsWhatWasApprovedAndDropsTheRest() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        clock += ride
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.confirmEnd(approve = setOf(users.id))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(2, dao.inserted.size)
+        assertEquals(
+            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+        assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
+    }
+
+    @Test
+    fun approvingNothingOnTheWayOutDiscardsTheSegment() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
         val outcomes = mutableListOf<SegmentOutcome>()
@@ -221,99 +268,46 @@ class CriteriaViewModelTest {
         aSegmentThenTheNext(vm)
         clock += ride
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.confirmEnd(approve = emptySet())
         testScheduler.advanceUntilIdle()
 
-        // Only the first segment was stored; the second described nothing, so it never reached the dao.
         assertEquals(1, dao.inserted.size)
         assertEquals(listOf(SegmentOutcome.SAVED, SegmentOutcome.DISCARDED), outcomes)
     }
 
     @Test
-    fun keepingAllStoresTheCarriedValuesAgain() = runTest {
+    fun theBoundaryIsWhereTheRiderPressedEndNotWhereTheyAnswered() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
         aSegmentThenTheNext(vm)
-        vm.onKeepAll()
+        clock += ride
+        val pressedAt = clock.now()
+
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        clock += ride
+        vm.confirmEnd(approve = setOf(users.id))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(pressedAt.toEpochMilliseconds(), dao.inserted.last().endedAtEpochMs)
+    }
+
+    @Test
+    fun takingBackTheEndLeavesTheSegmentRunning() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
         clock += ride
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.cancelEnd()
         testScheduler.advanceUntilIdle()
 
-        assertEquals(2, dao.inserted.size)
-        assertEquals(
-            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
-            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
-        )
-    }
-
-    @Test
-    fun theFirstTapOnACarriedValueConfirmsItInsteadOfClearingIt() = runTest {
-        val vm = vm()
-        testScheduler.advanceUntilIdle()
-
-        aSegmentThenTheNext(vm)
-        vm.onTap(users, "CARS")
-        testScheduler.advanceUntilIdle()
-
-        val state = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf("CARS"), state.selections[users])
-        assertEquals(listOf(users), state.confirmed)
-
-        // And a second tap toggles it off, as it would on any confirmed criterion.
-        vm.onTap(users, "CARS")
-        testScheduler.advanceUntilIdle()
-        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).selections[users])
-    }
-
-    @Test
-    fun discardingDropsWhatIsNotApprovedAndKeepsWhatIs() = runTest {
-        val vm = vm()
-        testScheduler.advanceUntilIdle()
-
-        aSegmentThenTheNext(vm)
-        vm.onTap(width, "W_1")
-        vm.onDiscardUnapproved()
-        testScheduler.advanceUntilIdle()
-
-        val state = vm.state.value as CriteriaUiState.Ready
-        assertEquals(emptySet(), state.selections[users])
-        assertEquals(setOf("W_1"), state.selections[width])
-        assertEquals(emptyList(), state.carriedOver)
-        // The segment the rider is describing is still running.
-        assertEquals(Segment.Open(startedAt + ride, BoundaryKind.EXACT), state.segment)
-    }
-
-    @Test
-    fun discardingCanBeTakenBack() = runTest {
-        val vm = vm()
-        testScheduler.advanceUntilIdle()
-
-        aSegmentThenTheNext(vm)
-        vm.onDiscardUnapproved()
-        vm.onUndoClear()
-        testScheduler.advanceUntilIdle()
-
-        // Back to carried over and waiting for a nod, exactly as before the discard.
-        val state = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf("CARS"), state.selections[users])
-        assertEquals(listOf(users), state.carriedOver)
-    }
-
-    @Test
-    fun theFlowWalksTheCatalogueAndRunsOut() = runTest {
-        val vm = vm()
-        testScheduler.advanceUntilIdle()
-        val ready = { vm.state.value as CriteriaUiState.Ready }
-
-        assertEquals(width, ready().nextOpen)
-
-        vm.onTap(width, "W_1")
-        testScheduler.advanceUntilIdle()
-        assertEquals(users, ready().nextOpen)
-
-        vm.onKeepAll()
-        testScheduler.advanceUntilIdle()
-        assertNull(ready().nextOpen)
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertNull(ready.pendingEnd)
+        assertEquals(Segment.Open(startedAt + ride, BoundaryKind.EXACT), ready.segment)
+        assertEquals(listOf(users), ready.carriedOver)
+        assertEquals(1, dao.inserted.size)
     }
 
     @Test
