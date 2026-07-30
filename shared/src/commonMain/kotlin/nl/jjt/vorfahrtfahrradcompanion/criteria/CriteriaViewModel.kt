@@ -31,6 +31,17 @@ sealed interface CriteriaUiState {
         /** The criterion the rider still has to deal with; null once nothing is left. */
         val nextOpen: Criterion? get() = catalogue.criteria.firstOrNull { it.id !in reviewed }
 
+        /**
+         * The next criterion still needing attention *after* [criterion], in catalogue order — null past
+         * the end. Moving on always moves forward: a rider who skipped one and dealt with a later one
+         * meant to skip it, and does not want to be dragged back up the list for it.
+         */
+        fun openAfter(criterion: Criterion): Criterion? = catalogue.criteria
+            .asSequence()
+            .dropWhile { it.id != criterion.id }
+            .drop(1)
+            .firstOrNull { it.id !in reviewed }
+
         private val Criterion.hasValues: Boolean get() = selections[this].isNotEmpty()
     }
 }
