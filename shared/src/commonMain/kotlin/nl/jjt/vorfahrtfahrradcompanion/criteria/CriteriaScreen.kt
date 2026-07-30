@@ -58,7 +58,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             onTap = viewModel::onTap,
             onConfirm = viewModel::onConfirm,
             onKeepAll = viewModel::onKeepAll,
-            onClearAll = viewModel::onClearAll,
+            onDiscardUnapproved = viewModel::onDiscardUnapproved,
             onUndoClear = viewModel::onUndoClear,
             onStart = viewModel::start,
             onEnd = viewModel::end,
@@ -75,7 +75,7 @@ private fun Catalogue(
     onTap: (Criterion, String) -> Unit,
     onConfirm: (Criterion) -> Unit,
     onKeepAll: () -> Unit,
-    onClearAll: () -> Unit,
+    onDiscardUnapproved: () -> Unit,
     onUndoClear: () -> Unit,
     onStart: (BoundaryKind) -> Unit,
     onEnd: (BoundaryKind, SegmentAction) -> Unit,
@@ -102,11 +102,15 @@ private fun Catalogue(
     val listState = rememberLazyListState()
     val haptics = LocalHapticFeedback.current
 
-    // The card the rider is working on. Null means "follow the catalogue", the usual case: the first
-    // criterion that still needs attention. A tap pins it, so the card cannot slide away under a thumb
-    // mid-answer, and advancing simply unpins it again.
+    // The card the rider is working on. A tap pins it, so it cannot slide away under a thumb mid-answer,
+    // and advancing unpins it again.
+    //
+    // With nothing pinned the screen leads: it expands the criterion to answer next — but only while
+    // there is nothing left to review. A segment that inherited the last one's answers stays folded, so
+    // the rider approves or changes them one line at a time instead of being dropped into the first one.
     var pinned by remember { mutableStateOf<String?>(null) }
-    val expanded = state.catalogue.criteria.firstOrNull { it.id == pinned } ?: state.nextOpen
+    val expanded = state.catalogue.criteria.firstOrNull { it.id == pinned }
+        ?: state.nextOpen.takeIf { state.carriedOver.isEmpty() }
 
     // A new segment starts at the top. The list keeps its scroll position across an end, and the first
     // open criterion is usually the same one as before, so nothing below would move the view back up.
@@ -151,6 +155,10 @@ private fun Catalogue(
                                 onTap(criterion, value)
                             },
                             onOpen = { pinned = criterion.id },
+                            onApprove = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onConfirm(criterion)
+                            },
                             onNext = {
                                 onConfirm(criterion)
                                 pinned = null
@@ -196,33 +204,33 @@ private fun Catalogue(
                 is Segment.Open -> {
                     Progress(segment, state.confirmed.size, state.carriedOver.size, state.catalogue.criteria.size)
 
-                    // The two wholesale answers: this stretch is like the last one, or nothing like it.
-                    if (!state.selections.isEmpty()) {
+                    // The wholesale answers to a segment full of carried-over values: all of it still
+                    // holds, or none of it does.
+                    val carried = state.carriedOver.size
+                    if (carried > 0) {
                         Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                            if (state.carriedOver.isNotEmpty()) {
-                                FilledTonalButton(
-                                    onClick = {
-                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onKeepAll()
-                                    },
-                                    modifier = Modifier.weight(1f).height(56.dp),
-                                ) {
-                                    Text(
-                                        "Keep ${state.carriedOver.size} unchanged",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
+                            FilledTonalButton(
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onKeepAll()
+                                },
+                                modifier = Modifier.weight(1f).height(56.dp),
+                            ) {
+                                Text(
+                                    "Approve all $carried",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textAlign = TextAlign.Center,
+                                )
                             }
 
                             OutlinedButton(
                                 onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onClearAll()
+                                    onDiscardUnapproved()
                                     discarded = false
                                     scope.launch {
                                         val undo = snackbarHostState.showSnackbar(
-                                            message = "Cleared",
+                                            message = "Discarded $carried",
                                             actionLabel = "Undo",
                                         )
                                         if (undo == SnackbarResult.ActionPerformed) onUndoClear()
@@ -231,7 +239,7 @@ private fun Catalogue(
                                 modifier = Modifier.weight(1f).height(56.dp),
                             ) {
                                 Text(
-                                    "Clear all",
+                                    "Discard $carried",
                                     style = MaterialTheme.typography.titleMedium,
                                     textAlign = TextAlign.Center,
                                 )

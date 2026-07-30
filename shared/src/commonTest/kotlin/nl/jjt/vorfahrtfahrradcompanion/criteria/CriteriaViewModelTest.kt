@@ -266,35 +266,37 @@ class CriteriaViewModelTest {
     }
 
     @Test
-    fun clearingAllEmptiesTheDraftWithoutTouchingTheSegment() = runTest {
+    fun discardingDropsWhatIsNotApprovedAndKeepsWhatIs() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
         aSegmentThenTheNext(vm)
-        vm.onClearAll()
+        vm.onTap(width, "W_1")
+        vm.onDiscardUnapproved()
         testScheduler.advanceUntilIdle()
 
         val state = vm.state.value as CriteriaUiState.Ready
+        assertEquals(emptySet(), state.selections[users])
+        assertEquals(setOf("W_1"), state.selections[width])
         assertEquals(emptyList(), state.carriedOver)
-        assertEquals(emptyList(), state.confirmed)
-        assertEquals(width, state.nextOpen)
         // The segment the rider is describing is still running.
         assertEquals(Segment.Open(startedAt + ride, BoundaryKind.EXACT), state.segment)
     }
 
     @Test
-    fun clearingAllCanBeTakenBack() = runTest {
+    fun discardingCanBeTakenBack() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
-        vm.onTap(users, "CARS")
-        vm.onClearAll()
+        aSegmentThenTheNext(vm)
+        vm.onDiscardUnapproved()
         vm.onUndoClear()
         testScheduler.advanceUntilIdle()
 
+        // Back to carried over and waiting for a nod, exactly as before the discard.
         val state = vm.state.value as CriteriaUiState.Ready
         assertEquals(setOf("CARS"), state.selections[users])
-        assertEquals(listOf(users), state.confirmed)
+        assertEquals(listOf(users), state.carriedOver)
     }
 
     @Test

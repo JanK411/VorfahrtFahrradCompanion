@@ -93,8 +93,8 @@ class CriteriaViewModel(
         observations.keepAll(ready.catalogue.criteria)
     }
 
-    /** Empties the whole draft, for a stretch that has nothing in common with the last one. */
-    fun onClearAll() = observations.clearAll()
+    /** Drops everything still unapproved, for a stretch with little in common with the last one. */
+    fun onDiscardUnapproved() = observations.discardUnapproved()
 
     fun onUndoClear() = observations.undoClear()
 
