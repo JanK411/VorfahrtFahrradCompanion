@@ -16,6 +16,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -117,8 +118,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EARLIER)
         clock += ride
-        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
-        vm.answerHowLate(withinGrace = true)
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP, MissedEnd.JUST_NOW)
         testScheduler.advanceUntilIdle()
 
         assertEquals(BoundaryKind.EARLIER, stored.startKind)
@@ -159,8 +159,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += ride
-        vm.end(BoundaryKind.EARLIER, action = SegmentAction.START_NEXT)
-        vm.answerHowLate(withinGrace = true)
+        vm.end(BoundaryKind.EARLIER, SegmentAction.START_NEXT, MissedEnd.JUST_NOW)
         testScheduler.advanceUntilIdle()
 
         // The end of one stretch is the start of the next — including how late it was marked, and the
@@ -305,10 +304,7 @@ class CriteriaViewModelTest {
         clock += ride
         val pressedAt = clock.now()
 
-        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
-        assertEquals(EndStage.HOW_LATE, (vm.state.value as CriteriaUiState.Ready).pendingEnd?.stage)
-
-        vm.answerHowLate(withinGrace = true)
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP, MissedEnd.JUST_NOW)
         testScheduler.advanceUntilIdle()
 
         assertEquals((pressedAt - MissedEndGrace).toEpochMilliseconds(), stored.endedAtEpochMs)
@@ -326,8 +322,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += ride
-        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
-        vm.answerHowLate(withinGrace = false)
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP, MissedEnd.LONGER)
         testScheduler.advanceUntilIdle()
 
         assertEquals(emptyList(), dao.inserted)
@@ -344,12 +339,11 @@ class CriteriaViewModelTest {
         clock += ride
         val pressedAt = clock.now()
 
-        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
-        vm.answerHowLate(withinGrace = true)
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP, MissedEnd.JUST_NOW)
 
-        // One question leads to the other, and the step back survives it.
-        val ready = vm.state.value as CriteriaUiState.Ready
-        assertEquals(EndStage.UNAPPROVED, ready.pendingEnd?.stage)
+        // The slide answers one question; what is unapproved is still the other, and the step back
+        // survives it.
+        assertNotNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
 
         vm.confirmEnd(approve = setOf(users.id))
         testScheduler.advanceUntilIdle()
@@ -364,8 +358,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         // Ended late within a second of starting: the step back would reach behind the start.
-        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
-        vm.answerHowLate(withinGrace = true)
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP, MissedEnd.JUST_NOW)
         testScheduler.advanceUntilIdle()
 
         assertEquals(startedAt.toEpochMilliseconds(), stored.endedAtEpochMs)

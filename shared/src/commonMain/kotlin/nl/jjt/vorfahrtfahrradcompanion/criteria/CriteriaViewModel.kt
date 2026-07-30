@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 sealed interface CriteriaUiState {
@@ -49,32 +49,12 @@ sealed interface CriteriaUiState {
     }
 }
 
-/** What is still being asked before an end can be stored. */
-enum class EndStage {
-    /** How far back the boundary really was; only ever asked of an end marked as already passed. */
-    HOW_LATE,
-
-    /** Which of the criteria still carried over describe this stretch too. */
-    UNAPPROVED,
-}
-
 /**
  * An end the rider has asked for but not answered for yet. [at] is when they pressed the button — the
  * boundary belongs there, not to wherever the answering ends up, give or take the step back an end
  * marked late takes.
  */
-data class EndRequest(
-    val kind: BoundaryKind,
-    val action: SegmentAction,
-    val at: Instant,
-    val stage: EndStage,
-)
-
-/**
- * How far back an end marked as already passed is taken to be. Beyond it the rider is asked to throw
- * the segment away instead: a boundary they noticed that late could be anywhere.
- */
-val MissedEndGrace = 10.seconds
+data class EndRequest(val kind: BoundaryKind, val action: SegmentAction, val at: Instant)
 
 sealed interface SaveState {
     data object Idle : SaveState
@@ -137,46 +117,31 @@ class CriteriaViewModel(
      * [CriteriaUiState.Ready.pendingEnd] and the segment ends once they have answered.
      * See [ObservationRepository.end] for what [action] does.
      */
-    fun end(kind: BoundaryKind, action: SegmentAction) {
+    fun end(kind: BoundaryKind, action: SegmentAction, missed: MissedEnd? = null) {
         val ready = _state.value as? CriteriaUiState.Ready ?: return
         if (ready.saveState is SaveState.InFlight || ready.pendingEnd != null) return
 
-        val request = EndRequest(kind, action, observations.now, EndStage.HOW_LATE)
-        when {
-            kind == BoundaryKind.EARLIER -> updateReady { copy(pendingEnd = request) }
-            else -> ask(request)
+        // Missed by longer than the grace: there is no telling where the stretch ended, so it is thrown
+        // away rather than stored over ground it may well not cover.
+        if (missed == MissedEnd.LONGER) {
+            if (observations.discardSegment()) _outcomes.tryEmit(SegmentOutcome.TOO_LATE)
+            return
         }
-    }
 
-    /**
-     * The answer to [EndStage.HOW_LATE]. Within [MissedEndGrace] the boundary is taken to be that far
-     * before the press; beyond it there is no telling where the stretch ended, so it is thrown away
-     * rather than stored somewhere it may well not belong.
-     */
-    fun answerHowLate(withinGrace: Boolean) {
-        val request = pending(EndStage.HOW_LATE) ?: return
-        updateReady { copy(pendingEnd = null) }
-
-        if (withinGrace) {
-            ask(request.copy(at = request.at - MissedEndGrace))
-        } else if (observations.discardSegment()) {
-            _outcomes.tryEmit(SegmentOutcome.TOO_LATE)
-        }
+        val at = observations.now - if (missed == MissedEnd.JUST_NOW) MissedEndGrace else Duration.ZERO
+        ask(EndRequest(kind, action, at))
     }
 
     /** Stores the segment, or asks about the criteria still carried over if there are any. */
     private fun ask(request: EndRequest) {
         val ready = _state.value as? CriteriaUiState.Ready ?: return
         if (ready.carriedOver.isEmpty()) store(request)
-        else updateReady { copy(pendingEnd = request.copy(stage = EndStage.UNAPPROVED)) }
+        else updateReady { copy(pendingEnd = request) }
     }
-
-    private fun pending(stage: EndStage): EndRequest? =
-        (_state.value as? CriteriaUiState.Ready)?.pendingEnd?.takeIf { it.stage == stage }
 
     /** Ends the segment the rider was asked about, standing by the criteria in [approve]. */
     fun confirmEnd(approve: Set<String>) {
-        val request = pending(EndStage.UNAPPROVED) ?: return
+        val request = (_state.value as? CriteriaUiState.Ready)?.pendingEnd ?: return
         observations.resolveCarriedOver(approve)
         updateReady { copy(pendingEnd = null) }
         store(request)

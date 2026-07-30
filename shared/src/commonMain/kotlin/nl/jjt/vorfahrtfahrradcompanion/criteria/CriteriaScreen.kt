@@ -1,7 +1,8 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,12 +13,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
@@ -62,7 +70,6 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             onConfirm = viewModel::onConfirm,
             onStart = viewModel::start,
             onEnd = viewModel::end,
-            onAnswerHowLate = viewModel::answerHowLate,
             onConfirmEnd = viewModel::confirmEnd,
             onCancelEnd = viewModel::cancelEnd,
             onDiscardSegment = viewModel::discardSegment,
@@ -79,8 +86,7 @@ private fun Catalogue(
     onTap: (Criterion, String) -> Unit,
     onConfirm: (Criterion) -> Unit,
     onStart: (BoundaryKind) -> Unit,
-    onEnd: (BoundaryKind, SegmentAction) -> Unit,
-    onAnswerHowLate: (Boolean) -> Unit,
+    onEnd: (BoundaryKind, SegmentAction, MissedEnd?) -> Unit,
     onConfirmEnd: (Set<String>) -> Unit,
     onCancelEnd: () -> Unit,
     onDiscardSegment: () -> Unit,
@@ -181,17 +187,13 @@ private fun Catalogue(
         )
     }
 
-    when (state.pendingEnd?.stage) {
-        EndStage.HOW_LATE -> HowLateDialog(onAnswer = onAnswerHowLate, onDismiss = onCancelEnd)
-
-        EndStage.UNAPPROVED -> EndSegmentDialog(
+    state.pendingEnd?.let {
+        EndSegmentDialog(
             unapproved = state.carriedOver,
             selections = state.selections,
             onConfirm = onConfirmEnd,
             onDismiss = onCancelEnd,
         )
-
-        null -> Unit
     }
 
     Column(modifier.fillMaxSize()) {
@@ -261,7 +263,9 @@ private fun Catalogue(
 
             val enabled = state.saveState !is SaveState.InFlight
             when (val segment = state.segment) {
-                Segment.Idle -> ButtonRow { RecorderButton("Start", enabled, onStart) }
+                Segment.Idle -> ButtonRow {
+                    RecorderButton("Start", enabled, onMark = onStart)
+                }
 
                 is Segment.Open -> {
                     Progress(
@@ -273,8 +277,18 @@ private fun Catalogue(
                     )
 
                     ButtonRow {
-                        RecorderButton("End", enabled) { onEnd(it, SegmentAction.STOP) }
-                        RecorderButton("End, start next", enabled) { onEnd(it, SegmentAction.START_NEXT) }
+                        RecorderButton(
+                            label = "End",
+                            enabled = enabled,
+                            onMark = { onEnd(it, SegmentAction.STOP, null) },
+                            onMissedEnd = { onEnd(BoundaryKind.EARLIER, SegmentAction.STOP, it) },
+                        )
+                        RecorderButton(
+                            label = "End, start next",
+                            enabled = enabled,
+                            onMark = { onEnd(it, SegmentAction.START_NEXT, null) },
+                            onMissedEnd = { onEnd(BoundaryKind.EARLIER, SegmentAction.START_NEXT, it) },
+                        )
                     }
                 }
             }
@@ -295,7 +309,7 @@ private fun HoldHint(onExplain: () -> Unit) = Row(
     verticalAlignment = Alignment.CenterVertically,
 ) {
     Text(
-        "Missed the moment? Hold the button instead.",
+        "Missed the moment? Hold the button, then slide.",
         modifier = Modifier.weight(1f),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.tertiary,
@@ -304,50 +318,6 @@ private fun HoldHint(onExplain: () -> Unit) = Row(
         Text("?", style = MaterialTheme.typography.titleMedium)
     }
 }
-
-/**
- * What is asked of a rider who marked an end they had already ridden past. A short miss is worth a
- * boundary [MissedEndGrace] further back; a long one is worth nothing, because the stretch could have
- * ended anywhere between there and here, and a segment stored over the wrong ground is worse than no
- * segment at all.
- */
-@Composable
-private fun HowLateDialog(onAnswer: (Boolean) -> Unit, onDismiss: () -> Unit) = AlertDialog(
-    onDismissRequest = onDismiss,
-    title = { Text("How late?") },
-    text = {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                "You marked an end you had already ridden past. How long ago was it?",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Button(
-                onClick = { onAnswer(true) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
-            ) {
-                Text(
-                    "Less than ${MissedEndGrace.inWholeSeconds} seconds",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-            OutlinedButton(
-                onClick = { onAnswer(false) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                ),
-            ) {
-                Text(
-                    "Longer — discard the segment",
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
-    },
-    confirmButton = {},
-    dismissButton = { TextButton(onDismiss) { Text("Back") } },
-)
 
 /**
  * The question in front of throwing a segment away. Unlike a boundary, nothing about this is
@@ -395,8 +365,16 @@ private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
-                "A segment started that way says so under the recording time, so you can see which of " +
-                    "the two you got.",
+                "Holding Start is all there is to it — the recording line then says \"started earlier\".",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                "Holding End raises two answers above your thumb, because how long ago it was decides " +
+                    "whether the segment is worth keeping. Without letting go, slide up and to the left " +
+                    "for under ${MissedEndGrace.inWholeSeconds} seconds — the end is stored that much " +
+                    "earlier — or up and to the right for longer than that, which throws the segment " +
+                    "away: a stretch that ended somewhere unknown is worse than none. Let go without " +
+                    "sliding anywhere and nothing happens.",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -457,41 +435,150 @@ private fun ButtonRow(content: @Composable RowScope.() -> Unit) = Row(
     content = content,
 )
 
+/** How far the thumb has to travel off the button before it counts as having chosen something. */
+private val SlideThreshold = 40.dp
+
+private val PickerOptionWidth = 132.dp
+private val PickerOptionHeight = 76.dp
+
 /**
  * A boundary marker. A tap marks the boundary here and now; holding it marks one already passed — the
  * correction a rider reaches for after missing the moment, on the same button rather than beside it.
  *
- * Built out of a Surface because a Button has no room for a long press.
+ * On an end, holding does not answer on its own: how long ago the boundary was decides whether the
+ * segment is worth keeping, so the hold raises the two answers above the thumb and the rider slides
+ * onto one and lets go, in one movement, the way a phone's quick launch works. Lifting off without
+ * having gone anywhere leaves the segment alone.
+ *
+ * Built out of a Surface because a Button has room for neither a long press nor what follows it.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun RowScope.RecorderButton(
     label: String,
     enabled: Boolean,
-    onClick: (BoundaryKind) -> Unit,
+    onMark: (BoundaryKind) -> Unit,
+    onMissedEnd: ((MissedEnd) -> Unit)? = null,
 ) {
     val haptics = LocalHapticFeedback.current
     val scheme = MaterialTheme.colorScheme
+    val threshold = with(LocalDensity.current) { SlideThreshold.toPx() }
+
+    var picking by remember { mutableStateOf(false) }
+    var choice by remember { mutableStateOf<MissedEnd?>(null) }
 
     Surface(
-        modifier = Modifier.weight(1f).heightIn(min = ActionButtonHeight).fillMaxHeight().combinedClickable(
-            enabled = enabled,
-            onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                onClick(BoundaryKind.EXACT)
+        modifier = Modifier.weight(1f).heightIn(min = ActionButtonHeight).fillMaxHeight()
+            .pointerInput(enabled, onMissedEnd) {
+                if (!enabled) return@pointerInput
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+
+                    // Released before the hold registered: an ordinary tap, on the boundary itself.
+                    if (withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                            waitForUpOrCancellation()
+                        } != null
+                    ) {
+                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                        onMark(BoundaryKind.EXACT)
+                        return@awaitEachGesture
+                    }
+
+                    // The heavier buzz, so the two boundaries feel apart without a look at the screen.
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+
+                    if (onMissedEnd == null) {
+                        onMark(BoundaryKind.EARLIER)
+                        waitForUpOrCancellation()
+                        return@awaitEachGesture
+                    }
+
+                    picking = true
+                    while (true) {
+                        val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                        val slid = slideChoice(change.position - down.position, threshold)
+                        if (slid != choice) {
+                            choice = slid
+                            // A tick as the thumb crosses onto an answer, since it covers the screen.
+                            if (slid != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                        }
+                        change.consume()
+                        if (!change.pressed) break
+                    }
+
+                    picking = false
+                    choice?.let(onMissedEnd)
+                    choice = null
+                }
             },
-            onLongClick = {
-                // The heavier buzz, so the two boundaries feel apart without a look at the screen.
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick(BoundaryKind.EARLIER)
-            },
-        ),
         shape = ButtonDefaults.shape,
         color = if (enabled) scheme.primary else scheme.onSurface.copy(alpha = 0.12f),
         contentColor = if (enabled) scheme.onPrimary else scheme.onSurface.copy(alpha = 0.38f),
     ) {
         Box(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
             Text(label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+
+            if (picking) {
+                Popup(
+                    alignment = Alignment.TopCenter,
+                    offset = IntOffset(0, -with(LocalDensity.current) { (PickerOptionHeight + 16.dp).roundToPx() }),
+                ) {
+                    HowLatePicker(choice)
+                }
+            }
         }
+    }
+}
+
+/**
+ * Which answer the thumb is on. Direction rather than a target: up and to the left keeps the segment,
+ * up and to the right throws it away, and anywhere near the button is still no answer at all — a
+ * gesture that asks for no aim can be made without looking.
+ */
+private fun slideChoice(travelled: Offset, threshold: Float): MissedEnd? = when {
+    travelled.y > -threshold -> null
+    travelled.x < 0f -> MissedEnd.JUST_NOW
+    else -> MissedEnd.LONGER
+}
+
+/** The two answers, raised above the thumb that is still holding the button down. */
+@Composable
+private fun HowLatePicker(choice: MissedEnd?) = Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    PickerOption(
+        title = "↖ Under ${MissedEndGrace.inWholeSeconds} s",
+        subtitle = "end goes back",
+        selected = choice == MissedEnd.JUST_NOW,
+        selectedColor = MaterialTheme.colorScheme.primary,
+        selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+    )
+    PickerOption(
+        title = "Longer ↗",
+        subtitle = "discard segment",
+        selected = choice == MissedEnd.LONGER,
+        selectedColor = MaterialTheme.colorScheme.error,
+        selectedContentColor = MaterialTheme.colorScheme.onError,
+    )
+}
+
+@Composable
+private fun PickerOption(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    selectedColor: Color,
+    selectedContentColor: Color,
+) = Surface(
+    modifier = Modifier.size(PickerOptionWidth, PickerOptionHeight),
+    shape = MaterialTheme.shapes.large,
+    color = if (selected) selectedColor else MaterialTheme.colorScheme.surfaceVariant,
+    contentColor = if (selected) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+    shadowElevation = if (selected) 8.dp else 2.dp,
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(8.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text(subtitle, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
     }
 }
