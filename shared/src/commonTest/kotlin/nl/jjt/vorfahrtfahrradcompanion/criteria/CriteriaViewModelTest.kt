@@ -118,6 +118,7 @@ class CriteriaViewModelTest {
         vm.start(BoundaryKind.EARLIER)
         clock += ride
         vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
+        vm.answerHowLate(withinGrace = true)
         testScheduler.advanceUntilIdle()
 
         assertEquals(BoundaryKind.EARLIER, stored.startKind)
@@ -159,11 +160,13 @@ class CriteriaViewModelTest {
         vm.start(BoundaryKind.EXACT)
         clock += ride
         vm.end(BoundaryKind.EARLIER, action = SegmentAction.START_NEXT)
+        vm.answerHowLate(withinGrace = true)
         testScheduler.advanceUntilIdle()
 
-        // The end of one stretch is the start of the next — including how late it was marked.
+        // The end of one stretch is the start of the next — including how late it was marked, and the
+        // step back that being late is worth.
         val segment = (vm.state.value as CriteriaUiState.Ready).segment
-        assertEquals(Segment.Open(startedAt + ride, BoundaryKind.EARLIER), segment)
+        assertEquals(Segment.Open(startedAt + ride - MissedEndGrace, BoundaryKind.EARLIER), segment)
         assertEquals(BoundaryKind.EARLIER, stored.endKind)
     }
 
@@ -290,6 +293,83 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(pressedAt.toEpochMilliseconds(), dao.inserted.last().endedAtEpochMs)
+    }
+
+    @Test
+    fun anEndMarkedLateIsStoredAStepBack() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        val pressedAt = clock.now()
+
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
+        assertEquals(EndStage.HOW_LATE, (vm.state.value as CriteriaUiState.Ready).pendingEnd?.stage)
+
+        vm.answerHowLate(withinGrace = true)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals((pressedAt - MissedEndGrace).toEpochMilliseconds(), stored.endedAtEpochMs)
+        assertEquals(BoundaryKind.EARLIER, stored.endKind)
+    }
+
+    @Test
+    fun anEndMissedByLongerThanThatThrowsTheSegmentAway() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val outcomes = mutableListOf<SegmentOutcome>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.outcomes.collect { outcomes += it } }
+        testScheduler.advanceUntilIdle()
+
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
+        vm.answerHowLate(withinGrace = false)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), dao.inserted)
+        assertEquals(listOf(SegmentOutcome.TOO_LATE), outcomes)
+        assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
+    }
+
+    @Test
+    fun aLateEndStillAsksAboutWhatIsUnapproved() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
+        clock += ride
+        val pressedAt = clock.now()
+
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
+        vm.answerHowLate(withinGrace = true)
+
+        // One question leads to the other, and the step back survives it.
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(EndStage.UNAPPROVED, ready.pendingEnd?.stage)
+
+        vm.confirmEnd(approve = setOf(users.id))
+        testScheduler.advanceUntilIdle()
+        assertEquals((pressedAt - MissedEndGrace).toEpochMilliseconds(), dao.inserted.last().endedAtEpochMs)
+    }
+
+    @Test
+    fun anEndCannotLandBeforeItsOwnStart() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        // Ended late within a second of starting: the step back would reach behind the start.
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
+        vm.answerHowLate(withinGrace = true)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(startedAt.toEpochMilliseconds(), stored.endedAtEpochMs)
+        assertEquals(stored.startedAtEpochMs, stored.endedAtEpochMs)
     }
 
     @Test
