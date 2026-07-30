@@ -15,18 +15,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -42,6 +46,9 @@ internal fun CriteriaUiState.Ready.reviewOf(criterion: Criterion): Review = when
 /** Big enough to hit on a bumpy road without looking for long. */
 private val ValueButtonHeight = 72.dp
 private val RowHeight = 64.dp
+
+/** Small next to a value button — approving is a nudge, not the thing the rider came to do. */
+private val IconButtonSize = 52.dp
 
 /**
  * One criterion. Collapsed it is a single line — label, values, and whether they still need approving —
@@ -99,31 +106,39 @@ private fun CarriedCriterion(
     selected: Set<String>,
     onApprove: () -> Unit,
     onChange: () -> Unit,
-) = Column(
-    modifier = Modifier.fillMaxWidth().padding(12.dp),
-    verticalArrangement = Arrangement.spacedBy(8.dp),
+) = Row(
+    modifier = Modifier.fillMaxWidth().heightIn(min = RowHeight).padding(horizontal = 16.dp, vertical = 8.dp),
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    verticalAlignment = Alignment.CenterVertically,
 ) {
+    CriterionSummary(criterion, selected, MaterialTheme.colorScheme.onSurfaceVariant, Modifier.weight(1f))
+
+    OutlinedIconButton(onChange, Modifier.size(IconButtonSize)) {
+        Icon(Icons.Filled.Edit, contentDescription = "Change")
+    }
+    FilledIconButton(onApprove, Modifier.size(IconButtonSize)) {
+        Icon(Icons.Filled.Check, contentDescription = "Approve")
+    }
+}
+
+/** The label and the values, the two lines every folded card leads with. */
+@Composable
+private fun CriterionSummary(
+    criterion: Criterion,
+    selected: Set<String>,
+    valueColor: Color,
+    modifier: Modifier = Modifier,
+) = Column(modifier, Arrangement.spacedBy(2.dp)) {
     Text(
         criterion.label(),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Text(
-        selected.joinToString(" · "),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-
-    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-        Button(onApprove, Modifier.weight(1f).heightIn(min = RowHeight)) {
-            Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Approve", style = MaterialTheme.typography.titleMedium)
-        }
-        OutlinedButton(onChange, Modifier.weight(1f).heightIn(min = RowHeight)) {
-            Text("Change", style = MaterialTheme.typography.titleMedium)
-        }
-    }
+    Text(
+        selected.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "—",
+        style = MaterialTheme.typography.titleLarge,
+        color = valueColor,
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -192,19 +207,13 @@ private fun CollapsedCriterion(criterion: Criterion, selected: Set<String>, conf
     horizontalArrangement = Arrangement.spacedBy(12.dp),
     verticalAlignment = Alignment.CenterVertically,
 ) {
-    Column(Modifier.weight(1f), Arrangement.spacedBy(2.dp)) {
-        Text(
-            criterion.label(),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            selected.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "—",
-            style = MaterialTheme.typography.titleMedium,
-            color = if (confirmed) MaterialTheme.colorScheme.onSecondaryContainer
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    CriterionSummary(
+        criterion,
+        selected,
+        valueColor = if (confirmed) MaterialTheme.colorScheme.onSecondaryContainer
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.weight(1f),
+    )
 
     if (confirmed) {
         Icon(

@@ -158,6 +158,11 @@ private fun Catalogue(
                             onApprove = {
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onConfirm(criterion)
+                                // Nothing expands in review mode, so advancing means bringing the next
+                                // one still waiting up to the thumb that just approved this one.
+                                val next = state.carriedOver.firstOrNull { it.id != criterion.id }
+                                val index = state.catalogue.criteria.indexOfFirst { it.id == next?.id }
+                                if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
                             },
                             onNext = {
                                 onConfirm(criterion)
