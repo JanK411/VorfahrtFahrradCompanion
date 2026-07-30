@@ -14,7 +14,7 @@ val patchNotes: List<PatchNote> = listOf(
         date = "2026-07-30",
         changes = listOf(
             "The criteria screen is built for riding now: big buttons, bigger type, and a tap you can feel.",
-            "Answer the criterion at the top and the next one scrolls to you — no more reaching for the screen to scroll. Skip one and it stays skipped: the flow only ever moves down the list, and every new segment starts back at the top.",
+            "Answer the criterion at the top and the next one scrolls to you — no more reaching for the screen to scroll. Skip one and the flow carries on down the list without dragging you back; once you answer the last one it comes back round for whatever you skipped. Every new segment starts back at the top.",
             "Answered criteria collapse to a single line, so the list gets shorter as you fill it in. Tap one to change it again.",
             "A segment that inherits the last one's answers opens with everything folded: each criterion shows the value it carried over, with a big check to approve it — which brings the next one up to your thumb. Tapping the criterion anywhere else opens it up to pick something else, which moves you on just the same.",
             "Ending a segment while anything is still unapproved asks first: it lists those entries and lets you keep or drop each one — or all of them at once — before the segment is stored.",

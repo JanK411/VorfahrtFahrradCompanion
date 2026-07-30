@@ -45,6 +45,14 @@ sealed interface CriteriaUiState {
             .drop(1)
             .firstOrNull { it.id !in reviewed }
 
+        /**
+         * What to put in front of the rider once [settled] is dealt with: the next criterion below it,
+         * or — with the bottom of the list reached — whatever was skipped on the way down, which is
+         * where a rider who has answered the last one still has something left to answer.
+         */
+        fun leadingAfter(settled: Criterion?): Criterion? =
+            if (settled == null) nextOpen else openAfter(settled) ?: nextOpen
+
         private val Criterion.hasValues: Boolean get() = selections[this].isNotEmpty()
     }
 }
