@@ -98,8 +98,10 @@ class ObservationRepository(
      * opens the next segment either way.
      *
      * With [action] = [SegmentAction.START_NEXT] the next segment opens on the same instant and inherits
-     * [kind] — it is the same boundary, so a late end means a late start too. Selections are kept either
-     * way, unreviewed again: consecutive stretches of path usually differ in only one criterion.
+     * [kind] — it is the same boundary, so a late end means a late start too — and keeps the selections,
+     * unreviewed again, because consecutive stretches of path usually differ in only one criterion.
+     * [SegmentAction.STOP] instead ends the survey: it leaves nothing behind for whatever the rider
+     * describes next.
      */
     suspend fun end(kind: BoundaryKind, action: SegmentAction): SegmentOutcome? {
         val draft = _draft.value
@@ -121,10 +123,11 @@ class ObservationRepository(
 
         cleared = null
         _draft.update {
-            it.copy(
-                segment = if (action == SegmentAction.START_NEXT) Segment.Open(endedAt, kind) else Segment.Idle,
-                reviewed = emptySet(),
-            )
+            if (action == SegmentAction.START_NEXT) {
+                it.copy(segment = Segment.Open(endedAt, kind), reviewed = emptySet())
+            } else {
+                Draft()
+            }
         }
 
         return if (values.isEmpty()) SegmentOutcome.DISCARDED else SegmentOutcome.SAVED
