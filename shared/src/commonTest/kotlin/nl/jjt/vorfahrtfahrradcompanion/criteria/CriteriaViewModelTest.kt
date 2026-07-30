@@ -2,7 +2,10 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -13,6 +16,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -85,9 +89,9 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // WIDTH ends up selected-then-cleared, so it must not reach the stored values at all.
-        vm.onSelect(width, "W_1")
-        vm.onSelect(width, "W_1")
-        vm.onSelect(users, "CARS")
+        vm.onTap(width, "W_1")
+        vm.onTap(width, "W_1")
+        vm.onTap(users, "CARS")
 
         vm.start(BoundaryKind.EXACT)
         clock += ride
@@ -109,6 +113,8 @@ class CriteriaViewModelTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
+        // Something has to be confirmed, or the segment describes nothing and is discarded.
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EARLIER)
         clock += ride
         vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
@@ -149,6 +155,7 @@ class CriteriaViewModelTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += ride
         vm.end(BoundaryKind.EARLIER, action = SegmentAction.START_NEXT)
@@ -165,7 +172,7 @@ class CriteriaViewModelTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
-        vm.onSelect(users, "CARS")
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += ride
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
@@ -174,5 +181,107 @@ class CriteriaViewModelTest {
         val state = vm.state.value as CriteriaUiState.Ready
         assertEquals(setOf("CARS"), state.selections[users])
         assertEquals(SaveState.Idle, state.saveState)
+        // Carried over, but no longer confirmed: the previous segment's answer is only a suggestion now.
+        assertEquals(emptySet(), state.reviewed)
+        assertEquals(listOf(users), state.carriedOver)
+    }
+
+    /** Rides one segment with [users] = CARS and leaves the next one open. */
+    private suspend fun TestScope.aSegmentThenTheNext(vm: CriteriaViewModel) {
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        vm.end(BoundaryKind.EXACT, SegmentAction.START_NEXT)
+        testScheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun anUnconfirmedCarryOverIsNotStoredAndItsSegmentIsDiscarded() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val outcomes = mutableListOf<SegmentOutcome>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.outcomes.collect { outcomes += it } }
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
+        clock += ride
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        // Only the first segment was stored; the second described nothing, so it never reached the dao.
+        assertEquals(1, dao.inserted.size)
+        assertEquals(listOf(SegmentOutcome.SAVED, SegmentOutcome.DISCARDED), outcomes)
+    }
+
+    @Test
+    fun keepingAllStoresTheCarriedValuesAgain() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
+        vm.onKeepAll()
+        clock += ride
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(2, dao.inserted.size)
+        assertEquals(
+            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+    }
+
+    @Test
+    fun theFirstTapOnACarriedValueConfirmsItInsteadOfClearingIt() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
+        vm.onTap(users, "CARS")
+        testScheduler.advanceUntilIdle()
+
+        val state = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), state.selections[users])
+        assertEquals(listOf(users), state.confirmed)
+
+        // And a second tap toggles it off, as it would on any confirmed criterion.
+        vm.onTap(users, "CARS")
+        testScheduler.advanceUntilIdle()
+        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).selections[users])
+    }
+
+    @Test
+    fun theFlowWalksTheCatalogueAndRunsOut() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val ready = { vm.state.value as CriteriaUiState.Ready }
+
+        assertEquals(width, ready().nextOpen)
+
+        vm.onTap(width, "W_1")
+        testScheduler.advanceUntilIdle()
+        assertEquals(users, ready().nextOpen)
+
+        vm.onKeepAll()
+        testScheduler.advanceUntilIdle()
+        assertNull(ready().nextOpen)
+    }
+
+    @Test
+    fun aTapThatClearsTheLastValueAsksForNoAdvance() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val advanced = mutableListOf<Criterion>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.advances.collect { advanced += it } }
+        testScheduler.advanceUntilIdle()
+
+        vm.onTap(width, "W_1")
+        testScheduler.advanceUntilIdle()
+        assertEquals(listOf(width), advanced)
+
+        // Clearing a value leaves the rider with nothing answered, so the screen must stay put.
+        vm.onTap(width, "W_1")
+        testScheduler.advanceUntilIdle()
+        assertEquals(listOf(width), advanced)
     }
 }
