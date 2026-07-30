@@ -164,14 +164,9 @@ private fun ExpandedCriterion(
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            when {
-                review == Review.CARRIED -> "tap to keep"
-                criterion.kind == CriterionKind.SINGLE -> "pick one"
-                else -> "pick any"
-            },
+            if (criterion.kind == CriterionKind.SINGLE) "pick one" else "pick any",
             style = MaterialTheme.typography.labelLarge,
-            color = if (review == Review.CARRIED) MaterialTheme.colorScheme.tertiary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 
