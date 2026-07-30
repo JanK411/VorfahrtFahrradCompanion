@@ -93,6 +93,11 @@ class CriteriaViewModel(
         observations.keepAll(ready.catalogue.criteria)
     }
 
+    /** Empties the whole draft, for a stretch that has nothing in common with the last one. */
+    fun onClearAll() = observations.clearAll()
+
+    fun onUndoClear() = observations.undoClear()
+
     fun start(kind: BoundaryKind) = observations.start(kind)
 
     /** Ends the open segment and stores it; see [ObservationRepository.end] for what [action] does. */

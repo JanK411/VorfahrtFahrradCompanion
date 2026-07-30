@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import nl.jjt.vorfahrtfahrradcompanion.ui.KeepScreenAwake
@@ -57,6 +58,8 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             onTap = viewModel::onTap,
             onConfirm = viewModel::onConfirm,
             onKeepAll = viewModel::onKeepAll,
+            onClearAll = viewModel::onClearAll,
+            onUndoClear = viewModel::onUndoClear,
             onStart = viewModel::start,
             onEnd = viewModel::end,
             modifier = modifier,
@@ -72,10 +75,13 @@ private fun Catalogue(
     onTap: (Criterion, String) -> Unit,
     onConfirm: (Criterion) -> Unit,
     onKeepAll: () -> Unit,
+    onClearAll: () -> Unit,
+    onUndoClear: () -> Unit,
     onStart: (BoundaryKind) -> Unit,
     onEnd: (BoundaryKind, SegmentAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var discarded by remember { mutableStateOf(false) }
     LaunchedEffect(outcomes) {
@@ -185,19 +191,46 @@ private fun Catalogue(
                 is Segment.Open -> {
                     Progress(segment, state.confirmed.size, state.carriedOver.size, state.catalogue.criteria.size)
 
-                    // One tap for a stretch that differs from the last in nothing at all.
-                    if (state.carriedOver.isNotEmpty()) {
-                        FilledTonalButton(
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onKeepAll()
-                            },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                        ) {
-                            Text(
-                                "Keep ${state.carriedOver.size} unchanged",
-                                style = MaterialTheme.typography.titleMedium,
-                            )
+                    // The two wholesale answers: this stretch is like the last one, or nothing like it.
+                    if (!state.selections.isEmpty()) {
+                        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                            if (state.carriedOver.isNotEmpty()) {
+                                FilledTonalButton(
+                                    onClick = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onKeepAll()
+                                    },
+                                    modifier = Modifier.weight(1f).height(56.dp),
+                                ) {
+                                    Text(
+                                        "Keep ${state.carriedOver.size} unchanged",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onClearAll()
+                                    discarded = false
+                                    scope.launch {
+                                        val undo = snackbarHostState.showSnackbar(
+                                            message = "Cleared",
+                                            actionLabel = "Undo",
+                                        )
+                                        if (undo == SnackbarResult.ActionPerformed) onUndoClear()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).height(56.dp),
+                            ) {
+                                Text(
+                                    "Clear all",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
                     }
 

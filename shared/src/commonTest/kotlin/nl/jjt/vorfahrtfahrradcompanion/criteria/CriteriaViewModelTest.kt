@@ -251,6 +251,38 @@ class CriteriaViewModelTest {
     }
 
     @Test
+    fun clearingAllEmptiesTheDraftWithoutTouchingTheSegment() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
+        vm.onClearAll()
+        testScheduler.advanceUntilIdle()
+
+        val state = vm.state.value as CriteriaUiState.Ready
+        assertEquals(emptyList(), state.carriedOver)
+        assertEquals(emptyList(), state.confirmed)
+        assertEquals(width, state.nextOpen)
+        // The segment the rider is describing is still running.
+        assertEquals(Segment.Open(startedAt + ride, BoundaryKind.EXACT), state.segment)
+    }
+
+    @Test
+    fun clearingAllCanBeTakenBack() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.onTap(users, "CARS")
+        vm.onClearAll()
+        vm.onUndoClear()
+        testScheduler.advanceUntilIdle()
+
+        val state = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), state.selections[users])
+        assertEquals(listOf(users), state.confirmed)
+    }
+
+    @Test
     fun theFlowWalksTheCatalogueAndRunsOut() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()

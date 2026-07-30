@@ -44,6 +44,9 @@ class ObservationRepository(
     private val _draft = MutableStateFlow(Draft())
     val draft: StateFlow<Draft> = _draft.asStateFlow()
 
+    /** What [clearAll] wiped, held for as long as the rider might take it back. */
+    private var cleared: Draft? = null
+
     /**
      * Applies a tap on [value]. The first tap on a value still carried over from the previous segment only
      * confirms it: the rider is approving what is already there, not toggling it off. Every other tap
@@ -63,6 +66,23 @@ class ObservationRepository(
     /** Confirms everything at once, for the common segment where nothing changed. */
     fun keepAll(criteria: List<Criterion>) =
         _draft.update { it.copy(reviewed = it.reviewed + criteria.map(Criterion::id)) }
+
+    /**
+     * Drops every selection so the segment at hand is described from scratch — for the stretch that has
+     * nothing in common with the last one. The open segment itself stays open. Reversible via [undoClear],
+     * because hitting this by mistake would otherwise cost the rider the whole catalogue.
+     */
+    fun clearAll() {
+        cleared = _draft.value
+        _draft.update { it.copy(selections = Selections(), reviewed = emptySet()) }
+    }
+
+    /** Puts back what [clearAll] dropped. Does nothing if there is no clear to take back. */
+    fun undoClear() {
+        val previous = cleared ?: return
+        cleared = null
+        _draft.update { it.copy(selections = previous.selections, reviewed = previous.reviewed) }
+    }
 
     /** Marks the start of a segment. Ignored while one is already open. */
     fun start(kind: BoundaryKind) = _draft.update {
@@ -99,6 +119,7 @@ class ObservationRepository(
             )
         }
 
+        cleared = null
         _draft.update {
             it.copy(
                 segment = if (action == SegmentAction.START_NEXT) Segment.Open(endedAt, kind) else Segment.Idle,
