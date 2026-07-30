@@ -3,6 +3,20 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.5",
+        date = "2026-07-30",
+        changes = listOf(
+            "The criteria screen is built for riding now: big buttons, bigger type, and a tap you can feel.",
+            "Answer the criterion at the top and the next one scrolls to you — no more reaching for the screen to scroll.",
+            "Answered criteria collapse to a single line, so the list gets shorter as you fill it in. Tap one to change it again.",
+            "Values from the previous segment are shown greyed out. Tap one to keep it, or \"Keep all unchanged\" for a stretch that differs in nothing.",
+            "Only what you confirmed is saved. A segment where you confirmed nothing is discarded instead of stored empty, and says so.",
+            "Multiple-choice criteria wait a moment before moving on, or move on right away with \"Next\".",
+            "The screen no longer sleeps while a segment is running.",
+            "The \"earlier\" buttons moved behind \"Missed the moment?\", leaving the buttons you actually press big.",
+        ),
+    ),
+    PatchNote(
         version = "1.4",
         date = "2026-07-28",
         changes = listOf(
