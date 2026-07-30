@@ -120,17 +120,15 @@ private fun Catalogue(
     // and advancing unpins it again.
     var pinned by remember { mutableStateOf<String?>(null) }
 
-    // How far down the list the rider has got. Everything above it is behind them — answered, or
-    // skipped on purpose — so the flow leads from below it and never doubles back.
+    // How far down the list the rider has got. The flow leads from below it and only doubles back once
+    // there is nothing left below to lead to.
     var settled by remember { mutableStateOf<Criterion?>(null) }
 
     // With nothing pinned the screen leads: it expands the criterion to answer next — but only while
     // there is nothing left to review. A segment that inherited the last one's answers stays folded, so
     // the rider approves or changes them one line at a time instead of being dropped into the first one.
-    val last = settled
-    val leading = if (last == null) state.nextOpen else state.openAfter(last)
     val expanded = state.catalogue.criteria.firstOrNull { it.id == pinned }
-        ?: leading.takeIf { state.carriedOver.isEmpty() }
+        ?: state.leadingAfter(settled).takeIf { state.carriedOver.isEmpty() }
 
     // A new segment starts at the top. The list keeps its scroll position across an end, and the first
     // open criterion is usually the same one as before, so nothing below would move the view back up.
@@ -143,10 +141,10 @@ private fun Catalogue(
     // The collector below outlives the composition it started in, so it reads the state through this.
     val current by rememberUpdatedState(state)
 
-    // Moving on: bring the criterion below this one that still needs attention up the list. Forward
-    // only — a criterion the rider skipped was skipped on purpose.
+    // Moving on: bring whatever comes after this one up the list, which is below it until the bottom
+    // of the list is reached and whatever was skipped comes back round.
     fun moveOnFrom(criterion: Criterion) {
-        val next = current.openAfter(criterion) ?: return
+        val next = current.leadingAfter(criterion) ?: return
         val index = current.catalogue.criteria.indexOfFirst { it.id == next.id }
         if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
     }
