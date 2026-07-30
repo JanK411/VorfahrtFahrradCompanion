@@ -25,7 +25,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,8 +46,8 @@ internal fun CriteriaUiState.Ready.reviewOf(criterion: Criterion): Review = when
 private val ValueButtonHeight = 72.dp
 private val RowHeight = 64.dp
 
-/** Small next to a value button — approving is a nudge, not the thing the rider came to do. */
-private val IconButtonSize = 52.dp
+/** The one precise target on a folded card; everything around it opens the criterion instead. */
+private val ApproveButtonSize = 64.dp
 
 /**
  * One criterion. Collapsed it is a single line — label, values, and whether they still need approving —
@@ -70,9 +69,9 @@ internal fun CriterionCard(
 ) {
     val scheme = MaterialTheme.colorScheme
     Card(
-        // A carried-over card carries its own buttons; everywhere else the card itself opens.
-        modifier = Modifier.fillMaxWidth()
-            .clickable(enabled = !expanded && review != Review.CARRIED, onClick = onOpen),
+        // Any folded card opens on a tap anywhere — the whole card is the target, so a knock in the road
+        // costs nothing. Only the approve button carves a piece out of it.
+        modifier = Modifier.fillMaxWidth().clickable(enabled = !expanded, onClick = onOpen),
         colors = CardDefaults.cardColors(
             containerColor = when {
                 expanded -> scheme.surface
@@ -89,7 +88,7 @@ internal fun CriterionCard(
     ) {
         when {
             expanded -> ExpandedCriterion(criterion, selected, review, onTapValue, onNext)
-            review == Review.CARRIED -> CarriedCriterion(criterion, selected, onApprove, onOpen)
+            review == Review.CARRIED -> CarriedCriterion(criterion, selected, onApprove)
             else -> CollapsedCriterion(criterion, selected, confirmed = review == Review.CONFIRMED)
         }
     }
@@ -97,27 +96,32 @@ internal fun CriterionCard(
 
 /**
  * A criterion still holding the previous segment's answer. It stays folded — the rider is reviewing what
- * is already there, not filling anything in — and offers the only two things worth doing to it: stand by
- * it, or open it up and pick something else.
+ * is already there, not filling anything in — and splits into the only two things worth doing to it: the
+ * approve button, and everything else, which opens it up to pick something else.
+ *
+ * The pencil is a hint rather than a button: it sits in the card's own tap area, so hitting it works
+ * regardless, and it costs a rider nothing to miss.
  */
 @Composable
 private fun CarriedCriterion(
     criterion: Criterion,
     selected: Set<String>,
     onApprove: () -> Unit,
-    onChange: () -> Unit,
 ) = Row(
     modifier = Modifier.fillMaxWidth().heightIn(min = RowHeight).padding(horizontal = 16.dp, vertical = 8.dp),
-    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
     verticalAlignment = Alignment.CenterVertically,
 ) {
     CriterionSummary(criterion, selected, MaterialTheme.colorScheme.onSurfaceVariant, Modifier.weight(1f))
 
-    OutlinedIconButton(onChange, Modifier.size(IconButtonSize)) {
-        Icon(Icons.Filled.Edit, contentDescription = "Change")
-    }
-    FilledIconButton(onApprove, Modifier.size(IconButtonSize)) {
-        Icon(Icons.Filled.Check, contentDescription = "Approve")
+    Icon(
+        Icons.Filled.Edit,
+        contentDescription = "Change",
+        modifier = Modifier.size(24.dp),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    FilledIconButton(onApprove, Modifier.size(ApproveButtonSize)) {
+        Icon(Icons.Filled.Check, contentDescription = "Approve", modifier = Modifier.size(32.dp))
     }
 }
 

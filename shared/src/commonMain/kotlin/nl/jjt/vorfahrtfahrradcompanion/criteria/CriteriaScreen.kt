@@ -154,7 +154,10 @@ private fun Catalogue(
                                 pinned = criterion.id
                                 onTap(criterion, value)
                             },
-                            onOpen = { pinned = criterion.id },
+                            onOpen = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                pinned = criterion.id
+                            },
                             onApprove = {
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onConfirm(criterion)
