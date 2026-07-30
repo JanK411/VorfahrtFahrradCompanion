@@ -168,7 +168,22 @@ class CriteriaViewModelTest {
     }
 
     @Test
-    fun selectionsCarryOverIntoTheNextSegment() = runTest {
+    fun selectionsCarryOverIntoTheSegmentThatContinuesFromTheSameBoundary() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
+
+        val state = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), state.selections[users])
+        assertEquals(SaveState.Idle, state.saveState)
+        // Carried over, but no longer confirmed: the previous segment's answer is only a suggestion now.
+        assertEquals(emptySet(), state.reviewed)
+        assertEquals(listOf(users), state.carriedOver)
+    }
+
+    @Test
+    fun stoppingLeavesNothingBehindForTheNextSegment() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
@@ -178,12 +193,12 @@ class CriteriaViewModelTest {
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
         testScheduler.advanceUntilIdle()
 
+        // Ending the survey outright: whatever is described next starts from scratch.
         val state = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf("CARS"), state.selections[users])
-        assertEquals(SaveState.Idle, state.saveState)
-        // Carried over, but no longer confirmed: the previous segment's answer is only a suggestion now.
-        assertEquals(emptySet(), state.reviewed)
-        assertEquals(listOf(users), state.carriedOver)
+        assertEquals(Segment.Idle, state.segment)
+        assertEquals(emptyList(), state.carriedOver)
+        assertEquals(emptySet(), state.selections[users])
+        assertEquals(width, state.nextOpen)
     }
 
     /** Rides one segment with [users] = CARS and leaves the next one open. */
