@@ -17,7 +17,15 @@ sealed interface Segment {
 }
 
 /** What ending a segment did with it. */
-enum class SegmentOutcome { SAVED, DISCARDED }
+enum class SegmentOutcome {
+    SAVED,
+
+    /** Ended with nothing approved, so there was nothing to describe the stretch with. */
+    NOTHING_TO_STORE,
+
+    /** Thrown away by the rider. */
+    DISCARDED,
+}
 
 /**
  * What the rider has entered but not stored yet.
@@ -72,6 +80,16 @@ class ObservationRepository(
         it.copy(selections = it.selections.retain(reviewed), reviewed = reviewed)
     }
 
+    /**
+     * Throws the open segment away: nothing is stored, and nothing of it is carried into what comes
+     * next. Reports whether there was anything to throw away.
+     */
+    fun discardSegment(): Boolean {
+        if (_draft.value.segment !is Segment.Open) return false
+        _draft.value = Draft()
+        return true
+    }
+
     /** Marks the start of a segment. Ignored while one is already open. */
     fun start(kind: BoundaryKind) = _draft.update {
         if (it.segment is Segment.Open) it else it.copy(segment = Segment.Open(clock.now(), kind))
@@ -119,6 +137,6 @@ class ObservationRepository(
             }
         }
 
-        return if (values.isEmpty()) SegmentOutcome.DISCARDED else SegmentOutcome.SAVED
+        return if (values.isEmpty()) SegmentOutcome.NOTHING_TO_STORE else SegmentOutcome.SAVED
     }
 }

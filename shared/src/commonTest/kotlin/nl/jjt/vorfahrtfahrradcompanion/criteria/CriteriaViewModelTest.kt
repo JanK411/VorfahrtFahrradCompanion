@@ -272,7 +272,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(1, dao.inserted.size)
-        assertEquals(listOf(SegmentOutcome.SAVED, SegmentOutcome.DISCARDED), outcomes)
+        assertEquals(listOf(SegmentOutcome.SAVED, SegmentOutcome.NOTHING_TO_STORE), outcomes)
     }
 
     @Test
@@ -290,6 +290,43 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(pressedAt.toEpochMilliseconds(), dao.inserted.last().endedAtEpochMs)
+    }
+
+    @Test
+    fun discardingASegmentStoresNothingAndLeavesNothingBehind() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val outcomes = mutableListOf<SegmentOutcome>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.outcomes.collect { outcomes += it } }
+        testScheduler.advanceUntilIdle()
+
+        vm.start(BoundaryKind.EXACT)
+        vm.onTap(users, "CARS")
+        clock += ride
+        vm.discardSegment()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), dao.inserted)
+        assertEquals(listOf(SegmentOutcome.DISCARDED), outcomes)
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(Segment.Idle, ready.segment)
+        assertEquals(emptySet(), ready.selections[users])
+        assertNull(ready.pendingEnd)
+    }
+
+    @Test
+    fun discardingWithNoSegmentRunningSaysNothing() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val outcomes = mutableListOf<SegmentOutcome>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.outcomes.collect { outcomes += it } }
+        testScheduler.advanceUntilIdle()
+
+        vm.discardSegment()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), outcomes)
     }
 
     @Test
