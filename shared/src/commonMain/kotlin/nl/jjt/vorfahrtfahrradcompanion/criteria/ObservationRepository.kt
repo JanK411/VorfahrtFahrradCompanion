@@ -20,8 +20,8 @@ sealed interface Segment {
 data class Draft(val segment: Segment = Segment.Idle, val selections: Selections = Selections())
 
 /**
- * Persists observations locally instead of sending them to the server, and owns the segment currently
- * being recorded. The draft lives here rather than in the ViewModel because a ViewModel does not survive
+ * Persists observations locally and owns the segment currently being recorded.
+ * The draft lives here rather than in the ViewModel because a ViewModel does not survive
  * a bottom-bar tab switch; it is still memory only and does not outlive the process.
  */
 class ObservationRepository(
