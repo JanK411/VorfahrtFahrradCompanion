@@ -108,18 +108,25 @@ private fun Catalogue(
 
     // The card the rider is working on. A tap pins it, so it cannot slide away under a thumb mid-answer,
     // and advancing unpins it again.
-    //
+    var pinned by remember { mutableStateOf<String?>(null) }
+
+    // How far down the list the rider has got. Everything above it is behind them — answered, or
+    // skipped on purpose — so the flow leads from below it and never doubles back.
+    var settled by remember { mutableStateOf<Criterion?>(null) }
+
     // With nothing pinned the screen leads: it expands the criterion to answer next — but only while
     // there is nothing left to review. A segment that inherited the last one's answers stays folded, so
     // the rider approves or changes them one line at a time instead of being dropped into the first one.
-    var pinned by remember { mutableStateOf<String?>(null) }
+    val last = settled
+    val leading = if (last == null) state.nextOpen else state.openAfter(last)
     val expanded = state.catalogue.criteria.firstOrNull { it.id == pinned }
-        ?: state.nextOpen.takeIf { state.carriedOver.isEmpty() }
+        ?: leading.takeIf { state.carriedOver.isEmpty() }
 
     // A new segment starts at the top. The list keeps its scroll position across an end, and the first
     // open criterion is usually the same one as before, so nothing below would move the view back up.
     LaunchedEffect(state.segment) {
         pinned = null
+        settled = null
         listState.scrollToItem(0)
     }
 
@@ -141,6 +148,7 @@ private fun Catalogue(
             // Unless the rider has opened something else in the meantime, in which case they lead.
             if (pinned != criterion.id) return@collectLatest
             pinned = null
+            settled = criterion
 
             // While anything else is still up for review nothing expands, so the list has to be moved
             // on from here — the same step approving takes. Otherwise the criterion that expands next
@@ -205,6 +213,7 @@ private fun Catalogue(
                             onApprove = {
                                 haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                                 onConfirm(criterion)
+                                settled = criterion
                                 moveOnFrom(criterion)
                             },
                             onNext = {
