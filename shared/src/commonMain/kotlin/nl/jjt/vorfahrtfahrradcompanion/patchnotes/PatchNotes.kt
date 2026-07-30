@@ -9,7 +9,7 @@ val patchNotes: List<PatchNote> = listOf(
             "The criteria screen is built for riding now: big buttons, bigger type, and a tap you can feel.",
             "Answer the criterion at the top and the next one scrolls to you — no more reaching for the screen to scroll. Every new segment starts back at the top.",
             "Answered criteria collapse to a single line, so the list gets shorter as you fill it in. Tap one to change it again.",
-            "A segment that inherits the last one's answers opens with everything folded: each criterion shows the value it carried over, with a big check to approve it — which brings the next one up to your thumb. Tapping the criterion anywhere else opens it up to pick something else.",
+            "A segment that inherits the last one's answers opens with everything folded: each criterion shows the value it carried over, with a big check to approve it — which brings the next one up to your thumb. Tapping the criterion anywhere else opens it up to pick something else, which moves you on just the same.",
             "\"Approve all\" takes the whole lot in one tap. \"Discard\" drops everything still unapproved so you can fill those in fresh — with an \"Undo\" in case you hit it by accident.",
             "Values only carry over through \"End now, start next\", which continues along the same path. Plain \"End now\" finishes the survey and leaves the next segment empty.",
             "Only what you confirmed is saved. A segment where you confirmed nothing is discarded instead of stored empty, and says so.",

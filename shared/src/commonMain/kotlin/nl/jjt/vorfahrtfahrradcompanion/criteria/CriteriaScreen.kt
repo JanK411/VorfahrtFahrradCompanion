@@ -119,12 +119,29 @@ private fun Catalogue(
         listState.scrollToItem(0)
     }
 
+    // The collector below outlives the composition it started in, so it reads the state through this.
+    val current by rememberUpdatedState(state)
+
+    // Moving on: bring the criterion below this one that still needs attention up the list. Forward
+    // only — a criterion the rider skipped was skipped on purpose.
+    fun moveOnFrom(criterion: Criterion) {
+        val next = current.openAfter(criterion) ?: return
+        val index = current.catalogue.criteria.indexOfFirst { it.id == next.id }
+        if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
+    }
+
     LaunchedEffect(advances) {
         // collectLatest, so every further tap restarts the wait instead of stacking up advances.
         advances.collectLatest { criterion ->
             if (criterion.kind == CriterionKind.MULTI) delay(MultiAdvanceMillis)
             // Unless the rider has opened something else in the meantime, in which case they lead.
-            if (pinned == criterion.id) pinned = null
+            if (pinned != criterion.id) return@collectLatest
+            pinned = null
+
+            // While anything else is still up for review nothing expands, so the list has to be moved
+            // on from here — the same step approving takes. Otherwise the criterion that expands next
+            // brings itself into view.
+            if (current.carriedOver.any { it.id != criterion.id }) moveOnFrom(criterion)
         }
     }
 
@@ -161,11 +178,7 @@ private fun Catalogue(
                             onApprove = {
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onConfirm(criterion)
-                                // Nothing expands in review mode, so advancing means bringing the next
-                                // one still waiting up to the thumb that just approved this one.
-                                val next = state.openAfter(criterion)
-                                val index = state.catalogue.criteria.indexOfFirst { it.id == next?.id }
-                                if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
+                                moveOnFrom(criterion)
                             },
                             onNext = {
                                 onConfirm(criterion)
