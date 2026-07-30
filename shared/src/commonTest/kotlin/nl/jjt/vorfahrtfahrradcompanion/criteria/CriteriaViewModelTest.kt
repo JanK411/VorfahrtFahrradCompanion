@@ -317,6 +317,19 @@ class CriteriaViewModelTest {
     }
 
     @Test
+    fun movingOnAlwaysMovesForward() {
+        val criteria = (1..5).map { Criterion("C$it", CriterionKind.SINGLE, listOf("A", "B")) }
+        val state = CriteriaUiState.Ready(Catalogue(criteria), reviewed = setOf("C1", "C2", "C4"))
+
+        // C3 was skipped and C4 dealt with: the way on is C5, not back up to C3.
+        assertEquals(criteria[4], state.openAfter(criteria[3]))
+        assertEquals(criteria[2], state.nextOpen)
+
+        // Nothing follows the last one.
+        assertNull(state.openAfter(criteria[4]))
+    }
+
+    @Test
     fun aTapThatClearsTheLastValueAsksForNoAdvance() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
