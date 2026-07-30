@@ -14,7 +14,7 @@ val patchNotes: List<PatchNote> = listOf(
         date = "2026-07-30",
         changes = listOf(
             "The criteria screen is built for riding now: big buttons, bigger type, and a tap you can feel.",
-            "Answer the criterion at the top and the next one scrolls to you — no more reaching for the screen to scroll.",
+            "Answer the criterion at the top and the next one scrolls to you — no more reaching for the screen to scroll. Every new segment starts back at the top.",
             "Answered criteria collapse to a single line, so the list gets shorter as you fill it in. Tap one to change it again.",
             "Values from the previous segment are shown greyed out. Tap one to keep it, or \"Keep all unchanged\" for a stretch that differs in nothing.",
             "\"Clear all\" empties the whole segment for a stretch that has nothing in common with the last one — with an \"Undo\" in case you hit it by accident.",
