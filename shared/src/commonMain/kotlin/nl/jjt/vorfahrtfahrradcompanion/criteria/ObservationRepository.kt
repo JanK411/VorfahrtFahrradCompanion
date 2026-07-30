@@ -25,6 +25,9 @@ enum class SegmentOutcome {
 
     /** Thrown away by the rider. */
     DISCARDED,
+
+    /** Ended so long after the boundary that there was no saying where the stretch ended. */
+    TOO_LATE,
 }
 
 /**
@@ -117,12 +120,15 @@ class ObservationRepository(
         val open = draft.segment as? Segment.Open ?: return null
         val values = draft.selections.retain(draft.reviewed).compact()
 
+        // A boundary moved back for a missed moment must not land before the segment began.
+        val boundary = maxOf(endedAt, open.startedAt)
+
         if (!values.isEmpty()) {
             dao.insert(
                 ObservationEntity(
                     startedAtEpochMs = open.startedAt.toEpochMilliseconds(),
                     startKind = open.startKind,
-                    endedAtEpochMs = endedAt.toEpochMilliseconds(),
+                    endedAtEpochMs = boundary.toEpochMilliseconds(),
                     endKind = kind,
                     valuesJson = Json.encodeToString(values),
                 ),
@@ -131,7 +137,7 @@ class ObservationRepository(
 
         _draft.update {
             if (action == SegmentAction.START_NEXT) {
-                it.copy(segment = Segment.Open(endedAt, kind), reviewed = emptySet())
+                it.copy(segment = Segment.Open(boundary, kind), reviewed = emptySet())
             } else {
                 Draft()
             }

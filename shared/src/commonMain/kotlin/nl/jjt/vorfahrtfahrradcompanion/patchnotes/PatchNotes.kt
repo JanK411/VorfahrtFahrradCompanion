@@ -26,6 +26,7 @@ val patchNotes: List<PatchNote> = listOf(
             "The screen no longer sleeps while a segment is running.",
             "Missed the moment? Hold the Start or End button instead of tapping it, and the boundary is marked as already passed. The two \"earlier\" buttons are gone, which leaves Start a full-width target and End half the screen — and a hold feels different from a tap, so you know which one you got without looking.",
             "A (?) next to the buttons explains that gesture in full.",
+            "Holding End asks how long ago the boundary was: under 10 seconds puts the end 10 seconds back, longer than that throws the segment away — a stretch that ended somewhere unknown is worse than none. Holding Start needs no such question: it is stamped now and already marked as an imprecise start.",
         ),
     ),
     PatchNote(

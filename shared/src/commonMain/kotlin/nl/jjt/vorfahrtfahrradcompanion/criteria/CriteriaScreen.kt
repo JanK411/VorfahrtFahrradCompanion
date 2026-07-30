@@ -62,6 +62,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             onConfirm = viewModel::onConfirm,
             onStart = viewModel::start,
             onEnd = viewModel::end,
+            onAnswerHowLate = viewModel::answerHowLate,
             onConfirmEnd = viewModel::confirmEnd,
             onCancelEnd = viewModel::cancelEnd,
             onDiscardSegment = viewModel::discardSegment,
@@ -79,6 +80,7 @@ private fun Catalogue(
     onConfirm: (Criterion) -> Unit,
     onStart: (BoundaryKind) -> Unit,
     onEnd: (BoundaryKind, SegmentAction) -> Unit,
+    onAnswerHowLate: (Boolean) -> Unit,
     onConfirmEnd: (Set<String>) -> Unit,
     onCancelEnd: () -> Unit,
     onDiscardSegment: () -> Unit,
@@ -95,6 +97,8 @@ private fun Catalogue(
                     SegmentOutcome.SAVED -> "Segment saved"
                     SegmentOutcome.NOTHING_TO_STORE -> "Nothing approved — segment discarded"
                     SegmentOutcome.DISCARDED -> "Segment discarded"
+                    SegmentOutcome.TOO_LATE ->
+                        "More than ${MissedEndGrace.inWholeSeconds} s late — segment discarded"
                 },
             )
         }
@@ -177,13 +181,17 @@ private fun Catalogue(
         )
     }
 
-    state.pendingEnd?.let {
-        EndSegmentDialog(
+    when (state.pendingEnd?.stage) {
+        EndStage.HOW_LATE -> HowLateDialog(onAnswer = onAnswerHowLate, onDismiss = onCancelEnd)
+
+        EndStage.UNAPPROVED -> EndSegmentDialog(
             unapproved = state.carriedOver,
             selections = state.selections,
             onConfirm = onConfirmEnd,
             onDismiss = onCancelEnd,
         )
+
+        null -> Unit
     }
 
     Column(modifier.fillMaxSize()) {
@@ -296,6 +304,50 @@ private fun HoldHint(onExplain: () -> Unit) = Row(
         Text("?", style = MaterialTheme.typography.titleMedium)
     }
 }
+
+/**
+ * What is asked of a rider who marked an end they had already ridden past. A short miss is worth a
+ * boundary [MissedEndGrace] further back; a long one is worth nothing, because the stretch could have
+ * ended anywhere between there and here, and a segment stored over the wrong ground is worse than no
+ * segment at all.
+ */
+@Composable
+private fun HowLateDialog(onAnswer: (Boolean) -> Unit, onDismiss: () -> Unit) = AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text("How late?") },
+    text = {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "You marked an end you had already ridden past. How long ago was it?",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Button(
+                onClick = { onAnswer(true) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+            ) {
+                Text(
+                    "Less than ${MissedEndGrace.inWholeSeconds} seconds",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+            OutlinedButton(
+                onClick = { onAnswer(false) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Text(
+                    "Longer — discard the segment",
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    },
+    confirmButton = {},
+    dismissButton = { TextButton(onDismiss) { Text("Back") } },
+)
 
 /**
  * The question in front of throwing a segment away. Unlike a boundary, nothing about this is
