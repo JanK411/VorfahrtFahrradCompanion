@@ -58,11 +58,14 @@ internal fun CriterionCard(
     expanded: Boolean,
     onTapValue: (String) -> Unit,
     onOpen: () -> Unit,
+    onApprove: () -> Unit,
     onNext: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = !expanded, onClick = onOpen),
+        // A carried-over card carries its own buttons; everywhere else the card itself opens.
+        modifier = Modifier.fillMaxWidth()
+            .clickable(enabled = !expanded && review != Review.CARRIED, onClick = onOpen),
         colors = CardDefaults.cardColors(
             containerColor = when {
                 expanded -> scheme.surface
@@ -77,8 +80,49 @@ internal fun CriterionCard(
             else -> null
         },
     ) {
-        if (expanded) ExpandedCriterion(criterion, selected, review, onTapValue, onNext)
-        else CollapsedCriterion(criterion, selected, review)
+        when {
+            expanded -> ExpandedCriterion(criterion, selected, review, onTapValue, onNext)
+            review == Review.CARRIED -> CarriedCriterion(criterion, selected, onApprove, onOpen)
+            else -> CollapsedCriterion(criterion, selected, confirmed = review == Review.CONFIRMED)
+        }
+    }
+}
+
+/**
+ * A criterion still holding the previous segment's answer. It stays folded — the rider is reviewing what
+ * is already there, not filling anything in — and offers the only two things worth doing to it: stand by
+ * it, or open it up and pick something else.
+ */
+@Composable
+private fun CarriedCriterion(
+    criterion: Criterion,
+    selected: Set<String>,
+    onApprove: () -> Unit,
+    onChange: () -> Unit,
+) = Column(
+    modifier = Modifier.fillMaxWidth().padding(12.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+) {
+    Text(
+        criterion.label(),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(
+        selected.joinToString(" · "),
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
+    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+        Button(onApprove, Modifier.weight(1f).heightIn(min = RowHeight)) {
+            Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Approve", style = MaterialTheme.typography.titleMedium)
+        }
+        OutlinedButton(onChange, Modifier.weight(1f).heightIn(min = RowHeight)) {
+            Text("Change", style = MaterialTheme.typography.titleMedium)
+        }
     }
 }
 
@@ -143,17 +187,11 @@ private fun ExpandedCriterion(
 }
 
 @Composable
-private fun CollapsedCriterion(criterion: Criterion, selected: Set<String>, review: Review) = Row(
+private fun CollapsedCriterion(criterion: Criterion, selected: Set<String>, confirmed: Boolean) = Row(
     modifier = Modifier.fillMaxWidth().heightIn(min = RowHeight).padding(horizontal = 16.dp, vertical = 8.dp),
     horizontalArrangement = Arrangement.spacedBy(12.dp),
     verticalAlignment = Alignment.CenterVertically,
 ) {
-    // Carried-over values are greyed: they are still only a suggestion from the previous segment.
-    val valueColor = when (review) {
-        Review.CONFIRMED -> MaterialTheme.colorScheme.onSecondaryContainer
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
     Column(Modifier.weight(1f), Arrangement.spacedBy(2.dp)) {
         Text(
             criterion.label(),
@@ -163,24 +201,17 @@ private fun CollapsedCriterion(criterion: Criterion, selected: Set<String>, revi
         Text(
             selected.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "—",
             style = MaterialTheme.typography.titleMedium,
-            color = valueColor,
+            color = if (confirmed) MaterialTheme.colorScheme.onSecondaryContainer
+            else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 
-    when (review) {
-        Review.CONFIRMED -> Icon(
+    if (confirmed) {
+        Icon(
             Icons.Filled.Check,
-            contentDescription = "confirmed",
+            contentDescription = "approved",
             tint = MaterialTheme.colorScheme.primary,
         )
-
-        Review.CARRIED -> Text(
-            "keep?",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.tertiary,
-        )
-
-        Review.OPEN -> Unit
     }
 }
 

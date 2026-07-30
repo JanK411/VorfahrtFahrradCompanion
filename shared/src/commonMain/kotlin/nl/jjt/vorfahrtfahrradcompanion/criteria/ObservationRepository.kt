@@ -44,7 +44,7 @@ class ObservationRepository(
     private val _draft = MutableStateFlow(Draft())
     val draft: StateFlow<Draft> = _draft.asStateFlow()
 
-    /** What [clearAll] wiped, held for as long as the rider might take it back. */
+    /** What [discardUnapproved] dropped, held for as long as the rider might take it back. */
     private var cleared: Draft? = null
 
     /**
@@ -68,16 +68,17 @@ class ObservationRepository(
         _draft.update { it.copy(reviewed = it.reviewed + criteria.map(Criterion::id)) }
 
     /**
-     * Drops every selection so the segment at hand is described from scratch — for the stretch that has
-     * nothing in common with the last one. The open segment itself stays open. Reversible via [undoClear],
-     * because hitting this by mistake would otherwise cost the rider the whole catalogue.
+     * Drops what the rider has not approved, leaving those criteria empty and open to be answered again —
+     * for the stretch that has little in common with the last one. Approved values stay, and so does the
+     * open segment. Reversible via [undoClear], because hitting this by mistake would otherwise cost the
+     * rider a whole catalogue's worth of taps.
      */
-    fun clearAll() {
+    fun discardUnapproved() {
         cleared = _draft.value
-        _draft.update { it.copy(selections = Selections(), reviewed = emptySet()) }
+        _draft.update { it.copy(selections = it.selections.retain(it.reviewed)) }
     }
 
-    /** Puts back what [clearAll] dropped. Does nothing if there is no clear to take back. */
+    /** Puts back what [discardUnapproved] dropped. Does nothing if there is no discard to take back. */
     fun undoClear() {
         val previous = cleared ?: return
         cleared = null
