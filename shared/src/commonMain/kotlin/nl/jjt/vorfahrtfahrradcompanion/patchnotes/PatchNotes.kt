@@ -10,6 +10,7 @@ val patchNotes: List<PatchNote> = listOf(
             "Answer the criterion at the top and the next one scrolls to you — no more reaching for the screen to scroll. Skip one and the flow carries on down the list without dragging you back; once you answer the last one it comes back round for whatever you skipped. Every new segment starts back at the top.",
             "Answered criteria collapse to a single line, so the list gets shorter as you fill it in. Tap one to change it again.",
             "A segment that inherits the last one's answers opens with everything folded: each criterion shows the value it carried over, with a big check to approve it — which brings the next one up to your thumb. Tapping the criterion anywhere else opens it up to pick something else, which moves you on just the same.",
+            "A segment that starts out with preselected answers offers \"Clear preselected\" above them: one tap empties the lot so you can fill the stretch in from scratch, with an \"Undo\" in the snackbar. What you have already approved for this segment stays.",
             "Ending a segment while anything is still unapproved asks first: it lists those entries and lets you keep or drop each one — or all of them at once — before the segment is stored.",
             "The boundary is stamped the moment you press End, so answering that question costs the recording nothing.",
             "Values only carry over through \"End, start next\", which continues along the same path. Plain \"End\" finishes the survey and leaves the next segment empty.",

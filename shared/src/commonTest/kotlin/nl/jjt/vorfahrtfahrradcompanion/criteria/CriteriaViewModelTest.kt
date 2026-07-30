@@ -366,6 +366,40 @@ class CriteriaViewModelTest {
     }
 
     @Test
+    fun clearingDropsWhatIsPreselectedAndKeepsWhatIsApproved() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        vm.onTap(width, "W_2")
+        vm.clearCarriedOver()
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(emptySet(), ready.selections[users])
+        assertEquals(setOf("W_2"), ready.selections[width])
+        assertEquals(emptyList(), ready.carriedOver)
+        // Still recording; only what described the last stretch is gone.
+        assertEquals(Segment.Open(startedAt + ride, BoundaryKind.EXACT), ready.segment)
+    }
+
+    @Test
+    fun clearingCanBeTakenBack() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSegmentThenTheNext(vm)
+        vm.clearCarriedOver()
+        vm.undoClear()
+        testScheduler.advanceUntilIdle()
+
+        // Back to carried over and waiting for a nod, exactly as before the clear.
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), ready.selections[users])
+        assertEquals(listOf(users), ready.carriedOver)
+    }
+
+    @Test
     fun discardingASegmentStoresNothingAndLeavesNothingBehind() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
