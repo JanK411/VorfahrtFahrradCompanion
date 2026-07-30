@@ -45,7 +45,7 @@ class ObservationRepository(
      * Selections are kept either way: consecutive stretches of path usually differ in only one criterion.
      * Ignored while idle.
      */
-    suspend fun end(kind: BoundaryKind, action: SegmentAction = SegmentAction.STOP) {
+    suspend fun end(kind: BoundaryKind, action: SegmentAction) {
         val open = _draft.value.segment as? Segment.Open ?: return
         val endedAt = clock.now()
 

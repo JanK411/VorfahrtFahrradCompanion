@@ -91,7 +91,7 @@ class CriteriaViewModelTest {
 
         vm.start(BoundaryKind.EXACT)
         clock += ride
-        vm.end(BoundaryKind.EXACT)
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
         testScheduler.advanceUntilIdle()
 
         assertEquals(startedAt.toEpochMilliseconds(), stored.startedAtEpochMs)
@@ -111,7 +111,7 @@ class CriteriaViewModelTest {
 
         vm.start(BoundaryKind.EARLIER)
         clock += ride
-        vm.end(BoundaryKind.EARLIER)
+        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
         testScheduler.advanceUntilIdle()
 
         assertEquals(BoundaryKind.EARLIER, stored.startKind)
@@ -123,7 +123,7 @@ class CriteriaViewModelTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
-        vm.end(BoundaryKind.EXACT)
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
         testScheduler.advanceUntilIdle()
 
         assertEquals(emptyList(), dao.inserted)
@@ -168,7 +168,7 @@ class CriteriaViewModelTest {
         vm.onSelect(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += ride
-        vm.end(BoundaryKind.EXACT)
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
         testScheduler.advanceUntilIdle()
 
         val state = vm.state.value as CriteriaUiState.Ready

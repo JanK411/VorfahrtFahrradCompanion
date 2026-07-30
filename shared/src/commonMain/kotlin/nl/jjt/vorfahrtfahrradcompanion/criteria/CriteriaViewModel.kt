@@ -53,7 +53,7 @@ class CriteriaViewModel(
     fun start(kind: BoundaryKind) = observations.start(kind)
 
     /** Ends the open segment and stores it; see [ObservationRepository.end] for what [action] does. */
-    fun end(kind: BoundaryKind, action: SegmentAction = SegmentAction.STOP) {
+    fun end(kind: BoundaryKind, action: SegmentAction) {
         val ready = _state.value as? CriteriaUiState.Ready ?: return
         if (ready.saveState is SaveState.InFlight) return
 
