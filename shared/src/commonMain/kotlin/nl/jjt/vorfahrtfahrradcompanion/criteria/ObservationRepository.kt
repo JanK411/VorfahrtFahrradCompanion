@@ -40,11 +40,12 @@ class ObservationRepository(
     }
 
     /**
-     * Stores the open segment. With [startNext] the next segment opens on the same instant and inherits
-     * [kind] — it is the same boundary, so a late end means a late start too. Selections are kept either
-     * way: consecutive stretches of path usually differ in only one criterion. Ignored while idle.
+     * Stores the open segment. With [action] = [SegmentAction.START_NEXT] the next segment opens on the
+     * same instant and inherits [kind] — it is the same boundary, so a late end means a late start too.
+     * Selections are kept either way: consecutive stretches of path usually differ in only one criterion.
+     * Ignored while idle.
      */
-    suspend fun end(kind: BoundaryKind, startNext: Boolean = false) {
+    suspend fun end(kind: BoundaryKind, action: SegmentAction = SegmentAction.STOP) {
         val open = _draft.value.segment as? Segment.Open ?: return
         val endedAt = clock.now()
 
@@ -59,7 +60,7 @@ class ObservationRepository(
         )
 
         _draft.update {
-            it.copy(segment = if (startNext) Segment.Open(endedAt, kind) else Segment.Idle)
+            it.copy(segment = if (action == SegmentAction.START_NEXT) Segment.Open(endedAt, kind) else Segment.Idle)
         }
     }
 }

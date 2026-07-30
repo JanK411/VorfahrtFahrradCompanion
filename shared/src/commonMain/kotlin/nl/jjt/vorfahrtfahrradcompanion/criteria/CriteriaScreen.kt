@@ -44,7 +44,7 @@ private fun Catalogue(
     state: CriteriaUiState.Ready,
     onSelect: (Criterion, String) -> Unit,
     onStart: (BoundaryKind) -> Unit,
-    onEnd: (BoundaryKind, Boolean) -> Unit,
+    onEnd: (BoundaryKind, SegmentAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -100,13 +100,17 @@ private fun Catalogue(
                 is Segment.Open -> {
                     RecordingStatus(segment)
                     ButtonRow {
-                        RecorderButton("End now", enabled, BoundaryKind.EXACT) { onEnd(it, false) }
-                        RecorderButton("End now, start next", enabled, BoundaryKind.EXACT) { onEnd(it, true) }
+                        RecorderButton("End now", enabled, BoundaryKind.EXACT) { onEnd(it, SegmentAction.STOP) }
+                        RecorderButton("End now, start next", enabled, BoundaryKind.EXACT) {
+                            onEnd(it, SegmentAction.START_NEXT)
+                        }
                     }
                     ButtonRow {
-                        RecorderButton("Ended earlier", enabled, BoundaryKind.EARLIER) { onEnd(it, false) }
+                        RecorderButton("Ended earlier", enabled, BoundaryKind.EARLIER) {
+                            onEnd(it, SegmentAction.STOP)
+                        }
                         RecorderButton("Ended earlier, start next", enabled, BoundaryKind.EARLIER) {
-                            onEnd(it, true)
+                            onEnd(it, SegmentAction.START_NEXT)
                         }
                     }
                 }

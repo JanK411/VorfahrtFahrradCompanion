@@ -151,7 +151,7 @@ class CriteriaViewModelTest {
 
         vm.start(BoundaryKind.EXACT)
         clock += ride
-        vm.end(BoundaryKind.EARLIER, startNext = true)
+        vm.end(BoundaryKind.EARLIER, action = SegmentAction.START_NEXT)
         testScheduler.advanceUntilIdle()
 
         // The end of one stretch is the start of the next — including how late it was marked.
