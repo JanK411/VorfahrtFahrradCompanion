@@ -149,9 +149,8 @@ private fun Catalogue(
     // Moving on: bring whatever comes after this one up the list, which is below it until the bottom
     // of the list is reached and whatever was skipped comes back round.
     fun moveOnFrom(criterion: Criterion) {
-        val next = current.leadingAfter(criterion) ?: return
-        val index = current.catalogue.criteria.indexOfFirst { it.id == next.id }
-        if (index >= 0) scope.launch { listState.animateScrollToItem(index) }
+        val row = current.rowOf(current.leadingAfter(criterion))
+        if (row >= 0) scope.launch { listState.animateScrollToItem(row) }
     }
 
     LaunchedEffect(advances) {
@@ -172,8 +171,8 @@ private fun Catalogue(
 
     // Answer one at the top and the next one comes to you — no scrolling while riding.
     LaunchedEffect(expanded?.id) {
-        val index = state.catalogue.criteria.indexOfFirst { it.id == expanded?.id }
-        if (index >= 0) listState.animateScrollToItem(index)
+        val row = state.rowOf(expanded)
+        if (row >= 0) listState.animateScrollToItem(row)
     }
 
     var explaining by remember { mutableStateOf(false) }
@@ -203,59 +202,56 @@ private fun Catalogue(
         Box(Modifier.weight(1f)) {
             // The criteria describe the stretch being recorded, so they only make sense once one is open.
             if (state.segment is Segment.Open) {
-                Column {
-                    // Pinned above the criteria, where a segment that inherited its answers starts out, and
-                    // out of the list so that nothing it holds moves down a row while it is there.
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // The very first row, so that answering anything below scrolls it out of the way for
+                    // good — it is a decision about a fresh segment, not one to keep meeting.
                     if (state.carriedOver.isNotEmpty()) {
-                        ClearCarriedOverButton(
-                            carried = state.carriedOver.size,
-                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
-                        ) {
-                            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                            onClearCarriedOver()
-                            discarded = false
-                            scope.launch {
-                                val undo = snackbarHostState.showSnackbar(
-                                    message = "Cleared — filling in from scratch",
-                                    actionLabel = "Undo",
-                                )
-                                if (undo == SnackbarResult.ActionPerformed) onUndoClear()
+                        item(key = ClearCarriedOverKey) {
+                            ClearCarriedOverButton(carried = state.carriedOver.size) {
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                onClearCarriedOver()
+                                discarded = false
+                                scope.launch {
+                                    val undo = snackbarHostState.showSnackbar(
+                                        message = "Cleared — filling in from scratch",
+                                        actionLabel = "Undo",
+                                    )
+                                    if (undo == SnackbarResult.ActionPerformed) onUndoClear()
+                                }
                             }
                         }
                     }
 
-                    LazyColumn(
-                        state = listState,
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(state.catalogue.criteria, key = Criterion::id) { criterion ->
-                            CriterionCard(
-                                criterion = criterion,
-                                selected = state.selections[criterion],
-                                review = state.reviewOf(criterion),
-                                expanded = criterion.id == expanded?.id,
-                                onTapValue = { value ->
-                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    pinned = criterion.id
-                                    onTap(criterion, value)
-                                },
-                                onOpen = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    pinned = criterion.id
-                                },
-                                onApprove = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    onConfirm(criterion)
-                                    settled = criterion
-                                    moveOnFrom(criterion)
-                                },
-                                onNext = {
-                                    onConfirm(criterion)
-                                    pinned = null
-                                },
-                            )
-                        }
+                    items(state.catalogue.criteria, key = Criterion::id) { criterion ->
+                        CriterionCard(
+                            criterion = criterion,
+                            selected = state.selections[criterion],
+                            review = state.reviewOf(criterion),
+                            expanded = criterion.id == expanded?.id,
+                            onTapValue = { value ->
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                pinned = criterion.id
+                                onTap(criterion, value)
+                            },
+                            onOpen = {
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                pinned = criterion.id
+                            },
+                            onApprove = {
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                onConfirm(criterion)
+                                settled = criterion
+                                moveOnFrom(criterion)
+                            },
+                            onNext = {
+                                onConfirm(criterion)
+                                pinned = null
+                            },
+                        )
                     }
                 }
             } else {
@@ -323,10 +319,18 @@ private fun Catalogue(
     }
 }
 
+private const val ClearCarriedOverKey = "clear-carried-over"
+
+/** Where a criterion sits in the list, counting the clear button that leads it while there is one. */
+private fun CriteriaUiState.Ready.rowOf(criterion: Criterion?): Int {
+    val index = catalogue.criteria.indexOfFirst { it.id == criterion?.id }
+    return if (index < 0) -1 else index + if (carriedOver.isEmpty()) 0 else 1
+}
+
 /**
- * The way out of a segment that inherited answers describing somewhere else entirely. It sits above the
- * criteria rather than among them, because it is the first thing a rider decides about a new segment and
- * nothing they should meet again halfway down the list.
+ * The way out of a segment that inherited answers describing somewhere else entirely. It leads the list
+ * rather than sitting above it, because it is the first thing a rider decides about a new segment — and
+ * once they have answered anything below, it scrolls away instead of staying in reach.
  */
 @Composable
 private fun ClearCarriedOverButton(
