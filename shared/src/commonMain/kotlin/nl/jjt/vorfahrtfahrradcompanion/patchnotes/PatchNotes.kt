@@ -3,6 +3,16 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.19",
+        date = "2026-07-31",
+        changes = listOf(
+            "Answering a criterion no longer scrolls it off the top of the screen. The list now stops " +
+                "one card short, so the one you have just answered stays in sight above the one you " +
+                "are being asked next — a value hit wrongly on a bumpy road is put right where it " +
+                "still is, rather than scrolled back up for.",
+        ),
+    ),
+    PatchNote(
         version = "1.18",
         date = "2026-07-31",
         changes = listOf(
