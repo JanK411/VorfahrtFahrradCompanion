@@ -12,6 +12,7 @@ val patchNotes: List<PatchNote> = listOf(
             "Holding a button instead of tapping it now raises all three answers above your thumb — up-left for precisely, straight up for ~10 seconds, up-right for later than that — and answering there skips the dialog entirely. Let go without having slid anywhere and nothing happens.",
             "The answers no longer hang off the edge of the screen: they sit across the middle of it, above whichever button you are holding.",
             "The \"Missed the moment?\" line and its (?) are gone from the screen, which gives the list of criteria more room. The same explanation now lives behind a (?) in the question itself.",
+            "While a segment is running the bottom tab bar is hidden: more room for the criteria, and no tab to hit by accident. It comes back as soon as you end the segment.",
         ),
     ),
     PatchNote(
