@@ -1,11 +1,14 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -28,11 +31,33 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import kotlinx.coroutines.withTimeoutOrNull
+import nl.jjt.vorfahrtfahrradcompanion.ui.Spotlight
+import kotlin.math.abs
 
 /** How far along a criterion is in the current segment. This drives the whole look of its card. */
 internal enum class Review { CONFIRMED, CARRIED, OPEN }
@@ -67,12 +92,73 @@ internal fun CriterionCard(
     onOpen: () -> Unit,
     onApprove: () -> Unit,
     onNext: () -> Unit,
+    onSplit: (String) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val haptics = LocalHapticFeedback.current
+    val window = LocalWindowInfo.current.containerSize
+    val slack = with(LocalDensity.current) { PickSlack.toPx() }
+
+    // Where the card sits in the window, since the menu is laid over the window and the thumb is
+    // reported against the card.
+    var cardTop by remember { mutableFloatStateOf(0f) }
+
+    var picking by remember { mutableStateOf(false) }
+    var choice by remember { mutableStateOf<String?>(null) }
+
+    // The gesture outlives the composition it started in, so what it does is read through these.
+    val currentOpen by rememberUpdatedState(onOpen)
+    val currentSplit by rememberUpdatedState(onSplit)
+
     Card(
         // Any folded card opens on a tap anywhere — the whole card is the target, so a knock in the road
         // costs nothing. Only the approve button carves a piece out of it.
-        modifier = Modifier.fillMaxWidth().clickable(enabled = !expanded, onClick = onOpen),
+        modifier = Modifier.fillMaxWidth()
+            .onGloballyPositioned { cardTop = it.positionInWindow().y }
+            .pointerInput(criterion, expanded) {
+                if (expanded) return@pointerInput
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+
+                    // The list this card sits in can take the gesture over mid-press, which ends the
+                    // wait below early — and a finger scrolling past must not open a menu.
+                    var scrolling = false
+                    val tapped = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                        waitForUpOrCancellation().also { if (it == null) scrolling = true }
+                    }
+
+                    // Let go before the hold registers and it is the ordinary tap: open the card.
+                    if (tapped != null) {
+                        currentOpen()
+                        return@awaitEachGesture
+                    }
+                    if (scrolling) return@awaitEachGesture
+
+                    // The heavier buzz that says a hold has taken, as on the recorder buttons.
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    picking = true
+
+                    val from = cardTop + down.position.y
+                    while (true) {
+                        val change = awaitPointerEvent().changes
+                            .firstOrNull { it.id == down.id } ?: break
+                        val at = cardTop + change.position.y
+                        // Nothing is picked until the thumb has actually gone somewhere, so a hold
+                        // the rider thinks better of ends by lifting off where it started.
+                        val slid = if (abs(at - from) < slack) null else criterion.valueUnder(at, window.height)
+                        if (slid != choice) {
+                            choice = slid
+                            if (slid != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                        }
+                        change.consume()
+                        if (!change.pressed) break
+                    }
+
+                    picking = false
+                    choice?.let(currentSplit)
+                    choice = null
+                }
+            },
         colors = CardDefaults.cardColors(
             containerColor = when {
                 expanded -> scheme.surface
@@ -92,6 +178,58 @@ internal fun CriterionCard(
             review == Review.CARRIED -> CarriedCriterion(criterion, selected, onApprove)
             else -> CollapsedCriterion(criterion, selected, confirmed = review == Review.CONFIRMED)
         }
+
+        if (picking) {
+            Popup(FullWindow) { Spotlight(lit = true) { ValuePicker(criterion, selected, choice) } }
+        }
+    }
+}
+
+/** How far the thumb has to travel before the hold counts as having picked anything. */
+private val PickSlack = 24.dp
+
+private val PickerCardGap = 8.dp
+
+/**
+ * Which value the thumb is over: the menu is the whole window, split evenly, so the only aim asked
+ * for is roughly how far up or down to go. There is nowhere on the screen that is not a value —
+ * [PickSlack] is what keeps a hold the rider thinks better of from picking the one under their thumb.
+ */
+private fun Criterion.valueUnder(y: Float, windowHeight: Int): String? {
+    if (windowHeight <= 0) return null
+    val band = windowHeight.toFloat() / values.size
+    return values.getOrNull((y / band).toInt().coerceIn(values.indices))
+}
+
+/** Lays the menu over the whole window; the thumb is somewhere on it wherever the card was. */
+private object FullWindow : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ) = IntOffset.Zero
+}
+
+/**
+ * The values of one criterion, filling the screen: hold a folded card, slide onto the one that is
+ * true from here on, and let go — which ends the segment and opens the next one with that one
+ * change. The value the segment already carries is marked, so a rider can see what they are leaving.
+ */
+@Composable
+private fun ValuePicker(criterion: Criterion, selected: Set<String>, choice: String?) = Column(
+    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+    verticalArrangement = Arrangement.spacedBy(PickerCardGap),
+) {
+    criterion.values.forEach { value ->
+        PickerOption(
+            title = value,
+            subtitle = if (value in selected) criterion.label() + " now" else null,
+            selected = value == choice,
+            selectedColor = MaterialTheme.colorScheme.primary,
+            selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

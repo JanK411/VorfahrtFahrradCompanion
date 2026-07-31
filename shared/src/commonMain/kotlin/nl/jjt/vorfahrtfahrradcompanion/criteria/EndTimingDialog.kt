@@ -155,6 +155,13 @@ private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
+                "One boundary needs no answer at all. Where a stretch ends because a single thing " +
+                    "about it changes, hold that criterion's folded card instead: its values fill " +
+                    "the screen, and letting go on one ends the segment here and opens the next one " +
+                    "described exactly as this one was, but for that value.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
                 "A start is the same question asked in advance: \"Start precise\" marks the segment as " +
                     "beginning where you pressed, \"Start shallow\" as having begun some way before it, " +
                     "for a change of path you notice only after riding onto it. The recording line then " +

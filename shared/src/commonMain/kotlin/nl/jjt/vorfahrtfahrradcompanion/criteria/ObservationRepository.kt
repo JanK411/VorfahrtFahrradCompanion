@@ -123,14 +123,26 @@ class ObservationRepository(
     }
 
     /**
-     * Stands by every criterion in [criterionIds] at once — the other way out of a carried-over
-     * list, for the stretch that is exactly like the one before it and needs no line-by-line nod.
-     * Reversible via [undo].
+     * Stands by every value in the draft at once — the other way out of a carried-over list, for the
+     * stretch that is exactly like the one before it and needs no line-by-line nod. Reversible via
+     * [undo].
      */
-    fun approveCarriedOver(criterionIds: Set<String>) {
+    fun approveCarriedOver() {
         replaced = _draft.value
-        _draft.update { it.copy(reviewed = it.reviewed + criterionIds) }
+        standByEverything()
     }
+
+    /**
+     * Describes the open segment as the last one with [criterion] changed to [value], and stands by
+     * all of it — which is precisely what a rider says by picking that value off a folded card: this
+     * one thing is different now, the rest still holds.
+     */
+    fun carryOnWith(criterion: Criterion, value: String) = _draft.update {
+        val selections = it.selections.pick(criterion, value)
+        it.copy(selections = selections, reviewed = it.reviewed + selections.filled)
+    }
+
+    private fun standByEverything() = _draft.update { it.copy(reviewed = it.reviewed + it.selections.filled) }
 
     /** Puts back what the last of those two replaced. Does nothing if there is nothing to take back. */
     fun undo() {

@@ -235,9 +235,23 @@ class CriteriaViewModel(
     fun clearCarriedOver() = observations.clearCarriedOver()
 
     /** Stands by all of them instead, for the stretch that is exactly like the one before it. */
-    fun approveCarriedOver() {
-        val ready = _state.value as? CriteriaUiState.Ready ?: return
-        observations.approveCarriedOver(ready.carriedOver.map(Criterion::id).toSet())
+    fun approveCarriedOver() = observations.approveCarriedOver()
+
+    /**
+     * The boundary a rider marks by picking [value] off a folded card: the stretch they are on ends
+     * here and the next one begins, described exactly as this one was but for [criterion].
+     *
+     * It says two things at once, which is the whole point of it. The segment being closed is stood
+     * by as it stands — picking a value off a card is saying the description held up to here — and
+     * the one that opens is stood by as well, since the rider has just said what is different about
+     * it. Neither asks anything: this is the one boundary that is fully answered before it is made.
+     */
+    fun splitSegment(criterion: Criterion, value: String) {
+        if (!canEnd()) return
+        observations.approveCarriedOver()
+        store(EndRequest(BoundaryKind.EXACT, SegmentAction.START_NEXT, observations.now)) {
+            observations.carryOnWith(criterion, value)
+        }
     }
 
     /** Takes back whichever of the two the rider just pressed. */
@@ -252,12 +266,14 @@ class CriteriaViewModel(
     /** Takes back the end, leaving the segment running and its carried-over criteria untouched. */
     fun cancelEnd() = updateReady { copy(pendingEnd = null) }
 
-    private fun store(request: EndRequest) {
+    /** [andThen] runs on the segment the end opened, once the one it closed is safely stored. */
+    private fun store(request: EndRequest, andThen: () -> Unit = {}) {
         viewModelScope.launch {
             updateReady { copy(saveState = SaveState.InFlight) }
 
             try {
                 observations.end(request.kind, request.action, request.at)?.let(_outcomes::tryEmit)
+                andThen()
                 updateReady { copy(saveState = SaveState.Idle) }
             } catch (e: Exception) {
                 fail(e.message ?: "Could not save the segment")

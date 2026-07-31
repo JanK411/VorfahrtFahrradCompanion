@@ -81,6 +81,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             advances = viewModel.advances,
             onTap = viewModel::onTap,
             onConfirm = viewModel::onConfirm,
+            onSplit = viewModel::splitSegment,
             onCopyPrevious = viewModel::copyPrevious,
             onStart = viewModel::start,
             onEnd = viewModel::end,
@@ -105,6 +106,7 @@ private fun Catalogue(
     advances: Flow<Criterion>,
     onTap: (Criterion, String) -> Unit,
     onConfirm: (Criterion) -> Unit,
+    onSplit: (Criterion, String) -> Unit,
     onCopyPrevious: () -> Unit,
     onStart: (BoundaryKind) -> Unit,
     onEnd: (SegmentAction) -> Unit,
@@ -308,6 +310,7 @@ private fun Catalogue(
                                     onConfirm(criterion)
                                     pinned = null
                                 },
+                                onSplit = { value -> onSplit(criterion, value) },
                             )
                         }
                     }
@@ -726,8 +729,9 @@ private fun HowLatePicker(choice: EndTiming?, height: Dp) = Column(
     )
 }
 
+/** One card in a hold-and-slide menu, on the recorder buttons and on the criterion cards alike. */
 @Composable
-private fun PickerOption(
+internal fun PickerOption(
     title: String,
     selected: Boolean,
     selectedColor: Color,
