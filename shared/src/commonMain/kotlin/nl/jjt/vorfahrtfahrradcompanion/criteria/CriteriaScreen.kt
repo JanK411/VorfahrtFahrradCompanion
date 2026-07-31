@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import nl.jjt.vorfahrtfahrradcompanion.ui.KeepScreenAwake
+import nl.jjt.vorfahrtfahrradcompanion.ui.Spotlight
 import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -153,6 +154,9 @@ private fun Catalogue(
     val expanded = state.catalogue.criteria.firstOrNull { it.id == pinned }
         ?: state.leadingAfter(settled).takeIf { state.carriedOver.isEmpty() }
 
+    // The card the rider's answer is wanted on, opened up or not: the only one lit in daylight.
+    val attention = expanded ?: state.leadingAfter(settled)
+
     // A new segment starts at the top. The list keeps its scroll position across an end, and the first
     // open criterion is usually the same one as before, so nothing below would move the view back up.
     LaunchedEffect(state.segment) {
@@ -193,32 +197,39 @@ private fun Catalogue(
         if (row >= 0) listState.animateScrollToItem(row)
     }
 
+    // A question in front of the rider is the thing wanting an answer, so it is lit like one.
     var discarding by remember { mutableStateOf(false) }
     if (discarding) {
-        DiscardSegmentDialog(
-            onConfirm = {
-                discarding = false
-                onDiscardSegment()
-            },
-            onDismiss = { discarding = false },
-        )
+        Spotlight(lit = true) {
+            DiscardSegmentDialog(
+                onConfirm = {
+                    discarding = false
+                    onDiscardSegment()
+                },
+                onDismiss = { discarding = false },
+            )
+        }
     }
 
     state.pendingTiming?.let {
-        EndTimingDialog(action = it.action, onAnswer = onAnswerTiming, onDismiss = onCancelTiming)
+        Spotlight(lit = true) {
+            EndTimingDialog(action = it.action, onAnswer = onAnswerTiming, onDismiss = onCancelTiming)
+        }
     }
 
     state.pendingEnd?.let { pending ->
-        EndSegmentDialog(
-            // The list the question opened with: editing an answer in it approves that criterion, which
-            // would take it out of a list read off the state mid-answer.
-            unapproved = pending.asked,
-            selections = state.selections,
-            reviewed = state.reviewed,
-            onEdit = onTap,
-            onConfirm = onConfirmEnd,
-            onDismiss = onCancelEnd,
-        )
+        Spotlight(lit = true) {
+            EndSegmentDialog(
+                // The list the question opened with: editing an answer in it approves that criterion,
+                // which would take it out of a list read off the state mid-answer.
+                unapproved = pending.asked,
+                selections = state.selections,
+                reviewed = state.reviewed,
+                onEdit = onTap,
+                onConfirm = onConfirmEnd,
+                onDismiss = onCancelEnd,
+            )
+        }
     }
 
     Column(modifier.fillMaxSize()) {
@@ -264,31 +275,35 @@ private fun Catalogue(
                     }
 
                     items(state.catalogue.criteria, key = Criterion::id) { criterion ->
-                        CriterionCard(
-                            criterion = criterion,
-                            selected = state.selections[criterion],
-                            review = state.reviewOf(criterion),
-                            expanded = criterion.id == expanded?.id,
-                            onTapValue = { value ->
-                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                pinned = criterion.id
-                                onTap(criterion, value)
-                            },
-                            onOpen = {
-                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                pinned = criterion.id
-                            },
-                            onApprove = {
-                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                onConfirm(criterion)
-                                settled = criterion
-                                moveOnFrom(criterion)
-                            },
-                            onNext = {
-                                onConfirm(criterion)
-                                pinned = null
-                            },
-                        )
+                        // Lit while it is the one being answered — or, where nothing is opened up
+                        // because everything is still up for review, the one leading the list.
+                        Spotlight(lit = criterion.id == attention?.id) {
+                            CriterionCard(
+                                criterion = criterion,
+                                selected = state.selections[criterion],
+                                review = state.reviewOf(criterion),
+                                expanded = criterion.id == expanded?.id,
+                                onTapValue = { value ->
+                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    pinned = criterion.id
+                                    onTap(criterion, value)
+                                },
+                                onOpen = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    pinned = criterion.id
+                                },
+                                onApprove = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    onConfirm(criterion)
+                                    settled = criterion
+                                    moveOnFrom(criterion)
+                                },
+                                onNext = {
+                                    onConfirm(criterion)
+                                    pinned = null
+                                },
+                            )
+                        }
                     }
                 }
             } else {
@@ -604,7 +619,11 @@ private fun RowScope.RecorderButton(
 
             if (picking) {
                 Popup(TopOfWindow) {
-                    HowLatePicker(choice, with(LocalDensity.current) { stackPx.toDp() })
+                    // The screen is asking which of three it is, and nothing else is: lit, like a
+                    // criterion under the thumb, so the answer can be read off it in full sun.
+                    Spotlight(lit = true) {
+                        HowLatePicker(choice, with(LocalDensity.current) { stackPx.toDp() })
+                    }
                 }
             }
         }
