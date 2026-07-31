@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -445,19 +444,22 @@ private fun ButtonRow(content: @Composable RowScope.() -> Unit) = Row(
     content = content,
 )
 
-/** How far the thumb has to travel off the button before it counts as having chosen something. */
-private val SlideThreshold = 40.dp
+private val PickerCardWidth = 260.dp
+private val PickerCardHeight = 76.dp
+private val PickerCardGap = 8.dp
 
-private val PickerOptionWidth = 104.dp
-private val PickerOptionHeight = 84.dp
+/** How far above the button the stack of cards starts. */
 private val PickerGap = 16.dp
+
+/** Bottom to top, so the further the thumb travels, the later the press was. */
+private val TimingCards = listOf(EndTiming.EXACT, EndTiming.JUST_NOW, EndTiming.LONGER)
 
 /** What holding a recorder button down does, once the hold registers. */
 private sealed interface Hold {
     /** Marks the boundary as already passed, there and then. */
     data class Mark(val onMark: () -> Unit) : Hold
 
-    /** Raises the three end answers above the thumb, for the rider to slide onto one and let go. */
+    /** Stacks the three end answers above the thumb, for the rider to slide onto one and let go. */
     data class Pick(val onPick: (EndTiming) -> Unit) : Hold
 }
 
@@ -467,9 +469,9 @@ private sealed interface Hold {
  * beside it.
  *
  * On an end, holding answers the question a tap would raise as a dialog: how well the press caught the
- * boundary decides whether the segment is worth keeping, so the hold raises the three answers above the
- * thumb and the rider slides onto one and lets go, in one movement, the way a phone's quick launch
- * works. Lifting off without having gone anywhere leaves the segment alone.
+ * boundary decides whether the segment is worth keeping, so the hold stacks the three answers above the
+ * thumb and the rider slides straight up onto one and lets go, in one movement, the way a phone's quick
+ * launch works. Lifting off without having gone anywhere leaves the segment alone.
  *
  * Built out of a Surface because a Button has room for neither a long press nor what follows it.
  */
@@ -482,7 +484,12 @@ private fun RowScope.RecorderButton(
 ) {
     val haptics = LocalHapticFeedback.current
     val scheme = MaterialTheme.colorScheme
-    val threshold = with(LocalDensity.current) { SlideThreshold.toPx() }
+
+    // The same geometry the cards are laid out with, so the highlighted one is the one under the thumb.
+    val density = LocalDensity.current
+    val cardPx = with(density) { PickerCardHeight.toPx() }
+    val cardGapPx = with(density) { PickerCardGap.toPx() }
+    val stackGapPx = with(density) { PickerGap.toPx() }
 
     var picking by remember { mutableStateOf(false) }
     var choice by remember { mutableStateOf<EndTiming?>(null) }
@@ -523,7 +530,9 @@ private fun RowScope.RecorderButton(
                             while (true) {
                                 val change = awaitPointerEvent().changes
                                     .firstOrNull { it.id == down.id } ?: break
-                                val slid = slideChoice(change.position - down.position, threshold)
+                                // Measured off the button's top edge, which is where the stack is
+                                // anchored — not off the press, which lands anywhere on the button.
+                                val slid = cardUnder(-change.position.y, cardPx, cardGapPx, stackGapPx)
                                 if (slid != choice) {
                                     choice = slid
                                     // A tick as the thumb crosses onto an answer, since it covers the
@@ -559,8 +568,8 @@ private fun RowScope.RecorderButton(
 }
 
 /**
- * Puts the answers across the middle of the window, [gap] above the button. Three of them are wider
- * than the half-width button they belong to, so centring on the button would push one off the screen.
+ * Puts the answers across the middle of the window, [gap] above the button. The cards are wider than
+ * the half-width button they belong to, so centring on the button would push them off the screen.
  */
 private class AboveTheButton(private val gap: Int) : PopupPositionProvider {
     override fun calculatePosition(
@@ -575,40 +584,41 @@ private class AboveTheButton(private val gap: Int) : PopupPositionProvider {
 }
 
 /**
- * Which answer the thumb is on. Direction rather than a target: up and to the left caught the moment,
- * straight up missed it by a little, up and to the right by more — and anywhere near the button is
- * still no answer at all. A gesture that asks for no more aim than a side can be made without looking.
+ * Which card the thumb is on, from how far above the button's top edge it has got: one full-width card
+ * per answer, so the only aim asked for is how far up to slide. Below the stack is no answer at all;
+ * past the top one the answer stays on it, since the thumb cannot be anywhere else.
  */
-private fun slideChoice(travelled: Offset, threshold: Float): EndTiming? = when {
-    travelled.y > -threshold -> null
-    travelled.x < -threshold -> EndTiming.EXACT
-    travelled.x > threshold -> EndTiming.LONGER
-    else -> EndTiming.JUST_NOW
+private fun cardUnder(aboveButton: Float, card: Float, gap: Float, stackGap: Float): EndTiming? {
+    if (aboveButton < stackGap) return null
+    val index = ((aboveButton - stackGap) / (card + gap)).toInt()
+    return TimingCards.getOrElse(index) { TimingCards.last() }
 }
 
-/** The three answers, raised above the thumb that is still holding the button down. */
+/** The three answers, stacked above the thumb that is still holding the button down. */
 @Composable
-private fun HowLatePicker(choice: EndTiming?) = Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun HowLatePicker(choice: EndTiming?) = Column(
+    verticalArrangement = Arrangement.spacedBy(PickerCardGap),
+) {
     PickerOption(
-        title = "↖ Precisely",
-        subtitle = "end at the press",
-        selected = choice == EndTiming.EXACT,
-        selectedColor = MaterialTheme.colorScheme.primary,
-        selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+        title = "Longer",
+        subtitle = "discard segment",
+        selected = choice == EndTiming.LONGER,
+        selectedColor = MaterialTheme.colorScheme.error,
+        selectedContentColor = MaterialTheme.colorScheme.onError,
     )
     PickerOption(
-        title = "↑ ~${LateEndGrace.inWholeSeconds} s late",
+        title = "~${LateEndGrace.inWholeSeconds} s late",
         subtitle = "end goes back",
         selected = choice == EndTiming.JUST_NOW,
         selectedColor = MaterialTheme.colorScheme.primary,
         selectedContentColor = MaterialTheme.colorScheme.onPrimary,
     )
     PickerOption(
-        title = "Longer ↗",
-        subtitle = "discard segment",
-        selected = choice == EndTiming.LONGER,
-        selectedColor = MaterialTheme.colorScheme.error,
-        selectedContentColor = MaterialTheme.colorScheme.onError,
+        title = "Precisely",
+        subtitle = "end at the press",
+        selected = choice == EndTiming.EXACT,
+        selectedColor = MaterialTheme.colorScheme.primary,
+        selectedContentColor = MaterialTheme.colorScheme.onPrimary,
     )
 }
 
@@ -620,18 +630,17 @@ private fun PickerOption(
     selectedColor: Color,
     selectedContentColor: Color,
 ) = Surface(
-    modifier = Modifier.size(PickerOptionWidth, PickerOptionHeight),
+    modifier = Modifier.size(PickerCardWidth, PickerCardHeight),
     shape = MaterialTheme.shapes.large,
     color = if (selected) selectedColor else MaterialTheme.colorScheme.surfaceVariant,
     contentColor = if (selected) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
     shadowElevation = if (selected) 8.dp else 2.dp,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(8.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-        Text(subtitle, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(subtitle, style = MaterialTheme.typography.labelMedium)
     }
 }
