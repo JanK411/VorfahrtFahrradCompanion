@@ -3,6 +3,15 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.9",
+        date = "2026-07-31",
+        changes = listOf(
+            "The question asked when you end a segment with unapproved entries now gives each one its own two buttons: a tick to keep it and a cross to drop it. Whichever one is filled in is what happens when you end.",
+            "An entry that is nearly right no longer costs you the whole criterion: tap it and it opens up with all its values, exactly as on the list. Picking one changes the entry and keeps it in one go — and crossing it out afterwards still drops it.",
+            "Entries you can change carry the same pencil as the carried-over cards on the criteria list.",
+        ),
+    ),
+    PatchNote(
         version = "1.8",
         date = "2026-07-31",
         changes = listOf(
