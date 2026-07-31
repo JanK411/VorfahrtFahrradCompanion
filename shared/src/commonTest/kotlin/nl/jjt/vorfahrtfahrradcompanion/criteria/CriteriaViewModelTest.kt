@@ -2,6 +2,8 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -34,9 +36,14 @@ private class FakeApi : CriteriaApi {
 
 private class FakeObservationDao : ObservationDao {
     val inserted = mutableListOf<ObservationEntity>()
+    private val last = MutableStateFlow<String?>(null)
+
     override suspend fun insert(entity: ObservationEntity) {
         inserted += entity
+        last.value = entity.valuesJson
     }
+
+    override fun lastValuesJson(): Flow<String?> = last
 }
 
 class CriteriaViewModelTest {
@@ -220,6 +227,95 @@ class CriteriaViewModelTest {
         clock += ride
         vm.endAs(SegmentAction.START_NEXT, EndTiming.EXACT)
         testScheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun thereIsNothingToCopyUntilSomethingHasBeenSubmitted() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.start(BoundaryKind.EXACT)
+        testScheduler.advanceUntilIdle()
+
+        assertNull((vm.state.value as CriteriaUiState.Ready).copyable)
+    }
+
+    /**
+     * Stores one segment describing both criteria, ends the survey, and opens a fresh segment — one
+     * with nothing carried over, which is where copying the previous one is offered.
+     */
+    private suspend fun TestScope.aSubmittedSegmentThenAFreshOne(vm: CriteriaViewModel) {
+        vm.onTap(width, "W_1")
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        vm.endAs(SegmentAction.STOP, EndTiming.EXACT)
+        testScheduler.advanceUntilIdle()
+        vm.start(BoundaryKind.EXACT)
+        testScheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun aFreshSegmentCanBeFilledInFromTheLastOneSubmitted() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSubmittedSegmentThenAFreshOne(vm)
+
+        assertEquals(
+            Selections(mapOf("WIDTH" to setOf("W_1"), "ALLOWED_USERS" to setOf("CARS"))),
+            (vm.state.value as CriteriaUiState.Ready).copyable,
+        )
+
+        vm.copyPrevious()
+        testScheduler.advanceUntilIdle()
+
+        // Copied in as suggestions, exactly where carried-over values land: up for review, not stored.
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), ready.selections[users])
+        assertEquals(setOf("W_1"), ready.selections[width])
+        assertEquals(emptySet(), ready.reviewed)
+        assertEquals(listOf(width, users), ready.carriedOver)
+        // With something filled in there is nothing fresh left to fill in, so the offer is gone.
+        assertNull(ready.copyable)
+    }
+
+    @Test
+    fun copyingIsNotOfferedOverAnswersTheRiderHasAlreadyGiven() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSubmittedSegmentThenAFreshOne(vm)
+        vm.onTap(width, "W_2")
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertNull(ready.copyable)
+
+        // And the action itself holds to that, whatever put it in front of the rider.
+        vm.copyPrevious()
+        testScheduler.advanceUntilIdle()
+        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).selections[users])
+    }
+
+    @Test
+    fun whatWasCopiedIsOnlyStoredWhereTheRiderStoodByIt() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        aSubmittedSegmentThenAFreshOne(vm)
+        vm.copyPrevious()
+        testScheduler.advanceUntilIdle()
+        clock += ride
+        vm.endAs(SegmentAction.STOP, EndTiming.EXACT)
+        vm.confirmEnd(approve = setOf(users.id))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(2, dao.inserted.size)
+        assertEquals(
+            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
     }
 
     @Test
