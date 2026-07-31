@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
@@ -22,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -194,12 +197,26 @@ internal fun ExpandedCriterion(
     }
 
     // A multi-choice criterion has no natural last tap, so it also gets a way to say "done here".
+    // Nothing about it may read as one more value: a rule cuts it off from the grid, and where a value
+    // is a squared-off half-width button, this is a full-width filled pill carrying an arrow.
     if (criterion.kind == CriterionKind.MULTI) {
-        OutlinedButton(
+        HorizontalDivider(Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        Button(
             onClick = onNext,
             modifier = Modifier.fillMaxWidth().heightIn(min = RowHeight),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+            ),
         ) {
-            Text("Next", style = MaterialTheme.typography.titleMedium)
+            Text("Done — next", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }
