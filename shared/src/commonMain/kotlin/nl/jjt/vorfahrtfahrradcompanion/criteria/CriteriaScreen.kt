@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
@@ -90,7 +91,8 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             onCancelEnd = viewModel::cancelEnd,
             onDiscardSegment = viewModel::discardSegment,
             onClearCarriedOver = viewModel::clearCarriedOver,
-            onUndoClear = viewModel::undoClear,
+            onApproveCarriedOver = viewModel::approveCarriedOver,
+            onUndo = viewModel::undo,
             modifier = modifier,
         )
     }
@@ -113,7 +115,8 @@ private fun Catalogue(
     onCancelEnd: () -> Unit,
     onDiscardSegment: () -> Unit,
     onClearCarriedOver: () -> Unit,
-    onUndoClear: () -> Unit,
+    onApproveCarriedOver: () -> Unit,
+    onUndo: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -173,6 +176,16 @@ private fun Catalogue(
     fun moveOnFrom(criterion: Criterion) {
         val row = current.rowOf(current.leadingAfter(criterion))
         if (row >= 0) scope.launch { listState.animateScrollToItem(row) }
+    }
+
+    // Both ways of settling the whole carried-over list at once replace a screenful of answers on
+    // one tap, so both say what they did and hold the door open on the way out.
+    fun undoable(message: String) {
+        discarded = false
+        scope.launch {
+            val undo = snackbarHostState.showSnackbar(message = message, actionLabel = "Undo")
+            if (undo == SnackbarResult.ActionPerformed) onUndo()
+        }
     }
 
     LaunchedEffect(advances) {
@@ -262,14 +275,7 @@ private fun Catalogue(
                             ClearCarriedOverButton(carried = state.carriedOver.size) {
                                 haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                                 onClearCarriedOver()
-                                discarded = false
-                                scope.launch {
-                                    val undo = snackbarHostState.showSnackbar(
-                                        message = "Cleared — filling in from scratch",
-                                        actionLabel = "Undo",
-                                    )
-                                    if (undo == SnackbarResult.ActionPerformed) onUndoClear()
-                                }
+                                undoable("Cleared — filling in from scratch")
                             }
                         }
                     }
@@ -303,6 +309,19 @@ private fun Catalogue(
                                     pinned = null
                                 },
                             )
+                        }
+                    }
+
+                    // The other way out of a carried-over list, at the far end of it: the rider who
+                    // has read down the list and found nothing to change says so here, in one tap,
+                    // rather than approving five cards they have just been through one by one.
+                    if (state.carriedOver.isNotEmpty()) {
+                        item(key = ApproveCarriedOverKey) {
+                            ApproveCarriedOverButton(carried = state.carriedOver.size) {
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                onApproveCarriedOver()
+                                undoable("Approved all ${state.carriedOver.size}")
+                            }
                         }
                     }
                 }
@@ -384,6 +403,7 @@ private fun Catalogue(
 }
 
 private const val ClearCarriedOverKey = "clear-carried-over"
+private const val ApproveCarriedOverKey = "approve-carried-over"
 
 /** Where a criterion sits in the list, counting the clear button that leads it while there is one. */
 private fun CriteriaUiState.Ready.rowOf(criterion: Criterion?): Int {
@@ -405,6 +425,24 @@ private fun ClearCarriedOverButton(
     text = "Clear $carried preselected",
     icon = Icons.Filled.Close,
     contentColor = MaterialTheme.colorScheme.error,
+    modifier = modifier,
+    onClick = onClick,
+)
+
+/**
+ * The way out of the same list for a stretch that is exactly like the one before it. It closes the
+ * list rather than leading it: a rider reaches it having read every card on the way down, which is
+ * the only honest place to say "all of that still holds".
+ */
+@Composable
+private fun ApproveCarriedOverButton(
+    carried: Int,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) = SegmentButton(
+    text = "Approve all $carried",
+    icon = Icons.Filled.Check,
+    contentColor = MaterialTheme.colorScheme.primary,
     modifier = modifier,
     onClick = onClick,
 )

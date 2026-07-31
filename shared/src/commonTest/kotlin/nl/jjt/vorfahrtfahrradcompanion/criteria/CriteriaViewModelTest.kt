@@ -580,13 +580,55 @@ class CriteriaViewModelTest {
     }
 
     @Test
+    fun approvingAllStandsByEveryCarriedOverValueAtOnce() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        vm.approveCarriedOver()
+        testScheduler.advanceUntilIdle()
+
+        // Nothing left to review, so ending the segment asks nothing and stores the lot.
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(emptyList(), ready.carriedOver)
+        assertEquals(listOf(width, users), ready.confirmed)
+
+        clock += ride
+        vm.endAs(SegmentAction.STOP, EndTiming.EXACT)
+        testScheduler.advanceUntilIdle()
+
+        assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
+        assertEquals(
+            Selections(mapOf("WIDTH" to setOf("W_1"), "ALLOWED_USERS" to setOf("CARS"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+    }
+
+    @Test
+    fun approvingAllCanBeTakenBack() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        // One of them approved by hand first: taking back the whole lot must not take that with it.
+        vm.onConfirm(width)
+        vm.approveCarriedOver()
+        vm.undo()
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(listOf(users), ready.carriedOver)
+        assertEquals(listOf(width), ready.confirmed)
+    }
+
+    @Test
     fun clearingCanBeTakenBack() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
 
         aSegmentThenTheNext(vm)
         vm.clearCarriedOver()
-        vm.undoClear()
+        vm.undo()
         testScheduler.advanceUntilIdle()
 
         // Back to carried over and waiting for a nod, exactly as before the clear.

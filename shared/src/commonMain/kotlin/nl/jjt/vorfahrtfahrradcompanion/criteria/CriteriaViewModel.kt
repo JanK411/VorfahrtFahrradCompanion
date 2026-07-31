@@ -234,7 +234,14 @@ class CriteriaViewModel(
     /** Drops the values carried over but not approved, for a stretch unlike the one before it. */
     fun clearCarriedOver() = observations.clearCarriedOver()
 
-    fun undoClear() = observations.undoClear()
+    /** Stands by all of them instead, for the stretch that is exactly like the one before it. */
+    fun approveCarriedOver() {
+        val ready = _state.value as? CriteriaUiState.Ready ?: return
+        observations.approveCarriedOver(ready.carriedOver.map(Criterion::id).toSet())
+    }
+
+    /** Takes back whichever of the two the rider just pressed. */
+    fun undo() = observations.undo()
 
     /** Throws the open segment away — a stretch not worth recording, or one recorded wrong. */
     fun discardSegment() {

@@ -57,8 +57,11 @@ class ObservationRepository(
     private val _draft = MutableStateFlow(Draft())
     val draft: StateFlow<Draft> = _draft.asStateFlow()
 
-    /** What [clearCarriedOver] dropped, held for as long as the rider might take it back. */
-    private var cleared: Draft? = null
+    /**
+     * What the last change made to the whole carried-over list replaced, held for as long as the
+     * rider might take it back — see [clearCarriedOver] and [approveCarriedOver].
+     */
+    private var replaced: Draft? = null
 
     /** What the last segment stored was described with — what [preselect] fills a fresh one in from. */
     val lastSubmitted: Flow<Selections?> =
@@ -83,11 +86,11 @@ class ObservationRepository(
     /**
      * Fills the open segment in with [values], unreviewed — the standing values carried over from the
      * previous segment have, so the rider approves or changes them one line at a time. Meant for a
-     * segment with nothing filled in yet: it replaces whatever is there, and drops the undo a
-     * [clearCarriedOver] left behind, which describes a draft that no longer exists.
+     * segment with nothing filled in yet: it replaces whatever is there, and drops any undo left
+     * behind, which describes a draft that no longer exists.
      */
     fun preselect(values: Selections) {
-        cleared = null
+        replaced = null
         _draft.update {
             if (it.segment !is Segment.Open) it else it.copy(selections = values, reviewed = emptySet())
         }
@@ -112,17 +115,27 @@ class ObservationRepository(
     /**
      * Drops every value the rider has not approved, leaving those criteria open to be answered from
      * scratch — for the stretch that has nothing in common with the last one. What they have already
-     * approved for this segment is their own work and stays. Reversible via [undoClear].
+     * approved for this segment is their own work and stays. Reversible via [undo].
      */
     fun clearCarriedOver() {
-        cleared = _draft.value
+        replaced = _draft.value
         _draft.update { it.copy(selections = it.selections.retain(it.reviewed)) }
     }
 
-    /** Puts back what [clearCarriedOver] dropped. Does nothing if there is nothing to take back. */
-    fun undoClear() {
-        val previous = cleared ?: return
-        cleared = null
+    /**
+     * Stands by every criterion in [criterionIds] at once — the other way out of a carried-over
+     * list, for the stretch that is exactly like the one before it and needs no line-by-line nod.
+     * Reversible via [undo].
+     */
+    fun approveCarriedOver(criterionIds: Set<String>) {
+        replaced = _draft.value
+        _draft.update { it.copy(reviewed = it.reviewed + criterionIds) }
+    }
+
+    /** Puts back what the last of those two replaced. Does nothing if there is nothing to take back. */
+    fun undo() {
+        val previous = replaced ?: return
+        replaced = null
         _draft.update { it.copy(selections = previous.selections, reviewed = previous.reviewed) }
     }
 
@@ -132,7 +145,7 @@ class ObservationRepository(
      */
     fun discardSegment(): Boolean {
         if (_draft.value.segment !is Segment.Open) return false
-        cleared = null
+        replaced = null
         _draft.value = Draft()
         return true
     }
@@ -179,7 +192,7 @@ class ObservationRepository(
             )
         }
 
-        cleared = null
+        replaced = null
         _draft.update {
             if (action == SegmentAction.START_NEXT) {
                 it.copy(segment = Segment.Open(boundary, kind), reviewed = emptySet())
