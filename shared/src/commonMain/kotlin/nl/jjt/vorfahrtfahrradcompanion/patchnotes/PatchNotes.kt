@@ -3,6 +3,28 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.13",
+        date = "2026-07-31",
+        changes = listOf(
+            "A segment you start from scratch now leads with \"Copy the previous segment\": one tap fills " +
+                "it in with whatever you last submitted, ready to be reviewed. Nothing is approved by " +
+                "it — every copied value carries the same amber outline and the same big check as one " +
+                "carried over from the segment before, so you approve or change them one line at a " +
+                "time, and only what you stand by is stored. The button is gone as soon as you enter " +
+                "anything yourself.",
+            "The values of an opened criterion are now one full-width button per line rather than two " +
+                "side by side: bigger targets, no aiming sideways, and long labels no longer wrap in " +
+                "half the width.",
+            "Holding \"End\" or \"Start next\" now fills the whole screen above your thumb with the three " +
+                "answers, a third of it each, so none of them can be missed by a slide of roughly the " +
+                "right length.",
+            "The topmost of those answers now reads \"Discard\" rather than \"Longer — discard segment\".",
+            "Starting is two buttons now: \"Start precise\" for a segment that begins where you press, " +
+                "and \"Start shallow\" for one you have already ridden onto. The hold on \"Start\" that " +
+                "used to do the latter is gone.",
+        ),
+    ),
+    PatchNote(
         version = "1.12",
         date = "2026-07-31",
         changes = listOf(
