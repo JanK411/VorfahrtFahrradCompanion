@@ -260,6 +260,45 @@ class CriteriaViewModelTest {
     }
 
     @Test
+    fun anAnswerChangedOnTheWayOutIsStoredAsChanged() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        clock += ride
+        vm.endAs(SegmentAction.STOP, EndTiming.EXACT)
+        testScheduler.advanceUntilIdle()
+
+        // The question keeps the list it opened with, so editing one does not take it out of the answer.
+        assertEquals(listOf(width, users), (vm.state.value as CriteriaUiState.Ready).pendingEnd?.asked)
+
+        vm.onTap(width, "W_2")
+        vm.confirmEnd(approve = setOf(width.id))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(
+            Selections(mapOf("WIDTH" to setOf("W_2"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+    }
+
+    @Test
+    fun anAnswerChangedOnTheWayOutIsStillDroppedIfItIsThenTurnedDown() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        clock += ride
+        vm.endAs(SegmentAction.STOP, EndTiming.EXACT)
+        vm.onTap(width, "W_2")
+        vm.confirmEnd(approve = emptySet())
+        testScheduler.advanceUntilIdle()
+
+        // Changing a value stands by it there and then; crossing it out afterwards takes that back.
+        assertEquals(1, dao.inserted.size)
+    }
+
+    @Test
     fun approvingNothingOnTheWayOutDiscardsTheSegment() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()

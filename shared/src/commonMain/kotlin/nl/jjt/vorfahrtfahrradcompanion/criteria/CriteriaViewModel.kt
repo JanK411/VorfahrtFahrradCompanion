@@ -68,8 +68,17 @@ data class TimingRequest(val action: SegmentAction, val at: Instant)
  * An end the rider has asked for but not answered for yet. [at] is when they pressed the button — the
  * boundary belongs there, not to wherever the answering ends up, give or take the step back an end
  * marked late takes.
+ *
+ * [asked] holds the criteria the question puts up for a decision, as they were when it was raised.
+ * Editing one in the question approves it there and then, which would drop it out of a list derived from
+ * the state — so the question keeps the list it opened with instead.
  */
-data class EndRequest(val kind: BoundaryKind, val action: SegmentAction, val at: Instant)
+data class EndRequest(
+    val kind: BoundaryKind,
+    val action: SegmentAction,
+    val at: Instant,
+    val asked: List<Criterion> = emptyList(),
+)
 
 sealed interface SaveState {
     data object Idle : SaveState
@@ -180,13 +189,16 @@ class CriteriaViewModel(
     private fun ask(request: EndRequest) {
         val ready = _state.value as? CriteriaUiState.Ready ?: return
         if (ready.carriedOver.isEmpty()) store(request)
-        else updateReady { copy(pendingEnd = request) }
+        else updateReady { copy(pendingEnd = request.copy(asked = ready.carriedOver)) }
     }
 
-    /** Ends the segment the rider was asked about, standing by the criteria in [approve]. */
+    /**
+     * Ends the segment the rider was asked about, standing by the criteria in [approve]. Everything else
+     * the question put up loses its values, edits made in the question included.
+     */
     fun confirmEnd(approve: Set<String>) {
         val request = (_state.value as? CriteriaUiState.Ready)?.pendingEnd ?: return
-        observations.resolveCarriedOver(approve)
+        observations.resolveCarriedOver(approve, request.asked.map(Criterion::id).toSet() - approve)
         updateReady { copy(pendingEnd = null) }
         store(request)
     }

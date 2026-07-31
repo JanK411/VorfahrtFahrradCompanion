@@ -80,9 +80,13 @@ class ObservationRepository(
     /**
      * Settles every criterion still carried over in one go: those in [approve] are stood by, the rest
      * lose their values. This is what the rider answers on their way out of a segment.
+     *
+     * [drop] is turned down explicitly, which takes back a criterion the rider settled while answering —
+     * changing a value in the question approves it there and then, and rejecting it afterwards has to
+     * undo that.
      */
-    fun resolveCarriedOver(approve: Set<String>) = _draft.update {
-        val reviewed = it.reviewed + approve
+    fun resolveCarriedOver(approve: Set<String>, drop: Set<String> = emptySet()) = _draft.update {
+        val reviewed = it.reviewed + approve - drop
         it.copy(selections = it.selections.retain(reviewed), reviewed = reviewed)
     }
 
