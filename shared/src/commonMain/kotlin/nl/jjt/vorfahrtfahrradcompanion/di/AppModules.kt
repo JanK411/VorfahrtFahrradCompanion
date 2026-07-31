@@ -5,6 +5,7 @@ import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaViewModel
 import nl.jjt.vorfahrtfahrradcompanion.criteria.KtorCriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.criteria.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.daylight.Daylight
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationViewModel
 import nl.jjt.vorfahrtfahrradcompanion.net.createHttpClient
 import nl.jjt.vorfahrtfahrradcompanion.patchnotes.PatchNotesRepository
@@ -20,6 +21,7 @@ import org.koin.dsl.module
 
 val locationModule = module {
     viewModel { LocationViewModel(get(), get()) }
+    single { Daylight(get()) }
 }
 
 val criteriaModule = module {
