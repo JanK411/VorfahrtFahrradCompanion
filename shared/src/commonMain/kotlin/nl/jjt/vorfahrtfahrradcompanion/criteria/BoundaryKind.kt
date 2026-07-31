@@ -10,11 +10,19 @@ import kotlin.time.Duration.Companion.seconds
 enum class BoundaryKind { EXACT, EARLIER }
 
 /**
- * How far past the boundary an end was marked, answered on the button itself. An end is worth keeping
- * only if the rider can still say where it was: [JUST_NOW] puts it [MissedEndGrace] back, while
- * [LONGER] means the stretch ended somewhere between there and here, which is no place to record.
+ * How well the press hit the end the rider meant — asked on every end, because an end is worth keeping
+ * only if they can still say where it was. [EXACT] takes the press for the boundary, [JUST_NOW] puts it
+ * [LateEndGrace] back, and [LONGER] means the stretch ended somewhere between there and here, which is
+ * no place to record.
  */
-enum class MissedEnd { JUST_NOW, LONGER }
+enum class EndTiming {
+    EXACT,
+    JUST_NOW,
+    LONGER;
 
-/** How far back an end marked [MissedEnd.JUST_NOW] is taken to be. */
-val MissedEndGrace = 10.seconds
+    /** How the boundary is stored: anything but [EXACT] is an end marked after the fact. */
+    val boundary: BoundaryKind get() = if (this == EXACT) BoundaryKind.EXACT else BoundaryKind.EARLIER
+}
+
+/** How far back an end marked [EndTiming.JUST_NOW] is taken to be. */
+val LateEndGrace = 10.seconds
