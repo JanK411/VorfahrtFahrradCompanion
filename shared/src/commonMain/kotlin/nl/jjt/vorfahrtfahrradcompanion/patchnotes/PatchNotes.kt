@@ -3,6 +3,26 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.14",
+        date = "2026-07-31",
+        changes = listOf(
+            "The app no longer follows your phone's dark setting. A phone kept on dark all year meant " +
+                "riding a summer afternoon with the dimmest screen the app has, which is the one " +
+                "moment it can least afford. It is light by day now, whatever the phone says.",
+            "Dark colours come back after sunset and go again at sunrise — real sunset, worked out for " +
+                "the date and for where you are, so it is half past ten in June and half past four in " +
+                "December rather than some fixed hour that is wrong half the year. No fix is requested " +
+                "for this: it uses the position your phone already has, and stays light while it has " +
+                "none.",
+            "The daytime colours are pitched for sunlight: a near-white background, much darker green " +
+                "and amber, and text and edges that stand well clear of what they sit on.",
+            "An unchosen value now carries a proper two-pixel outline rather than a hairline, which " +
+                "was the first thing to disappear in bright light.",
+            "The status- and navigation-bar icons follow the app's own colours, so they no longer go " +
+                "invisible when your phone's setting and the app's disagree.",
+        ),
+    ),
+    PatchNote(
         version = "1.13",
         date = "2026-07-31",
         changes = listOf(
