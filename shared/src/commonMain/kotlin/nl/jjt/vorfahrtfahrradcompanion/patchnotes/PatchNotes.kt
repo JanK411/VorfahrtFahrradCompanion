@@ -3,6 +3,13 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.11",
+        date = "2026-07-31",
+        changes = listOf(
+            "The \"Next\" button under a pick-any criterion no longer looks like one more value to pick: it is now a full-width filled pill reading \"Done — next\", with an arrow and a line separating it from the values above.",
+        ),
+    ),
+    PatchNote(
         version = "1.10",
         date = "2026-07-31",
         changes = listOf(
