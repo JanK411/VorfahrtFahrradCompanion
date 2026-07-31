@@ -610,8 +610,10 @@ private fun HowLatePicker(choice: EndTiming?) = Column(
         title = "~${LateEndGrace.inWholeSeconds} s late",
         subtitle = "end goes back",
         selected = choice == EndTiming.JUST_NOW,
-        selectedColor = MaterialTheme.colorScheme.primary,
-        selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+        // Amber between the green of a clean end and the red of throwing the segment away: the same
+        // caution colour the "still unapproved" line under a running segment is written in.
+        selectedColor = MaterialTheme.colorScheme.tertiary,
+        selectedContentColor = MaterialTheme.colorScheme.onTertiary,
     )
     PickerOption(
         title = "Precisely",
