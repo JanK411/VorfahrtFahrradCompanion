@@ -4,8 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -149,10 +147,13 @@ private fun CriterionSummary(
 }
 
 /**
- * A criterion opened up to be answered: every value as a button, sized for a mounted phone. Shared with
- * the end-of-segment question, so a value changed on the way out is picked the same way as one on the list.
+ * A criterion opened up to be answered: every value as a full-width button, one under the other, sized
+ * for a mounted phone. One column rather than two, so a value is read and hit without aiming sideways,
+ * and so a long label has the whole width to itself instead of wrapping in half of it.
+ *
+ * Shared with the end-of-segment question, so a value changed on the way out is picked the same way as
+ * one on the list.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ExpandedCriterion(
     criterion: Criterion,
@@ -177,11 +178,7 @@ internal fun ExpandedCriterion(
         )
     }
 
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        maxItemsInEachRow = 2,
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         criterion.values.forEach { value ->
             ValueButton(
                 label = value,
@@ -191,7 +188,7 @@ internal fun ExpandedCriterion(
                     else -> Review.CONFIRMED
                 },
                 onClick = { onTapValue(value) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
