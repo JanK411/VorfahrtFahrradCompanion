@@ -3,6 +3,14 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.10",
+        date = "2026-07-31",
+        changes = listOf(
+            "Holding \"End\" or \"Start next\" no longer spreads the three answers up-left, up and up-right. They are now three big cards stacked straight above your thumb — precisely at the bottom, ~10 seconds late above it, longer than that on top — so the only aim asked for is how far up you slide.",
+            "The card under your thumb is the one that lights up, whichever part of the button you started the hold on.",
+        ),
+    ),
+    PatchNote(
         version = "1.9",
         date = "2026-07-31",
         changes = listOf(
