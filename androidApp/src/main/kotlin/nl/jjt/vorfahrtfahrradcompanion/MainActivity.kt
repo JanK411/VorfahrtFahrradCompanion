@@ -5,6 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import nl.jjt.vorfahrtfahrradcompanion.cache.AndroidSystemCacheMarker
+import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationPermissions
 import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationProvider
 import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationSettings
@@ -24,6 +26,7 @@ class MainActivity : ComponentActivity() {
             single<LocationProvider> { AndroidLocationProvider(get()) }
             single<LocationPermissions> { AndroidLocationPermissions(get()) }
             single<LocationSettings> { AndroidLocationSettings(get()) }
+            single<SystemCacheMarker> { AndroidSystemCacheMarker(get()) }
             single { createAppDatabase(get()) }
         }
 

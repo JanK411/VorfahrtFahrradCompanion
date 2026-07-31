@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheEntity
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
@@ -13,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
@@ -26,6 +28,14 @@ private class FakeCacheDao(var row: CatalogueCacheEntity? = null) : CatalogueCac
     override suspend fun upsert(entity: CatalogueCacheEntity) {
         row = entity
     }
+
+    override suspend fun clear() {
+        row = null
+    }
+}
+
+private class FakeSystemCacheMarker(private var cleared: Boolean = false) : SystemCacheMarker {
+    override suspend fun consumeCacheCleared() = cleared.also { cleared = false }
 }
 
 private class FakeDelegate(
@@ -51,8 +61,11 @@ class CachingCriteriaApiTest {
 
     private val now = Instant.parse("2026-07-25T12:00:00Z")
 
-    private fun api(delegate: CriteriaApi, dao: CatalogueCacheDao) =
-        CachingCriteriaApi(delegate, dao, SettingsRepository(FakeSettingsDao()), FakeClock(now))
+    private fun api(
+        delegate: CriteriaApi,
+        dao: CatalogueCacheDao,
+        systemCache: SystemCacheMarker = FakeSystemCacheMarker(),
+    ) = CachingCriteriaApi(delegate, dao, SettingsRepository(FakeSettingsDao()), systemCache, FakeClock(now))
 
     private fun cachedRow(baseUrl: String = BASE_URL, fetchedAt: Instant = now) = CatalogueCacheEntity(
         baseUrl = baseUrl,
@@ -112,5 +125,26 @@ class CachingCriteriaApiTest {
         val dao = FakeCacheDao(cachedRow(baseUrl = "http://other.test"))
 
         assertFailsWith<RuntimeException> { api(delegate, dao).catalogue() }
+    }
+
+    @Test
+    fun clearingTheSystemCacheDropsTheCachedCatalogue() = runTest {
+        val delegate = FakeDelegate()
+        val dao = FakeCacheDao(cachedRow())
+
+        api(delegate, dao, FakeSystemCacheMarker(cleared = true)).catalogue()
+
+        assertEquals(1, delegate.catalogueCalls)
+    }
+
+    @Test
+    fun clearingTheSystemCacheLeavesNoStaleFallback() = runTest {
+        val delegate = FakeDelegate(error = RuntimeException("offline"))
+        val dao = FakeCacheDao(cachedRow())
+
+        assertFailsWith<RuntimeException> {
+            api(delegate, dao, FakeSystemCacheMarker(cleared = true)).catalogue()
+        }
+        assertNull(dao.row)
     }
 }

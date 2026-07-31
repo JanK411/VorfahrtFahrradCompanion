@@ -25,7 +25,7 @@ val locationModule = module {
 val criteriaModule = module {
     single { get<AppDatabase>().catalogueCacheDao() }
     single { get<AppDatabase>().observationDao() }
-    single<CriteriaApi> { CachingCriteriaApi(KtorCriteriaApi(get(), get()), get(), get()) }
+    single<CriteriaApi> { CachingCriteriaApi(KtorCriteriaApi(get(), get()), get(), get(), get()) }
     single { ObservationRepository(get()) }
     viewModel { CriteriaViewModel(get(), get()) }
 }

@@ -2,6 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
+import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheEntity
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
@@ -15,11 +16,15 @@ import kotlin.time.Duration.Companion.hours
  * is served straight from the cache, and a stale copy is still served when the server is unreachable.
  * The cache is keyed by the current base URL so a previous server's catalogue is never shown after the
  * server is changed. Wraps [delegate].
+ *
+ * The cached copy also counts as cache to the operating system: clearing the app's cache from the
+ * Android settings drops it, which [systemCache] reports.
  */
 class CachingCriteriaApi(
     private val delegate: CriteriaApi,
     private val dao: CatalogueCacheDao,
     private val settings: SettingsRepository,
+    private val systemCache: SystemCacheMarker,
     private val clock: Clock = Clock.System,
 ) : CriteriaApi {
     private companion object {
@@ -27,6 +32,8 @@ class CachingCriteriaApi(
     }
 
     override suspend fun catalogue(): Catalogue {
+        if (systemCache.consumeCacheCleared()) dao.clear()
+
         val baseUrl = currentBaseUrl()
         val cached = dao.get()?.takeIf { it.baseUrl == baseUrl }
 

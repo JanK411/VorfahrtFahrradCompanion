@@ -3,6 +3,13 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.5",
+        date = "2026-07-31",
+        changes = listOf(
+            "Clearing the app's cache in the Android settings now also drops the stored criterion catalogue, so the next start fetches it fresh. Your observations and settings are untouched.",
+        ),
+    ),
+    PatchNote(
         version = "1.4",
         date = "2026-07-28",
         changes = listOf(
