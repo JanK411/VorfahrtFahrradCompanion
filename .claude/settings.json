@@ -14,7 +14,9 @@
       "Bash(git checkout *)",
       "Bash(git fetch *)",
       "Bash(adb devices:*)",
-      "Bash(adb logcat:*)"
+      "Bash(adb logcat:*)",
+      "Bash(grep:*)",
+      "Bash(for:*)"
     ]
   }
 }
