@@ -281,6 +281,13 @@ private fun ValueButton(
             ),
         ) { content() }
 
-        Review.OPEN -> OutlinedButton(onClick, sized, contentPadding = padding) { content() }
+        // A two-pixel edge rather than the default hairline: in sunlight a thin outline is the first
+        // thing to disappear, and an unchosen value has nothing else to show it is a button at all.
+        Review.OPEN -> OutlinedButton(
+            onClick,
+            sized,
+            contentPadding = padding,
+            border = BorderStroke(2.dp, MaterialTheme.colorScheme.outline),
+        ) { content() }
     }
 }

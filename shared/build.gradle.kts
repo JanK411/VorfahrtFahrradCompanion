@@ -52,6 +52,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.core)
             implementation(libs.gms.play.services.location)
             implementation(libs.ktor.client.okhttp)
         }
