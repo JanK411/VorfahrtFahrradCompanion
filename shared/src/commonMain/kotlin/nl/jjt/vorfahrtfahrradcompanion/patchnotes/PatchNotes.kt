@@ -3,6 +3,16 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.18",
+        date = "2026-07-31",
+        changes = listOf(
+            "Waking the dimmed screen is immediate now. The screen still fades out slowly over a " +
+                "couple of seconds, but a touch brings it back on the next frame instead of fading " +
+                "it back in — most of the dimming is drawn by the app itself these days, and only the " +
+                "backlight behind it moves at the phone's own pace.",
+        ),
+    ),
+    PatchNote(
         version = "1.17",
         date = "2026-07-31",
         changes = listOf(
