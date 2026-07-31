@@ -37,6 +37,7 @@ import nl.jjt.vorfahrtfahrradcompanion.settings.ServerConnectionScreen
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.AppTheme
 import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
+import nl.jjt.vorfahrtfahrradcompanion.ui.DimWhenIdle
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.core.module.Module
@@ -108,94 +109,98 @@ fun App(additionalModules: List<Module> = emptyList()) {
                     actionIconContentColor = Color.Unspecified,
                 )
 
+                // Only while a segment runs: that is where the screen is held awake for minutes on
+                // end with nothing to answer, and where the device's own dimming is out of the way.
                 CompositionLocalProvider(LocalNavigationGate provides gate) {
-                    Scaffold(
-                        topBar = {
-                            if (onSubPage) {
-                                CenterAlignedTopAppBar(
-                                    title = { Text(subPage.title) },
-                                    navigationIcon = {
-                                        IconButton(onClick = {
-                                            if (!navigating) scope.launch {
-                                                navigating = true
-                                                if (gate.canLeave()) navController.navigateUp()
-                                                navigating = false
-                                            }
-                                        }) {
-                                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                                        }
-                                    },
-                                    colors = topBarColors,
-                                )
-                            } else {
-                                CenterAlignedTopAppBar(
-                                    title = {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Icon(BicycleIcon, contentDescription = null)
-                                            Text("Vorfahrt Companion")
-                                        }
-                                    },
-                                    colors = topBarColors,
-                                )
-                            }
-                        },
-                        bottomBar = {
-                            if (!onSubPage && !recording) {
-                                NavigationBar {
-                                    Tab.entries.forEach { tab ->
-                                        val selected =
-                                            destination?.hierarchy?.any { it.hasRoute(tab.route::class) } == true
-                                        NavigationBarItem(
-                                            selected = selected,
-                                            onClick = {
-                                                if (!selected && !navigating) scope.launch {
+                    DimWhenIdle(enabled = recording) {
+                        Scaffold(
+                            topBar = {
+                                if (onSubPage) {
+                                    CenterAlignedTopAppBar(
+                                        title = { Text(subPage.title) },
+                                        navigationIcon = {
+                                            IconButton(onClick = {
+                                                if (!navigating) scope.launch {
                                                     navigating = true
-                                                    if (gate.canLeave()) {
-                                                        navController.navigate(tab.route) {
-                                                            popUpTo(CriteriaRoute) { saveState = true }
-                                                            launchSingleTop = true
-                                                            restoreState = true
-                                                        }
-                                                    }
+                                                    if (gate.canLeave()) navController.navigateUp()
                                                     navigating = false
                                                 }
-                                            },
-                                            icon = { Icon(tab.icon, contentDescription = null) },
-                                            label = { Text(tab.label) },
-                                        )
+                                            }) {
+                                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                            }
+                                        },
+                                        colors = topBarColors,
+                                    )
+                                } else {
+                                    CenterAlignedTopAppBar(
+                                        title = {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                Icon(BicycleIcon, contentDescription = null)
+                                                Text("Vorfahrt Companion")
+                                            }
+                                        },
+                                        colors = topBarColors,
+                                    )
+                                }
+                            },
+                            bottomBar = {
+                                if (!onSubPage && !recording) {
+                                    NavigationBar {
+                                        Tab.entries.forEach { tab ->
+                                            val selected =
+                                                destination?.hierarchy?.any { it.hasRoute(tab.route::class) } == true
+                                            NavigationBarItem(
+                                                selected = selected,
+                                                onClick = {
+                                                    if (!selected && !navigating) scope.launch {
+                                                        navigating = true
+                                                        if (gate.canLeave()) {
+                                                            navController.navigate(tab.route) {
+                                                                popUpTo(CriteriaRoute) { saveState = true }
+                                                                launchSingleTop = true
+                                                                restoreState = true
+                                                            }
+                                                        }
+                                                        navigating = false
+                                                    }
+                                                },
+                                                icon = { Icon(tab.icon, contentDescription = null) },
+                                                label = { Text(tab.label) },
+                                            )
+                                        }
                                     }
                                 }
+                            },
+                        ) { padding ->
+                            NavHost(
+                                navController = navController,
+                                startDestination = CriteriaRoute,
+                                modifier = Modifier.fillMaxSize().padding(padding),
+                            ) {
+                                composable<CriteriaRoute> { CriteriaScreen(Modifier.fillMaxSize()) }
+
+                                composable<RideRoute> { LocationScreen(Modifier.fillMaxSize()) }
+
+                                composable<SettingsRoute> {
+                                    SettingsScreen(
+                                        modifier = Modifier.fillMaxSize(),
+                                        onOpenServerConnection = { navController.navigate(ServerConnectionRoute) },
+                                        onOpenPatchNotes = { navController.navigate(PatchNotesRoute) },
+                                    )
+                                }
+
+                                composable<ServerConnectionRoute> {
+                                    ServerConnectionScreen(
+                                        modifier = Modifier.fillMaxSize(),
+                                        onNavigateUp = { navController.navigateUp() },
+                                    )
+                                }
+
+                                composable<PatchNotesRoute> { PatchNotesScreen(Modifier.fillMaxSize()) }
                             }
-                        },
-                    ) { padding ->
-                        NavHost(
-                            navController = navController,
-                            startDestination = CriteriaRoute,
-                            modifier = Modifier.fillMaxSize().padding(padding),
-                        ) {
-                            composable<CriteriaRoute> { CriteriaScreen(Modifier.fillMaxSize()) }
-
-                            composable<RideRoute> { LocationScreen(Modifier.fillMaxSize()) }
-
-                            composable<SettingsRoute> {
-                                SettingsScreen(
-                                    modifier = Modifier.fillMaxSize(),
-                                    onOpenServerConnection = { navController.navigate(ServerConnectionRoute) },
-                                    onOpenPatchNotes = { navController.navigate(PatchNotesRoute) },
-                                )
-                            }
-
-                            composable<ServerConnectionRoute> {
-                                ServerConnectionScreen(
-                                    modifier = Modifier.fillMaxSize(),
-                                    onNavigateUp = { navController.navigateUp() },
-                                )
-                            }
-
-                            composable<PatchNotesRoute> { PatchNotesScreen(Modifier.fillMaxSize()) }
                         }
                     }
                 }
