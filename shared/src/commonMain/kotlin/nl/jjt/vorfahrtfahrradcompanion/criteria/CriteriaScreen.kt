@@ -173,11 +173,20 @@ private fun Catalogue(
     // The collector below outlives the composition it started in, so it reads the state through this.
     val current by rememberUpdatedState(state)
 
+    /**
+     * Puts [criterion] second from the top rather than first, so that whatever was answered on the
+     * way to it stays on screen above it. A value hit wrongly on a bumpy road is then put right
+     * where the rider can still see it, instead of having to scroll back up for a card that left.
+     */
+    suspend fun bringUp(criterion: Criterion?) {
+        val row = current.rowOf(criterion)
+        if (row >= 0) listState.animateScrollToItem((row - 1).coerceAtLeast(0))
+    }
+
     // Moving on: bring whatever comes after this one up the list, which is below it until the bottom
     // of the list is reached and whatever was skipped comes back round.
     fun moveOnFrom(criterion: Criterion) {
-        val row = current.rowOf(current.leadingAfter(criterion))
-        if (row >= 0) scope.launch { listState.animateScrollToItem(row) }
+        scope.launch { bringUp(current.leadingAfter(criterion)) }
     }
 
     // Both ways of settling the whole carried-over list at once replace a screenful of answers on
@@ -206,11 +215,8 @@ private fun Catalogue(
         }
     }
 
-    // Answer one at the top and the next one comes to you — no scrolling while riding.
-    LaunchedEffect(expanded?.id) {
-        val row = state.rowOf(expanded)
-        if (row >= 0) listState.animateScrollToItem(row)
-    }
+    // Answer one and the next one comes to you — no scrolling while riding.
+    LaunchedEffect(expanded?.id) { bringUp(expanded) }
 
     // A question in front of the rider is the thing wanting an answer, so it is lit like one.
     var discarding by remember { mutableStateOf(false) }
