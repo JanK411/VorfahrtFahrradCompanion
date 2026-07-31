@@ -200,10 +200,14 @@ private fun Catalogue(
         EndTimingDialog(action = it.action, onAnswer = onAnswerTiming, onDismiss = onCancelTiming)
     }
 
-    state.pendingEnd?.let {
+    state.pendingEnd?.let { pending ->
         EndSegmentDialog(
-            unapproved = state.carriedOver,
+            // The list the question opened with: editing an answer in it approves that criterion, which
+            // would take it out of a list read off the state mid-answer.
+            unapproved = pending.asked,
             selections = state.selections,
+            reviewed = state.reviewed,
+            onEdit = onTap,
             onConfirm = onConfirmEnd,
             onDismiss = onCancelEnd,
         )
