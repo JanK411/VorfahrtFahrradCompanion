@@ -3,6 +3,18 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.16",
+        date = "2026-07-31",
+        changes = listOf(
+            "A segment that inherited the last one's answers now closes with \"Approve all\", the " +
+                "counterpart of the \"Clear preselected\" button at the top: read down the list, find " +
+                "nothing to change, and stand by the lot in one tap instead of ticking off every card " +
+                "you have just been through.",
+            "Like clearing, it can be taken back from the message that follows it — and taking it back " +
+                "leaves any criterion you had already approved by hand approved.",
+        ),
+    ),
+    PatchNote(
         version = "1.15",
         date = "2026-07-31",
         changes = listOf(
