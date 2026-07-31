@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
@@ -24,6 +25,8 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaScreen
+import nl.jjt.vorfahrtfahrradcompanion.criteria.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.criteria.Segment
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationScreen
 import nl.jjt.vorfahrtfahrradcompanion.navigation.LocalNavigationGate
@@ -34,6 +37,7 @@ import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.AppTheme
 import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
 import org.koin.compose.KoinApplication
+import org.koin.compose.koinInject
 import org.koin.core.module.Module
 import org.koin.dsl.koinConfiguration
 
@@ -85,6 +89,12 @@ fun App(additionalModules: List<Module> = emptyList()) {
                 val subPage = subPages.firstOrNull { destination?.hasRoute(it::class) == true }
                 val onSubPage = subPage != null
 
+                // A running segment claims the whole screen: room for the criteria, and no tab to hit
+                // by accident. Tied to the Criteria route so no other screen can ever end up tab-less.
+                val draft by koinInject<ObservationRepository>().draft.collectAsStateWithLifecycle()
+                val recording =
+                    destination?.hasRoute(CriteriaRoute::class) == true && draft.segment is Segment.Open
+
                 val topBarColors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     scrolledContainerColor = Color.Unspecified,
@@ -128,7 +138,7 @@ fun App(additionalModules: List<Module> = emptyList()) {
                             }
                         },
                         bottomBar = {
-                            if (!onSubPage) {
+                            if (!onSubPage && !recording) {
                                 NavigationBar {
                                     Tab.entries.forEach { tab ->
                                         val selected =
