@@ -3,6 +3,13 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.12",
+        date = "2026-07-31",
+        changes = listOf(
+            "The \"~10 s late\" card you slide onto when holding \"End\" or \"Start next\" is now amber rather than green, so the three answers read as a run from green through amber to red: a clean end, a slightly late one, and one late enough to throw the segment away.",
+        ),
+    ),
+    PatchNote(
         version = "1.11",
         date = "2026-07-31",
         changes = listOf(
