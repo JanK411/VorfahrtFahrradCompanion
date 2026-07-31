@@ -2,6 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class PatchNotesTest {
 
@@ -38,4 +39,31 @@ class PatchNotesTest {
         assertEquals(notes, new)
         assertEquals(emptyList(), older)
     }
+
+    @Test
+    fun patchNotes_versionsAreStrictlyDescending() {
+        patchNotes.map { it.version }.zipWithNext { newer, older ->
+            assertTrue(
+                compareVersions(newer, older) > 0,
+                "patch notes must be newest first, but $newer is not newer than $older",
+            )
+        }
+    }
+
+    @Test
+    fun patchNotes_versionsAreUnique() {
+        val duplicates = patchNotes.groupingBy { it.version }.eachCount().filterValues { it > 1 }.keys
+        assertTrue(duplicates.isEmpty(), "duplicate patch note versions: $duplicates")
+    }
+}
+
+/** Compares dotted numeric versions ("1.10" > "1.9"); missing components count as 0. */
+private fun compareVersions(a: String, b: String): Int {
+    val left = a.split('.').map { it.toInt() }
+    val right = b.split('.').map { it.toInt() }
+    for (i in 0 until maxOf(left.size, right.size)) {
+        val diff = left.getOrElse(i) { 0 }.compareTo(right.getOrElse(i) { 0 })
+        if (diff != 0) return diff
+    }
+    return 0
 }
