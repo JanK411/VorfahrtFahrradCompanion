@@ -3,6 +3,24 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.17",
+        date = "2026-07-31",
+        changes = listOf(
+            "The commonest boundary there is — the path stays the same but for one thing — is now one " +
+                "gesture. Hold a folded criterion's card and its values fill the screen, the same way " +
+                "the three answers do on \"End\"; slide onto the one that is true from here on and let " +
+                "go. The segment ends there and the next one opens described exactly as it was, but " +
+                "for that value.",
+            "Nothing is asked on the way through: picking a value says the description held up to the " +
+                "boundary, so what was still unapproved is stored with the rest, and the new segment " +
+                "starts fully described — one press of \"End\" away from being stored itself.",
+            "The value the criterion holds now is marked in that menu, so you can see what you are " +
+                "leaving. On a pick-any criterion, choosing one it already holds takes it off instead.",
+            "Let go where you started and nothing happens, as with the recorder buttons — and a finger " +
+                "that is scrolling the list past a card no longer opens anything.",
+        ),
+    ),
+    PatchNote(
         version = "1.16",
         date = "2026-07-31",
         changes = listOf(
