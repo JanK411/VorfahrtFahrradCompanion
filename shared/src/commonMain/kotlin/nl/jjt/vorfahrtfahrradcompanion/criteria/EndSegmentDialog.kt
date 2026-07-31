@@ -16,7 +16,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,7 +42,10 @@ private val RowHeight = 64.dp
  * What is asked of the rider on their way out of a segment that still carries the previous one's
  * answers: which of them describe this stretch too. Everything starts kept — the values are here because
  * the last stretch had them, and a rider who wanted none of them would have said so before reaching for
- * End — so the common case is one tap on the confirm button.
+ * End — so the common case is one tap on the topmost exit.
+ *
+ * Every way out is a way out: taking them all or none ends the segment there and then, rather than
+ * ticking boxes for a second press that a rider standing at a junction should not have to make.
  */
 @Composable
 internal fun EndSegmentDialog(
@@ -58,15 +64,11 @@ internal fun EndSegmentDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "These still hold the last segment's answers. Tap any that do not describe this " +
-                        "stretch — those are left out of it.",
+                    "These still hold the last segment's answers. End keeping all of them, none of " +
+                        "them, or tap the ones that do not describe this stretch and end with what is " +
+                        "left.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton({ keep = ids }) { Text("Keep all") }
-                    TextButton({ keep = emptySet() }) { Text("Drop all") }
-                }
 
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -81,18 +83,48 @@ internal fun EndSegmentDialog(
                 }
             }
         },
+        // All four exits live in one column: the buttons row of a dialog puts them side by side, which
+        // leaves four targets too narrow to hit without aiming.
         confirmButton = {
-            Button({ onConfirm(keep) }, Modifier.heightIn(min = 56.dp)) {
-                Text("End segment", style = MaterialTheme.typography.titleMedium)
-            }
-        },
-        dismissButton = {
-            TextButton(onDismiss, Modifier.heightIn(min = 56.dp)) {
-                Text("Back", style = MaterialTheme.typography.titleMedium)
-            }
+            Exits(
+                kept = keep.size,
+                total = ids.size,
+                onKeepAll = { onConfirm(ids) },
+                onAsSelected = { onConfirm(keep) },
+                onDropAll = { onConfirm(emptySet()) },
+                onBack = onDismiss,
+            )
         },
     )
 }
+
+/** The four ways out, stacked full width so each one is a thumb-sized target. */
+@Composable
+private fun Exits(
+    kept: Int,
+    total: Int,
+    onKeepAll: () -> Unit,
+    onAsSelected: () -> Unit,
+    onDropAll: () -> Unit,
+    onBack: () -> Unit,
+) = Column(
+    modifier = Modifier.fillMaxWidth(),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+) {
+    Button(onKeepAll, ExitModifier) { ExitLabel("End, keeping all") }
+    FilledTonalButton(onAsSelected, ExitModifier) { ExitLabel("End, keeping $kept of $total") }
+    OutlinedButton(
+        onDropAll,
+        ExitModifier,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+    ) { ExitLabel("End, dropping all") }
+    TextButton(onBack, ExitModifier) { ExitLabel("Back") }
+}
+
+private val ExitModifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+
+@Composable
+private fun ExitLabel(text: String) = Text(text, style = MaterialTheme.typography.titleMedium)
 
 /** One criterion up for a decision. The whole row toggles it, so it takes no aim to answer. */
 @Composable

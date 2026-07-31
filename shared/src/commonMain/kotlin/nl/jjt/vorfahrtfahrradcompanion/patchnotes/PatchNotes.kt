@@ -3,6 +3,13 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.7",
+        date = "2026-07-31",
+        changes = listOf(
+            "The question asked when you end a segment with unapproved entries now has four ways out, and each one is a full-width button: end keeping all of them, end keeping the ones still ticked, end dropping all of them, or go back to the segment. \"Keep all\" and \"Drop all\" used to only tick or untick the list and left you to press End afterwards — now they end the segment themselves.",
+        ),
+    ),
+    PatchNote(
         version = "1.6",
         date = "2026-07-31",
         changes = listOf(
