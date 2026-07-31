@@ -145,9 +145,13 @@ private fun CriterionSummary(
     )
 }
 
+/**
+ * A criterion opened up to be answered: every value as a button, sized for a mounted phone. Shared with
+ * the end-of-segment question, so a value changed on the way out is picked the same way as one on the list.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ExpandedCriterion(
+internal fun ExpandedCriterion(
     criterion: Criterion,
     selected: Set<String>,
     review: Review,
