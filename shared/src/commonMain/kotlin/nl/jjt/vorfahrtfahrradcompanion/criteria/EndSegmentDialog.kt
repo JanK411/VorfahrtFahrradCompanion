@@ -48,9 +48,9 @@ private val DecisionButtonSize = 52.dp
 
 /**
  * What is asked of the rider on their way out of a segment that still carries the previous one's
- * answers: which of them describe this stretch too. Everything starts kept — the values are here because
- * the last stretch had them, and a rider who wanted none of them would have said so before reaching for
- * End — so the common case is one tap on the topmost exit.
+ * answers: which of them describe this stretch too. Nothing starts decided — a tick the rider never gave
+ * is not an answer — but nothing has to be decided one by one either: the exits take the lot either way,
+ * so the common case is still one tap on the topmost one.
  *
  * A row that is nearly right needs neither: tapping it opens the criterion up, and picking a value both
  * changes it and stands by it, so a stretch that differs in one answer can be corrected on the way out
@@ -69,7 +69,11 @@ internal fun EndSegmentDialog(
     onDismiss: () -> Unit,
 ) {
     val ids = unapproved.map(Criterion::id).toSet()
-    var keep by remember(ids) { mutableStateOf(ids) }
+
+    // Kept, dropped, or — until the rider says so — neither. Anything left undecided is dropped by the
+    // exit that ends on what was ticked, the same as a cross.
+    var decisions by remember(ids) { mutableStateOf(emptyMap<String, Boolean>()) }
+    val keep = decisions.filterValues { it }.keys
     var editing by remember(ids) { mutableStateOf<String?>(null) }
     val haptics = LocalHapticFeedback.current
 
@@ -99,7 +103,7 @@ internal fun EndSegmentDialog(
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                                     onEdit(criterion, value)
                                     // Changing an answer is standing by it; nothing more is asked.
-                                    keep = keep + criterion.id
+                                    decisions = decisions + (criterion.id to true)
                                     // A single-choice criterion is answered by that one tap.
                                     if (criterion.kind == CriterionKind.SINGLE) editing = null
                                 },
@@ -109,14 +113,14 @@ internal fun EndSegmentDialog(
                             UnapprovedRow(
                                 criterion = criterion,
                                 values = selections[criterion],
-                                keep = criterion.id in keep,
+                                keep = decisions[criterion.id],
                                 onEdit = {
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                                     editing = criterion.id
                                 },
                                 onDecide = { approve ->
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    keep = if (approve) keep + criterion.id else keep - criterion.id
+                                    decisions = decisions + (criterion.id to approve)
                                 },
                             )
                         }
@@ -171,19 +175,22 @@ private fun ExitLabel(text: String) = Text(text, style = MaterialTheme.typograph
  * One criterion up for a decision: the tick stands by it, the cross drops it, and the values themselves
  * open it up to be changed. The pencil marks that they do — the same hint a carried-over card carries on
  * the list, so the gesture is the one the rider already knows.
+ *
+ * [keep] is null until the rider has said, which leaves both buttons flat and the row reading as the
+ * question it still is.
  */
 @Composable
 private fun UnapprovedRow(
     criterion: Criterion,
     values: Set<String>,
-    keep: Boolean,
+    keep: Boolean?,
     onEdit: () -> Unit,
     onDecide: (approve: Boolean) -> Unit,
 ) = Row(
     modifier = Modifier.fillMaxWidth()
         .clip(MaterialTheme.shapes.medium)
         .background(
-            if (keep) MaterialTheme.colorScheme.secondaryContainer
+            if (keep == true) MaterialTheme.colorScheme.secondaryContainer
             else MaterialTheme.colorScheme.surfaceVariant,
         )
         .heightIn(min = RowHeight),
@@ -206,9 +213,9 @@ private fun UnapprovedRow(
             Text(
                 values.joinToString(" · "),
                 style = MaterialTheme.typography.titleLarge,
-                color = if (keep) MaterialTheme.colorScheme.onSecondaryContainer
+                color = if (keep == true) MaterialTheme.colorScheme.onSecondaryContainer
                 else MaterialTheme.colorScheme.onSurfaceVariant,
-                textDecoration = if (keep) null else TextDecoration.LineThrough,
+                textDecoration = if (keep == false) TextDecoration.LineThrough else null,
             )
         }
         Icon(
@@ -222,7 +229,7 @@ private fun UnapprovedRow(
     DecisionButton(
         icon = Icons.Filled.Close,
         description = "Drop ${criterion.label()}",
-        active = !keep,
+        active = keep == false,
         activeColor = MaterialTheme.colorScheme.error,
         activeContentColor = MaterialTheme.colorScheme.onError,
         onClick = { onDecide(false) },
@@ -230,7 +237,7 @@ private fun UnapprovedRow(
     DecisionButton(
         icon = Icons.Filled.Check,
         description = "Keep ${criterion.label()}",
-        active = keep,
+        active = keep == true,
         activeColor = MaterialTheme.colorScheme.primary,
         activeContentColor = MaterialTheme.colorScheme.onPrimary,
         onClick = { onDecide(true) },
@@ -239,9 +246,8 @@ private fun UnapprovedRow(
 }
 
 /**
- * One of the two answers to a row. Both stay on screen whichever way the row currently leans — the filled
- * one is what happens on End, and the flat one is the way back — so neither decision hides behind the
- * other.
+ * One of the two answers to a row. Both stay on screen whichever way the row leans: filled is the answer
+ * given, flat is the other one still on offer, and two flat buttons are a row nobody has answered yet.
  */
 @Composable
 private fun DecisionButton(
