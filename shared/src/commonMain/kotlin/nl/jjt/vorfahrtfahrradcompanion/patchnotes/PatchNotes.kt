@@ -3,6 +3,24 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.15",
+        date = "2026-07-31",
+        changes = listOf(
+            "The app is dark throughout now, and in daylight the one thing wanting an answer is lit " +
+                "instead: the criterion you are on stands out as a bright card against a dark screen, " +
+                "which is quicker to find than the right one among a pageful of equally bright ones. " +
+                "Everything else stays dark and perfectly readable.",
+            "The same goes for anything else that asks you something mid-ride — the three answers you " +
+                "slide onto, the question at the end of a segment, and the one in front of discarding " +
+                "one all light up. After dark nothing lights up: your eyes are set for the road.",
+            "While a segment is running the screen now dims itself after twenty seconds without a " +
+                "touch, and comes straight back on the next one. It is never switched off, so there is " +
+                "no power button and no unlocking to do at speed.",
+            "That first touch only wakes the screen — it does not press whatever was under your " +
+                "thumb. Reaching for a dark screen should not approve a criterion or end a segment.",
+        ),
+    ),
+    PatchNote(
         version = "1.14",
         date = "2026-07-31",
         changes = listOf(
