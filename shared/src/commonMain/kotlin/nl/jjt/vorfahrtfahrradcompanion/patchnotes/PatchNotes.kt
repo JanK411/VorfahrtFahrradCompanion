@@ -3,6 +3,18 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.8",
+        date = "2026-07-31",
+        changes = listOf(
+            "The two buttons under a running segment are now \"End\" and \"Start next\".",
+            "Pressing either of them asks how well you caught the moment, with three answers: you hit it precisely, you were about 10 seconds late, or you were later than that. Precisely stores the end where you pressed, ~10 seconds stores it 10 seconds back, and later than that throws the segment away — a stretch that ended somewhere unknown is worse than none. \"Keep recording\" takes the press back.",
+            "The boundary is still stamped the moment you press, so answering that question costs the recording nothing.",
+            "Holding a button instead of tapping it now raises all three answers above your thumb — up-left for precisely, straight up for ~10 seconds, up-right for later than that — and answering there skips the dialog entirely. Let go without having slid anywhere and nothing happens.",
+            "The answers no longer hang off the edge of the screen: they sit across the middle of it, above whichever button you are holding.",
+            "The \"Missed the moment?\" line and its (?) are gone from the screen, which gives the list of criteria more room. The same explanation now lives behind a (?) in the question itself.",
+        ),
+    ),
+    PatchNote(
         version = "1.7",
         date = "2026-07-31",
         changes = listOf(
