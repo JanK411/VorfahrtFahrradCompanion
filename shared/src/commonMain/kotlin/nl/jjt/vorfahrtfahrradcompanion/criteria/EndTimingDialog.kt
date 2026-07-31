@@ -141,12 +141,12 @@ private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
-                "Hold the button until it buzzes and the three answers appear above your thumb. Without " +
-                    "letting go, slide up and to the left for precisely, straight up for about " +
-                    "${LateEndGrace.inWholeSeconds} seconds late, up and to the right for longer than " +
-                    "that — which throws the segment away, since a stretch that ended somewhere unknown " +
-                    "is worse than none. Let go on the one you want; let go without having slid anywhere " +
-                    "and nothing happens.",
+                "Hold the button until it buzzes and the three answers fill the screen above your " +
+                    "thumb, a third of it each. Without letting go, slide up: precisely just above the " +
+                    "button, about ${LateEndGrace.inWholeSeconds} seconds late in the middle, discard " +
+                    "at the top — which throws the segment away, since a stretch that ended somewhere " +
+                    "unknown is worse than none. Let go on the one you want; let go without having slid " +
+                    "anywhere and nothing happens.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
@@ -155,9 +155,10 @@ private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
-                "Start has a hold of its own, and needs no answer: it marks a segment as having begun " +
-                    "before you pressed, for a change of path you notice only after riding onto it. The " +
-                    "recording line then says \"started earlier\".",
+                "A start is the same question asked in advance: \"Start precise\" marks the segment as " +
+                    "beginning where you pressed, \"Start shallow\" as having begun some way before it, " +
+                    "for a change of path you notice only after riding onto it. The recording line then " +
+                    "says \"started earlier\".",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

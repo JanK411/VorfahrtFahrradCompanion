@@ -8,18 +8,25 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -72,6 +79,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             advances = viewModel.advances,
             onTap = viewModel::onTap,
             onConfirm = viewModel::onConfirm,
+            onCopyPrevious = viewModel::copyPrevious,
             onStart = viewModel::start,
             onEnd = viewModel::end,
             onEndAs = viewModel::endAs,
@@ -94,6 +102,7 @@ private fun Catalogue(
     advances: Flow<Criterion>,
     onTap: (Criterion, String) -> Unit,
     onConfirm: (Criterion) -> Unit,
+    onCopyPrevious: () -> Unit,
     onStart: (BoundaryKind) -> Unit,
     onEnd: (SegmentAction) -> Unit,
     onEndAs: (SegmentAction, EndTiming) -> Unit,
@@ -215,7 +224,21 @@ private fun Catalogue(
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
             // The criteria describe the stretch being recorded, so they only make sense once one is open.
-            if (state.segment is Segment.Open) {
+            if (state.segment is Segment.Open) Column(Modifier.fillMaxSize()) {
+                // Above the list rather than in it: it is gone the moment anything is entered, so it
+                // never has to be scrolled past, and it stays put until then.
+                if (state.copyable != null) {
+                    SegmentButton(
+                        text = "Copy the previous segment",
+                        icon = Icons.Filled.Refresh,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp),
+                    ) {
+                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                        onCopyPrevious()
+                    }
+                }
+
                 LazyColumn(
                     state = listState,
                     contentPadding = PaddingValues(16.dp),
@@ -298,12 +321,21 @@ private fun Catalogue(
 
             val enabled = state.saveState !is SaveState.InFlight
             when (val segment = state.segment) {
+                // Two buttons rather than one: where the segment begins is a decision, not a correction,
+                // and a rider who has already ridden onto the new stretch should not have to hold
+                // anything down to say so.
                 Segment.Idle -> ButtonRow {
                     RecorderButton(
-                        label = "Start",
+                        label = "Start precise",
+                        icon = Icons.Filled.Place,
                         enabled = enabled,
                         onTap = { onStart(BoundaryKind.EXACT) },
-                        hold = Hold.Mark { onStart(BoundaryKind.EARLIER) },
+                    )
+                    RecorderButton(
+                        label = "Start shallow",
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        enabled = enabled,
+                        onTap = { onStart(BoundaryKind.EARLIER) },
                     )
                 }
 
@@ -321,13 +353,13 @@ private fun Catalogue(
                             label = "End",
                             enabled = enabled,
                             onTap = { onEnd(SegmentAction.STOP) },
-                            hold = Hold.Pick { onEndAs(SegmentAction.STOP, it) },
+                            onPick = { onEndAs(SegmentAction.STOP, it) },
                         )
                         RecorderButton(
                             label = "Start next",
                             enabled = enabled,
                             onTap = { onEnd(SegmentAction.START_NEXT) },
-                            hold = Hold.Pick { onEndAs(SegmentAction.START_NEXT, it) },
+                            onPick = { onEndAs(SegmentAction.START_NEXT, it) },
                         )
                     }
                 }
@@ -354,14 +386,30 @@ private fun ClearCarriedOverButton(
     carried: Int,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
+) = SegmentButton(
+    text = "Clear $carried preselected",
+    icon = Icons.Filled.Close,
+    contentColor = MaterialTheme.colorScheme.error,
+    modifier = modifier,
+    onClick = onClick,
+)
+
+/** A decision about the segment as a whole rather than about one criterion, taken above the list. */
+@Composable
+private fun SegmentButton(
+    text: String,
+    icon: ImageVector,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
 ) = OutlinedButton(
     onClick = onClick,
     modifier = modifier.fillMaxWidth().heightIn(min = 56.dp),
-    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+    colors = ButtonDefaults.outlinedButtonColors(contentColor = contentColor),
 ) {
-    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(20.dp))
+    Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
     Spacer(Modifier.width(8.dp))
-    Text("Clear $carried preselected", style = MaterialTheme.typography.titleMedium)
+    Text(text, style = MaterialTheme.typography.titleMedium)
 }
 
 /**
@@ -444,34 +492,23 @@ private fun ButtonRow(content: @Composable RowScope.() -> Unit) = Row(
     content = content,
 )
 
-private val PickerCardWidth = 260.dp
-private val PickerCardHeight = 76.dp
 private val PickerCardGap = 8.dp
 
-/** How far above the button the stack of cards starts. */
-private val PickerGap = 16.dp
+/** How far above the button the stack of cards starts, and how far in from the sides it sits. */
+private val PickerGap = 12.dp
 
 /** Bottom to top, so the further the thumb travels, the later the press was. */
 private val TimingCards = listOf(EndTiming.EXACT, EndTiming.JUST_NOW, EndTiming.LONGER)
 
-/** What holding a recorder button down does, once the hold registers. */
-private sealed interface Hold {
-    /** Marks the boundary as already passed, there and then. */
-    data class Mark(val onMark: () -> Unit) : Hold
-
-    /** Stacks the three end answers above the thumb, for the rider to slide onto one and let go. */
-    data class Pick(val onPick: (EndTiming) -> Unit) : Hold
-}
-
 /**
- * A boundary marker. A tap marks the boundary here and now; holding it says something about the moment
- * that has passed — the correction a rider reaches for after missing it, on the same button rather than
- * beside it.
+ * A boundary marker. A tap marks the boundary here and now; where there is an [onPick], holding it says
+ * something about the moment that has passed — the correction a rider reaches for after missing it, on
+ * the same button rather than beside it.
  *
- * On an end, holding answers the question a tap would raise as a dialog: how well the press caught the
- * boundary decides whether the segment is worth keeping, so the hold stacks the three answers above the
- * thumb and the rider slides straight up onto one and lets go, in one movement, the way a phone's quick
- * launch works. Lifting off without having gone anywhere leaves the segment alone.
+ * Holding answers the question a tap would raise as a dialog: how well the press caught the boundary
+ * decides whether the segment is worth keeping, so the hold fills the screen above the thumb with the
+ * three answers and the rider slides straight up onto one and lets go, in one movement, the way a
+ * phone's quick launch works. Lifting off without having gone anywhere leaves the segment alone.
  *
  * Built out of a Surface because a Button has room for neither a long press nor what follows it.
  */
@@ -480,16 +517,17 @@ private fun RowScope.RecorderButton(
     label: String,
     enabled: Boolean,
     onTap: () -> Unit,
-    hold: Hold,
+    icon: ImageVector? = null,
+    onPick: ((EndTiming) -> Unit)? = null,
 ) {
     val haptics = LocalHapticFeedback.current
     val scheme = MaterialTheme.colorScheme
+    val gapPx = with(LocalDensity.current) { PickerGap.toPx() }
 
-    // The same geometry the cards are laid out with, so the highlighted one is the one under the thumb.
-    val density = LocalDensity.current
-    val cardPx = with(density) { PickerCardHeight.toPx() }
-    val cardGapPx = with(density) { PickerCardGap.toPx() }
-    val stackGapPx = with(density) { PickerGap.toPx() }
+    // Where the button's top edge sits in the window — the stack fills everything above it, and the
+    // slide is measured against exactly that, so the card that lights up is the one under the thumb.
+    var buttonTop by remember { mutableFloatStateOf(0f) }
+    val stackPx = buttonTop - gapPx
 
     var picking by remember { mutableStateOf(false) }
     var choice by remember { mutableStateOf<EndTiming?>(null) }
@@ -497,10 +535,11 @@ private fun RowScope.RecorderButton(
     // The gesture outlives the composition it started in, and a restarted pointerInput would drop a
     // slide half-made, so what the press does is read through this rather than keyed on.
     val currentTap by rememberUpdatedState(onTap)
-    val currentHold by rememberUpdatedState(hold)
+    val currentPick by rememberUpdatedState(onPick)
 
     Surface(
         modifier = Modifier.weight(1f).heightIn(min = ActionButtonHeight).fillMaxHeight()
+            .onGloballyPositioned { buttonTop = it.positionInWindow().y }
             .pointerInput(enabled) {
                 if (!enabled) return@pointerInput
                 awaitEachGesture {
@@ -516,40 +555,38 @@ private fun RowScope.RecorderButton(
                         return@awaitEachGesture
                     }
 
+                    // A button with nothing behind a hold is a plain button: a slow press is still a tap.
+                    val pick = currentPick
+                    if (pick == null) {
+                        if (waitForUpOrCancellation() != null) {
+                            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                            currentTap()
+                        }
+                        return@awaitEachGesture
+                    }
+
                     // The heavier buzz, so the two boundaries feel apart without a look at the screen.
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
 
-                    when (val held = currentHold) {
-                        is Hold.Mark -> {
-                            held.onMark()
-                            waitForUpOrCancellation()
+                    picking = true
+                    while (true) {
+                        val change = awaitPointerEvent().changes
+                            .firstOrNull { it.id == down.id } ?: break
+                        // Measured off the button's top edge, which is where the stack is anchored —
+                        // not off the press, which lands anywhere on the button.
+                        val slid = cardUnder(-change.position.y, stackPx, gapPx)
+                        if (slid != choice) {
+                            choice = slid
+                            // A tick as the thumb crosses onto an answer, since it covers the screen.
+                            if (slid != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                         }
-
-                        is Hold.Pick -> {
-                            picking = true
-                            while (true) {
-                                val change = awaitPointerEvent().changes
-                                    .firstOrNull { it.id == down.id } ?: break
-                                // Measured off the button's top edge, which is where the stack is
-                                // anchored — not off the press, which lands anywhere on the button.
-                                val slid = cardUnder(-change.position.y, cardPx, cardGapPx, stackGapPx)
-                                if (slid != choice) {
-                                    choice = slid
-                                    // A tick as the thumb crosses onto an answer, since it covers the
-                                    // screen.
-                                    if (slid != null) {
-                                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    }
-                                }
-                                change.consume()
-                                if (!change.pressed) break
-                            }
-
-                            picking = false
-                            choice?.let(held.onPick)
-                            choice = null
-                        }
+                        change.consume()
+                        if (!change.pressed) break
                     }
+
+                    picking = false
+                    choice?.let(pick)
+                    choice = null
                 }
             },
         shape = ButtonDefaults.shape,
@@ -557,54 +594,60 @@ private fun RowScope.RecorderButton(
         contentColor = if (enabled) scheme.onPrimary else scheme.onSurface.copy(alpha = 0.38f),
     ) {
         Box(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
-            Text(label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(24.dp)) }
+                Text(label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            }
 
             if (picking) {
-                val gap = with(LocalDensity.current) { PickerGap.roundToPx() }
-                Popup(remember(gap) { AboveTheButton(gap) }) { HowLatePicker(choice) }
+                Popup(TopOfWindow) {
+                    HowLatePicker(choice, with(LocalDensity.current) { stackPx.toDp() })
+                }
             }
         }
     }
 }
 
-/**
- * Puts the answers across the middle of the window, [gap] above the button. The cards are wider than
- * the half-width button they belong to, so centring on the button would push them off the screen.
- */
-private class AboveTheButton(private val gap: Int) : PopupPositionProvider {
+/** Anchors the answers at the top of the window: they are as wide and as tall as there is room for. */
+private object TopOfWindow : PopupPositionProvider {
     override fun calculatePosition(
         anchorBounds: IntRect,
         windowSize: IntSize,
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize,
-    ) = IntOffset(
-        x = (windowSize.width - popupContentSize.width) / 2,
-        y = anchorBounds.top - popupContentSize.height - gap,
-    )
+    ) = IntOffset.Zero
 }
 
 /**
- * Which card the thumb is on, from how far above the button's top edge it has got: one full-width card
- * per answer, so the only aim asked for is how far up to slide. Below the stack is no answer at all;
- * past the top one the answer stays on it, since the thumb cannot be anywhere else.
+ * Which card the thumb is on, from how far above the button's top edge it has got: the [stack] is the
+ * whole screen above the button, split three ways, so the only aim asked for is how far up to slide.
+ * Below the stack is no answer at all; past the top one the answer stays on it, since the thumb cannot
+ * be anywhere else.
  */
-private fun cardUnder(aboveButton: Float, card: Float, gap: Float, stackGap: Float): EndTiming? {
-    if (aboveButton < stackGap) return null
-    val index = ((aboveButton - stackGap) / (card + gap)).toInt()
+private fun cardUnder(aboveButton: Float, stack: Float, gap: Float): EndTiming? {
+    if (stack <= 0f || aboveButton < gap) return null
+    val index = ((aboveButton - gap) / (stack / TimingCards.size)).toInt()
     return TimingCards.getOrElse(index) { TimingCards.last() }
 }
 
-/** The three answers, stacked above the thumb that is still holding the button down. */
+/**
+ * The three answers, filling the screen above the thumb that is still holding the button down: a third
+ * of it each, so none of them can be missed by a thumb that slid roughly the right distance.
+ */
 @Composable
-private fun HowLatePicker(choice: EndTiming?) = Column(
+private fun HowLatePicker(choice: EndTiming?, height: Dp) = Column(
+    modifier = Modifier.fillMaxWidth().height(height).padding(horizontal = PickerGap),
     verticalArrangement = Arrangement.spacedBy(PickerCardGap),
 ) {
     PickerOption(
-        title = "Longer",
-        subtitle = "discard segment",
+        title = "Discard",
         selected = choice == EndTiming.LONGER,
         selectedColor = MaterialTheme.colorScheme.error,
         selectedContentColor = MaterialTheme.colorScheme.onError,
+        modifier = Modifier.weight(1f),
     )
     PickerOption(
         title = "~${LateEndGrace.inWholeSeconds} s late",
@@ -614,6 +657,7 @@ private fun HowLatePicker(choice: EndTiming?) = Column(
         // caution colour the "still unapproved" line under a running segment is written in.
         selectedColor = MaterialTheme.colorScheme.tertiary,
         selectedContentColor = MaterialTheme.colorScheme.onTertiary,
+        modifier = Modifier.weight(1f),
     )
     PickerOption(
         title = "Precisely",
@@ -621,18 +665,20 @@ private fun HowLatePicker(choice: EndTiming?) = Column(
         selected = choice == EndTiming.EXACT,
         selectedColor = MaterialTheme.colorScheme.primary,
         selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+        modifier = Modifier.weight(1f),
     )
 }
 
 @Composable
 private fun PickerOption(
     title: String,
-    subtitle: String,
     selected: Boolean,
     selectedColor: Color,
     selectedContentColor: Color,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
 ) = Surface(
-    modifier = Modifier.size(PickerCardWidth, PickerCardHeight),
+    modifier = modifier.fillMaxWidth(),
     shape = MaterialTheme.shapes.large,
     color = if (selected) selectedColor else MaterialTheme.colorScheme.surfaceVariant,
     contentColor = if (selected) selectedContentColor else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -641,8 +687,11 @@ private fun PickerOption(
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(subtitle, style = MaterialTheme.typography.labelMedium)
+        Text(title, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+        subtitle?.let {
+            Text(it, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        }
     }
 }
