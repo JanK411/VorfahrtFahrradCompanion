@@ -3,6 +3,19 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.20",
+        date = "2026-07-31",
+        changes = listOf(
+            "The hold-and-slide menu on a folded card now has a place of its own: the strip down the " +
+                "right-hand edge, marked with three dots. Holding it anywhere else no longer does " +
+                "anything, because holding anywhere else was a coin toss with the list — a thumb " +
+                "that drifted scrolled instead of opening the menu.",
+            "That strip does not scroll. It takes the touch the moment it lands, so a slide started " +
+                "there belongs to the menu whatever it does next; the rest of the card scrolls the " +
+                "list exactly as before, and still opens the criterion on a tap.",
+        ),
+    ),
+    PatchNote(
         version = "1.19",
         date = "2026-07-31",
         changes = listOf(
