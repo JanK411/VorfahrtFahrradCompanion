@@ -157,7 +157,8 @@ private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
             Text(
                 "One boundary needs no answer at all. Where a stretch ends because a single thing " +
                     "about it changes, hold the strip down the right-hand edge of that criterion's " +
-                    "folded card — the one with the three dots. Its values fill the screen, and " +
+                    "folded card — the green knob with an arrow at each end. Its values fill the " +
+                    "screen, and " +
                     "letting go on one ends the segment here and opens the next one described " +
                     "exactly as this one was, but for that value. The rest of the card is left to " +
                     "tapping and to scrolling the list.",
