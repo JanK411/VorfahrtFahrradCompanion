@@ -3,6 +3,17 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.21",
+        date = "2026-07-31",
+        changes = listOf(
+            "The three dots on a folded card are now a raised green knob with an arrow at each end — " +
+                "something to take hold of, pointing the way it travels, rather than a menu mark that " +
+                "read as \"tap here\".",
+            "It swells under your thumb the moment you touch it, so you can tell a hold has started " +
+                "well before the values appear.",
+        ),
+    ),
+    PatchNote(
         version = "1.20",
         date = "2026-07-31",
         changes = listOf(
