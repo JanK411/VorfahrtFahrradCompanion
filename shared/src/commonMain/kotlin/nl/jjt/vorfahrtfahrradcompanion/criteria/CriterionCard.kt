@@ -1,15 +1,19 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -95,70 +101,9 @@ internal fun CriterionCard(
     onSplit: (String) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val haptics = LocalHapticFeedback.current
-    val window = LocalWindowInfo.current.containerSize
-    val slack = with(LocalDensity.current) { PickSlack.toPx() }
-
-    // Where the card sits in the window, since the menu is laid over the window and the thumb is
-    // reported against the card.
-    var cardTop by remember { mutableFloatStateOf(0f) }
-
-    var picking by remember { mutableStateOf(false) }
-    var choice by remember { mutableStateOf<String?>(null) }
-
-    // The gesture outlives the composition it started in, so what it does is read through these.
-    val currentOpen by rememberUpdatedState(onOpen)
-    val currentSplit by rememberUpdatedState(onSplit)
 
     Card(
-        // Any folded card opens on a tap anywhere — the whole card is the target, so a knock in the road
-        // costs nothing. Only the approve button carves a piece out of it.
-        modifier = Modifier.fillMaxWidth()
-            .onGloballyPositioned { cardTop = it.positionInWindow().y }
-            .pointerInput(criterion, expanded) {
-                if (expanded) return@pointerInput
-                awaitEachGesture {
-                    val down = awaitFirstDown()
-
-                    // The list this card sits in can take the gesture over mid-press, which ends the
-                    // wait below early — and a finger scrolling past must not open a menu.
-                    var scrolling = false
-                    val tapped = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                        waitForUpOrCancellation().also { if (it == null) scrolling = true }
-                    }
-
-                    // Let go before the hold registers and it is the ordinary tap: open the card.
-                    if (tapped != null) {
-                        currentOpen()
-                        return@awaitEachGesture
-                    }
-                    if (scrolling) return@awaitEachGesture
-
-                    // The heavier buzz that says a hold has taken, as on the recorder buttons.
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    picking = true
-
-                    val from = cardTop + down.position.y
-                    while (true) {
-                        val change = awaitPointerEvent().changes
-                            .firstOrNull { it.id == down.id } ?: break
-                        val at = cardTop + change.position.y
-                        // Nothing is picked until the thumb has actually gone somewhere, so a hold
-                        // the rider thinks better of ends by lifting off where it started.
-                        val slid = if (abs(at - from) < slack) null else criterion.valueUnder(at, window.height)
-                        if (slid != choice) {
-                            choice = slid
-                            if (slid != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                        }
-                        change.consume()
-                        if (!change.pressed) break
-                    }
-
-                    picking = false
-                    choice?.let(currentSplit)
-                    choice = null
-                }
-            },
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = when {
                 expanded -> scheme.surface
@@ -173,11 +118,131 @@ internal fun CriterionCard(
             else -> null
         },
     ) {
-        when {
-            expanded -> ExpandedCriterion(criterion, selected, review, onTapValue, onNext)
-            review == Review.CARRIED -> CarriedCriterion(criterion, selected, onApprove)
-            else -> CollapsedCriterion(criterion, selected, confirmed = review == Review.CONFIRMED)
+        if (expanded) {
+            ExpandedCriterion(criterion, selected, review, onTapValue, onNext)
+            return@Card
         }
+
+        // Folded, the card is in two parts: everything the rider reads, which opens on a tap and
+        // lets a drag through to scroll the list, and the strip down the right-hand edge, which is
+        // where the value menu lives and where a drag belongs to the menu instead.
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            Box(Modifier.weight(1f).clickable(onClick = onOpen)) {
+                if (review == Review.CARRIED) {
+                    CarriedCriterion(criterion, selected, onApprove)
+                } else {
+                    CollapsedCriterion(criterion, selected, confirmed = review == Review.CONFIRMED)
+                }
+            }
+
+            SplitHandle(criterion, selected, onOpen = onOpen, onSplit = onSplit)
+        }
+    }
+}
+
+/** Wide enough to be found and held by a thumb that is not looking for it. */
+private val HandleWidth = 56.dp
+
+/**
+ * The strip down the right-hand edge of a folded card, and the only place its value menu opens.
+ *
+ * A hold anywhere on the card used to do it, which put the gesture in a fight with the list it sits
+ * in: a thumb that drifted while pressing scrolled instead, and a thumb that meant to scroll opened
+ * a menu. Here the two are settled by where the finger lands. This strip claims the touch the moment
+ * it arrives — consumed before the list ever sees it, so a drag started here cannot scroll — and
+ * everything to its left is left alone to scroll as it always did.
+ */
+@Composable
+private fun SplitHandle(
+    criterion: Criterion,
+    selected: Set<String>,
+    onOpen: () -> Unit,
+    onSplit: (String) -> Unit,
+) {
+    val haptics = LocalHapticFeedback.current
+    val window = LocalWindowInfo.current.containerSize
+    val slack = with(LocalDensity.current) { PickSlack.toPx() }
+
+    // Where the strip sits in the window, since the menu is laid over the window while the thumb is
+    // reported against the strip.
+    var handleTop by remember { mutableFloatStateOf(0f) }
+
+    var picking by remember { mutableStateOf(false) }
+    var choice by remember { mutableStateOf<String?>(null) }
+
+    // The gesture outlives the composition it started in, so what it does is read through these.
+    val currentOpen by rememberUpdatedState(onOpen)
+    val currentSplit by rememberUpdatedState(onSplit)
+
+    Box(
+        modifier = Modifier.fillMaxHeight().width(HandleWidth)
+            .onGloballyPositioned { handleTop = it.positionInWindow().y }
+            .pointerInput(criterion) {
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    down.consume()
+
+                    // Held down and going nowhere else: the list cannot have this one.
+                    var lifted = false
+                    var moved = false
+                    val held = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                        while (true) {
+                            val change = awaitPointerEvent().changes
+                                .firstOrNull { it.id == down.id } ?: break
+                            change.consume()
+                            if (abs(change.position.y - down.position.y) > slack) moved = true
+                            if (!change.pressed) {
+                                lifted = true
+                                break
+                            }
+                        }
+                    } == null
+
+                    // Let go before the hold registers and it is an ordinary tap on the card —
+                    // unless the finger travelled, which was a swipe that came up short.
+                    if (lifted) {
+                        if (!moved) currentOpen()
+                        return@awaitEachGesture
+                    }
+                    if (!held) return@awaitEachGesture
+
+                    // The heavier buzz that says a hold has taken, as on the recorder buttons.
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    picking = true
+
+                    val from = handleTop + down.position.y
+                    while (true) {
+                        val change = awaitPointerEvent().changes
+                            .firstOrNull { it.id == down.id } ?: break
+                        val at = handleTop + change.position.y
+                        // Nothing is picked until the thumb has actually gone somewhere, so a hold
+                        // the rider thinks better of ends by lifting off where it started.
+                        val slid =
+                            if (abs(at - from) < slack) null else criterion.valueUnder(at, window.height)
+                        if (slid != choice) {
+                            choice = slid
+                            if (slid != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                        }
+                        change.consume()
+                        if (!change.pressed) break
+                    }
+
+                    picking = false
+                    choice?.let(currentSplit)
+                    choice = null
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        VerticalDivider(
+            Modifier.align(Alignment.CenterStart).padding(vertical = 8.dp),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+        Icon(
+            Icons.Filled.MoreVert,
+            contentDescription = "Hold to change this from here on",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         if (picking) {
             Popup(FullWindow) { Spotlight(lit = true) { ValuePicker(criterion, selected, choice) } }
