@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Duration
@@ -25,10 +27,19 @@ sealed interface CriteriaUiState {
         val saveState: SaveState = SaveState.Idle,
         val pendingTiming: TimingRequest? = null,
         val pendingEnd: EndRequest? = null,
+        val submitted: Selections? = null,
     ) : CriteriaUiState {
 
         /** Approved for this segment and holding values — exactly what ending it would store. */
         val describing: List<Criterion> get() = catalogue.criteria.filter { it.id in approved && it.hasValues }
+
+        /**
+         * What the last segment submitted was described with, while this one still has nothing filled
+         * in — a stretch much like the one before it is worth copying rather than answering again.
+         * Gone the moment anything is entered, since there would be answers to overwrite.
+         */
+        val copyable: Selections?
+            get() = submitted?.takeIf { segment is Segment.Open && selections.isEmpty() && !it.isEmpty() }
 
         /** Carried over from the previous segment, still unapproved, so it would not be stored. */
         val carriedOver: List<Criterion> get() = catalogue.criteria.filter { it.id !in approved && it.hasValues }
@@ -116,8 +127,15 @@ class CriteriaViewModel(
      */
     val advances: SharedFlow<Criterion> = _advances.asSharedFlow()
 
+    /** Held apart from the state, so a reload of the catalogue does not lose it. */
+    private val submitted =
+        observations.lastSubmitted.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     init {
         load()
+        viewModelScope.launch {
+            submitted.collect { values -> updateReady { copy(submitted = values) } }
+        }
         viewModelScope.launch {
             observations.draft.collect { draft ->
                 updateReady {
@@ -143,6 +161,16 @@ class CriteriaViewModel(
 
     /** Stands by [criterion] unchanged — the rider approving a whole criterion instead of a value. */
     fun onApprove(criterion: Criterion) = observations.approve(criterion)
+
+    /**
+     * Fills the fresh segment in from the last one submitted. Nothing is approved by it: the copied
+     * values land where carried-over ones do, up for review one at a time. Ignored once the rider has
+     * entered anything, which is when [CriteriaUiState.Ready.copyable] stops offering it.
+     */
+    fun copyPrevious() {
+        val values = (_state.value as? CriteriaUiState.Ready)?.copyable ?: return
+        observations.preselect(values)
+    }
 
     /** Drops the values carried over but not approved, for a stretch unlike the one before it. */
     fun clearCarriedOver() = observations.clearCarriedOver()
@@ -300,6 +328,7 @@ class CriteriaViewModel(
                     approved = draft.approved,
                     segment = draft.segment,
                     ride = rides.ride.value,
+                    submitted = submitted.value,
                 )
             } catch (e: Exception) {
                 CriteriaUiState.Failed(e.message ?: "Could not load the criterion catalogue")

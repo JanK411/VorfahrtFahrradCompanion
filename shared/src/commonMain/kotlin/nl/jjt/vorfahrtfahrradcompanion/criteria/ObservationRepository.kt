@@ -1,8 +1,10 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
@@ -62,6 +64,10 @@ class ObservationRepository(
      */
     private var replaced: Draft? = null
 
+    /** What the last segment stored was described with — what [preselect] fills a fresh one in from. */
+    val lastSubmitted: Flow<Selections?> =
+        dao.lastValuesJson().map { json -> json?.let { Json.decodeFromString<Selections>(it) } }
+
     /** The clock this repository stamps boundaries with, for a caller that has to mark one early. */
     val now: Instant get() = clock.now()
 
@@ -76,6 +82,19 @@ class ObservationRepository(
             selections = if (standingBy) it.selections else it.selections.select(criterion, value),
             approved = it.approved + criterion.id,
         )
+    }
+
+    /**
+     * Fills the open segment in with [values], unapproved — where the values carried over from the
+     * previous segment land, so the rider approves or changes them one line at a time. Meant for a
+     * segment with nothing filled in yet: it replaces whatever is there, and drops any undo left
+     * behind, which describes a draft that no longer exists.
+     */
+    fun preselect(values: Selections) {
+        replaced = null
+        _draft.update {
+            if (it.segment !is Segment.Open) it else it.copy(selections = values, approved = emptySet())
+        }
     }
 
     /** Stands by [criterion] as it is, without touching its values. */

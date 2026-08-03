@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,6 +55,7 @@ internal class CriteriaActions(
     val clearCarriedOver: () -> Unit,
     val approveAll: () -> Unit,
     val undo: () -> Unit,
+    val copyPrevious: () -> Unit,
     val split: (Criterion, String) -> Unit,
     val start: (BoundaryKind) -> Unit,
     val end: (SegmentAction) -> Unit,
@@ -86,6 +88,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             clearCarriedOver = viewModel::clearCarriedOver,
             approveAll = viewModel::approveAll,
             undo = viewModel::undo,
+            copyPrevious = viewModel::copyPrevious,
             split = viewModel::splitSegment,
             start = viewModel::start,
             end = viewModel::end,
@@ -251,7 +254,21 @@ private fun Catalogue(
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
             // The criteria describe the stretch being recorded, so they only make sense once one is open.
-            if (state.segment is Segment.Open) {
+            if (state.segment is Segment.Open) Column(Modifier.fillMaxSize()) {
+                // Above the list rather than in it: it is gone the moment anything is entered, so it
+                // never has to be scrolled past, and it stays put until then.
+                if (state.copyable != null) {
+                    SegmentButton(
+                        text = "Copy the previous segment",
+                        icon = Icons.Filled.Refresh,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp),
+                    ) {
+                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                        actions.copyPrevious()
+                    }
+                }
+
                 LazyColumn(
                     state = listState,
                     contentPadding = PaddingValues(16.dp),
