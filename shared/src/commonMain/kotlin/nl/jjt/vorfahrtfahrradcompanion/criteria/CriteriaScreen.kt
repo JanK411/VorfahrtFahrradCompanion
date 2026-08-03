@@ -562,7 +562,7 @@ private fun RowScope.RecorderButton(
         modifier = Modifier.weight(1f).heightIn(min = ActionButtonHeight).fillMaxHeight()
             .onGloballyPositioned { buttonTop = it.positionInWindow().y }
             .holdAndSlide(
-                key = onPick,
+                key = label,
                 enabled = enabled,
                 onTap = {
                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)

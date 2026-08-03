@@ -16,6 +16,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -47,7 +49,13 @@ import kotlinx.coroutines.withTimeoutOrNull
  * This is how every boundary in this app that cannot afford a dialog is marked: the rider holds, the
  * answers fill the screen above their thumb, and they slide onto one and let go, in one movement,
  * without looking. Letting go without having gone anywhere is for the caller to read as "never mind".
+ *
+ * A gesture outlives the composition it started in, so what the press does is read through
+ * [rememberUpdatedState] rather than captured: a restarted `pointerInput` would drop a slide
+ * half-made, and this screen recomposes once a second while a segment is running. [key] is what the
+ * gesture genuinely belongs to — the criterion, the button — and nothing else restarts it.
  */
+@Composable
 fun Modifier.holdAndSlide(
     key: Any?,
     enabled: Boolean = true,
@@ -55,29 +63,40 @@ fun Modifier.holdAndSlide(
     onHold: (() -> Unit)? = null,
     onSlide: (Offset) -> Unit = {},
     onRelease: () -> Unit = {},
-): Modifier = pointerInput(key, enabled) {
-    if (!enabled) return@pointerInput
-    awaitEachGesture {
-        val down = awaitFirstDown()
-        down.consume()
+): Modifier {
+    val currentTap by rememberUpdatedState(onTap)
+    val currentHold by rememberUpdatedState(onHold)
+    val currentSlide by rememberUpdatedState(onSlide)
+    val currentRelease by rememberUpdatedState(onRelease)
 
-        when (withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { follow(down) }) {
-            // Let go before the hold registered: an ordinary tap.
-            true -> return@awaitEachGesture onTap()
-            // The pointer went elsewhere; nothing was meant by it.
-            false -> return@awaitEachGesture
-            // Still down, so the hold has taken.
-            null -> Unit
+    // Whether there is anything behind a hold is part of what the gesture *is*, so it restarts on
+    // that — but on the fact of it, never on the identity of the lambda carrying it.
+    val holdable = onHold != null
+
+    return pointerInput(key, enabled, holdable) {
+        if (!enabled) return@pointerInput
+        awaitEachGesture {
+            val down = awaitFirstDown()
+            down.consume()
+
+            when (withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { follow(down) }) {
+                // Let go before the hold registered: an ordinary tap.
+                true -> return@awaitEachGesture currentTap()
+                // The pointer went elsewhere; nothing was meant by it.
+                false -> return@awaitEachGesture
+                // Still down, so the hold has taken.
+                null -> Unit
+            }
+
+            if (!holdable) {
+                if (follow(down)) currentTap()
+                return@awaitEachGesture
+            }
+
+            currentHold?.invoke()
+            follow(down, currentSlide)
+            currentRelease()
         }
-
-        if (onHold == null) {
-            if (follow(down)) onTap()
-            return@awaitEachGesture
-        }
-
-        onHold()
-        follow(down, onSlide)
-        onRelease()
     }
 }
 
