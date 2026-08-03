@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.ui.HoldMenuOption
+import nl.jjt.vorfahrtfahrradcompanion.ui.KeepScreenAwake
 import nl.jjt.vorfahrtfahrradcompanion.ui.WindowOrigin
 import nl.jjt.vorfahrtfahrradcompanion.ui.holdAndSlide
 import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
@@ -147,6 +148,9 @@ private fun Catalogue(
             )
         }
     }
+
+    // Unlocking a phone in a holder is not an option, so the display stays on while a segment runs.
+    KeepScreenAwake(state.segment is Segment.Open)
 
     val listState = rememberLazyListState()
 
