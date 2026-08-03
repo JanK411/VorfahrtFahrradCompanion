@@ -111,7 +111,7 @@ class CriteriaViewModel(
         viewModelScope.launch {
             _state.value = try {
                 val draft = observations.draft.value
-                CriteriaUiState.Ready(api.catalogue(), draft.selections, draft.segment, rides.current())
+                CriteriaUiState.Ready(api.catalogue(), draft.selections, draft.segment, rides.ride.value)
             } catch (e: Exception) {
                 CriteriaUiState.Failed(e.message ?: "Could not load the criterion catalogue")
             }

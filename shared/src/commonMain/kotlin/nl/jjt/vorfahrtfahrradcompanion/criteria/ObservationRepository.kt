@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationEntity
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideDao
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -27,7 +26,7 @@ data class Draft(val segment: Segment = Segment.Idle, val selections: Selections
  */
 class ObservationRepository(
     private val dao: ObservationDao,
-    private val rides: RideDao,
+    private val rides: RideRepository,
     private val clock: Clock = Clock.System,
 ) {
     private val _draft = MutableStateFlow(Draft())
@@ -50,7 +49,7 @@ class ObservationRepository(
      */
     suspend fun end(kind: BoundaryKind, action: SegmentAction) {
         val open = _draft.value.segment as? Segment.Open ?: return
-        val rideId = rides.open()?.id ?: return
+        val rideId = rides.openId ?: return
         val endedAt = clock.now()
 
         dao.insert(

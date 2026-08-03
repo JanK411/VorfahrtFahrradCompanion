@@ -1,7 +1,8 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideEntity
@@ -20,33 +21,43 @@ data class RideSummary(val startedAt: Instant, val endedAt: Instant, val segment
 /**
  * Owns the ride the segments are being recorded into.
  *
- * Unlike the segment draft, a ride keeps no state of its own: the open row *is* the state. That is what
- * makes a ride outlive the process — the rider who is killed by the task manager halfway through an
- * outing comes back to the same ride — and it needs no resuming to do so.
+ * The ride lives here rather than in the ViewModel for the same reason the draft does: a ViewModel does
+ * not survive a bottom-bar tab switch. Like the draft, it is memory only and does not outlive the
+ * process.
+ *
+ * TODO: pick a ride back up that the app was killed in the middle of. Its row is written when the ride
+ *  opens and so is still there, sitting open — but nothing goes looking for it yet.
  */
 class RideRepository(
-    private val rides: RideDao,
+    private val dao: RideDao,
     private val observations: ObservationDao,
     private val clock: Clock = Clock.System,
 ) {
-    val ride: Flow<Ride> = rides.observeOpen().map { it?.toOpen() ?: Ride.Idle }
+    private val _ride = MutableStateFlow<Ride>(Ride.Idle)
+    val ride: StateFlow<Ride> = _ride.asStateFlow()
 
     /** The clock rides are stamped with, for a caller holding on to the moment a button was pressed. */
     val now: Instant get() = clock.now()
 
-    /** The ride as it stands, for a caller that needs it before it is in a position to collect [ride]. */
-    suspend fun current(): Ride = rides.open()?.toOpen() ?: Ride.Idle
+    /** The ride a segment ending now would belong to, or null while none is running. */
+    val openId: Long? get() = (_ride.value as? Ride.Open)?.id
 
-    /** Opens a ride. Ignored while one is already running. */
+    /**
+     * Opens a ride. Ignored while one is already running.
+     *
+     * The row goes in here rather than at the end because the segments recorded along the way point at
+     * it — there is no storing one before its ride exists.
+     */
     suspend fun start() {
-        if (rides.open() != null) return
-        rides.insert(RideEntity(startedAtEpochMs = clock.now().toEpochMilliseconds()))
+        if (_ride.value is Ride.Open) return
+        val startedAt = clock.now()
+        _ride.value = Ride.Open(dao.insert(RideEntity(startedAtEpochMs = startedAt.toEpochMilliseconds())), startedAt)
     }
 
     /** What the open ride amounts to if it ends at [endedAt], or null while no ride is running. */
     suspend fun summary(endedAt: Instant): RideSummary? {
-        val open = rides.open() ?: return null
-        return RideSummary(open.toOpen().startedAt, endedAt, observations.countForRide(open.id))
+        val open = _ride.value as? Ride.Open ?: return null
+        return RideSummary(open.startedAt, endedAt, observations.countForRide(open.id))
     }
 
     /**
@@ -56,13 +67,12 @@ class RideRepository(
      * empty draft is never stored. Does nothing while no ride is running.
      */
     suspend fun end(endedAt: Instant, name: String?) {
-        val open = rides.open() ?: return
+        val open = _ride.value as? Ride.Open ?: return
         if (observations.countForRide(open.id) == 0) {
-            rides.delete(open.id)
+            dao.delete(open.id)
         } else {
-            rides.close(open.id, endedAt.toEpochMilliseconds(), name?.trim()?.ifBlank { null })
+            dao.close(open.id, endedAt.toEpochMilliseconds(), name?.trim()?.ifBlank { null })
         }
+        _ride.value = Ride.Idle
     }
-
-    private fun RideEntity.toOpen() = Ride.Open(id, Instant.fromEpochMilliseconds(startedAtEpochMs))
 }

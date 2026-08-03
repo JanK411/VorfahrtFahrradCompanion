@@ -2,9 +2,6 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.resetMain
@@ -47,25 +44,22 @@ private class FakeObservationDao : ObservationDao {
 }
 
 private class FakeRideDao : RideDao {
-    val rows = MutableStateFlow(emptyList<RideEntity>())
+    val rows = mutableListOf<RideEntity>()
     private var nextId = 1L
 
     override suspend fun insert(entity: RideEntity): Long {
         val id = nextId++
-        rows.value += entity.copy(id = id)
+        rows += entity.copy(id = id)
         return id
     }
 
-    override fun observeOpen(): Flow<RideEntity?> = rows.map { list -> list.lastOrNull { it.endedAtEpochMs == null } }
-
-    override suspend fun open(): RideEntity? = rows.value.lastOrNull { it.endedAtEpochMs == null }
-
     override suspend fun close(id: Long, endedAtEpochMs: Long, name: String?) {
-        rows.value = rows.value.map { if (it.id == id) it.copy(endedAtEpochMs = endedAtEpochMs, name = name) else it }
+        val at = rows.indexOfFirst { it.id == id }
+        if (at >= 0) rows[at] = rows[at].copy(endedAtEpochMs = endedAtEpochMs, name = name)
     }
 
     override suspend fun delete(id: Long) {
-        rows.value = rows.value.filterNot { it.id == id }
+        rows.removeAll { it.id == id }
     }
 }
 
@@ -83,11 +77,10 @@ class CriteriaViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = CriteriaViewModel(
-        FakeApi(),
-        ObservationRepository(dao, rideDao, clock),
-        RideRepository(rideDao, dao, clock),
-    )
+    private fun vm(): CriteriaViewModel {
+        val rides = RideRepository(rideDao, dao, clock)
+        return CriteriaViewModel(FakeApi(), ObservationRepository(dao, rides, clock), rides)
+    }
 
     /** A view model with a ride already running — the only state in which segments can be recorded. */
     private fun TestScope.riding(): CriteriaViewModel {
@@ -99,7 +92,7 @@ class CriteriaViewModelTest {
 
     private val stored get() = dao.inserted.single()
 
-    private val storedRide get() = rideDao.rows.value.single()
+    private val storedRide get() = rideDao.rows.single()
 
     @Test
     fun singleSelectionReplacesAndClears() {
@@ -320,7 +313,7 @@ class CriteriaViewModelTest {
         vm.saveRide(null)
         testScheduler.advanceUntilIdle()
 
-        assertEquals(emptyList(), rideDao.rows.value)
+        assertEquals(emptyList(), rideDao.rows)
         assertEquals(Ride.Idle, (vm.state.value as CriteriaUiState.Ready).ride)
     }
 
@@ -337,19 +330,6 @@ class CriteriaViewModelTest {
         assertNull(vm.endingRide.value)
         assertNull(storedRide.endedAtEpochMs)
         assertTrue((vm.state.value as CriteriaUiState.Ready).ride is Ride.Open)
-    }
-
-    @Test
-    fun aRideLeftOpenIsStillThereOnTheNextStart() = runTest {
-        riding()
-        clock += stretch
-
-        // A second view model stands in for the app being started again over the same database.
-        val next = vm()
-        testScheduler.advanceUntilIdle()
-
-        val ride = (next.state.value as CriteriaUiState.Ready).ride
-        assertEquals(Ride.Open(storedRide.id, startedAt), ride)
     }
 
     private fun TestScope.recordASegment(vm: CriteriaViewModel) {

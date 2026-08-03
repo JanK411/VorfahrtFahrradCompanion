@@ -28,8 +28,8 @@ val criteriaModule = module {
     single { get<AppDatabase>().observationDao() }
     single { get<AppDatabase>().rideDao() }
     single<CriteriaApi> { CachingCriteriaApi(KtorCriteriaApi(get(), get()), get(), get(), get()) }
-    single { ObservationRepository(get(), get()) }
     single { RideRepository(get(), get()) }
+    single { ObservationRepository(get(), get()) }
     viewModel { CriteriaViewModel(get(), get(), get()) }
 }
 

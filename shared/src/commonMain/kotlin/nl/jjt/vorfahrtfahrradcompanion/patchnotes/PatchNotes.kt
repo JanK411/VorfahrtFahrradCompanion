@@ -8,7 +8,6 @@ val patchNotes: List<PatchNote> = listOf(
         changes = listOf(
             "Segments are now recorded into a ride: press \"Start ride\" before the first one, and every segment you mark belongs to that outing.",
             "\"End ride\" appears between segments and shows what the ride came to — when it began and ended, and how many segments it holds. Give it a name there if you want one, or save it without.",
-            "A ride you never got to end survives the app being closed: reopen it and you are still on the same ride.",
             "Ending a ride with no segments in it throws it away rather than storing an empty one.",
         ),
     ),
