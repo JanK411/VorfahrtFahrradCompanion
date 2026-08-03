@@ -2,8 +2,11 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -14,10 +17,20 @@ sealed interface CriteriaUiState {
     data class Ready(
         val catalogue: Catalogue,
         val selections: Selections = Selections(),
+        val approved: Set<String> = emptySet(),
         val segment: Segment = Segment.Idle,
         val ride: Ride = Ride.Idle,
         val saveState: SaveState = SaveState.Idle,
-    ) : CriteriaUiState
+    ) : CriteriaUiState {
+
+        /** Approved for this segment and holding values — exactly what ending it would store. */
+        val describing: List<Criterion> get() = catalogue.criteria.filter { it.id in approved && it.hasValues }
+
+        /** Carried over from the previous segment, still unapproved, so it would not be stored. */
+        val carriedOver: List<Criterion> get() = catalogue.criteria.filter { it.id !in approved && it.hasValues }
+
+        private val Criterion.hasValues: Boolean get() = selections[this].isNotEmpty()
+    }
 }
 
 sealed interface SaveState {
@@ -42,11 +55,18 @@ class CriteriaViewModel(
     private val _endingRide = MutableStateFlow<RideSummary?>(null)
     val endingRide: StateFlow<RideSummary?> = _endingRide.asStateFlow()
 
+    private val _outcomes = MutableSharedFlow<SegmentOutcome>(extraBufferCapacity = 1)
+
+    /** Ended segments, so the screen can report saved-versus-discarded once per end. */
+    val outcomes: SharedFlow<SegmentOutcome> = _outcomes.asSharedFlow()
+
     init {
         load()
         viewModelScope.launch {
             observations.draft.collect { draft ->
-                updateReady { copy(selections = draft.selections, segment = draft.segment) }
+                updateReady {
+                    copy(selections = draft.selections, approved = draft.approved, segment = draft.segment)
+                }
             }
         }
         viewModelScope.launch {
@@ -57,10 +77,13 @@ class CriteriaViewModel(
     /** Reloads the catalogue; reachable from [CriteriaUiState.Failed], where no cached copy was available. */
     fun retry() = load()
 
-    fun onSelect(criterion: Criterion, value: String) {
-        observations.select(criterion, value)
+    fun onTap(criterion: Criterion, value: String) {
+        observations.tap(criterion, value)
         updateReady { copy(saveState = SaveState.Idle) }
     }
+
+    /** Stands by [criterion] unchanged — the rider approving a whole criterion instead of a value. */
+    fun onApprove(criterion: Criterion) = observations.approve(criterion)
 
     /** Opens the ride the segments will be recorded into. */
     fun startRide() {
@@ -98,7 +121,7 @@ class CriteriaViewModel(
             updateReady { copy(saveState = SaveState.InFlight) }
 
             try {
-                observations.end(kind, action)
+                observations.end(kind, action)?.let(_outcomes::tryEmit)
                 updateReady { copy(saveState = SaveState.Idle) }
             } catch (e: Exception) {
                 fail(e.message ?: "Could not save the segment")
@@ -111,7 +134,13 @@ class CriteriaViewModel(
         viewModelScope.launch {
             _state.value = try {
                 val draft = observations.draft.value
-                CriteriaUiState.Ready(api.catalogue(), draft.selections, draft.segment, rides.ride.value)
+                CriteriaUiState.Ready(
+                    catalogue = api.catalogue(),
+                    selections = draft.selections,
+                    approved = draft.approved,
+                    segment = draft.segment,
+                    ride = rides.ride.value,
+                )
             } catch (e: Exception) {
                 CriteriaUiState.Failed(e.message ?: "Could not load the criterion catalogue")
             }

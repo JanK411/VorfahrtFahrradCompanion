@@ -2,8 +2,11 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -63,17 +66,16 @@ private class FakeRideDao : RideDao {
     }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CriteriaViewModelTest {
 
     private val dao = FakeObservationDao()
     private val rideDao = FakeRideDao()
     private val clock = FakeClock(startedAt)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @BeforeTest
     fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
@@ -93,6 +95,14 @@ class CriteriaViewModelTest {
     private val stored get() = dao.inserted.single()
 
     private val storedRide get() = rideDao.rows.single()
+
+    /** Everything [flow] emits from here on, as a list that fills up as the test runs. */
+    private fun <T> TestScope.record(flow: Flow<T>): List<T> {
+        val recorded = mutableListOf<T>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { flow.collect { recorded += it } }
+        testScheduler.advanceUntilIdle()
+        return recorded
+    }
 
     @Test
     fun singleSelectionReplacesAndClears() {
@@ -127,9 +137,9 @@ class CriteriaViewModelTest {
         val vm = riding()
 
         // WIDTH ends up selected-then-cleared, so it must not reach the stored values at all.
-        vm.onSelect(width, "W_1")
-        vm.onSelect(width, "W_1")
-        vm.onSelect(users, "CARS")
+        vm.onTap(width, "W_1")
+        vm.onTap(width, "W_1")
+        vm.onTap(users, "CARS")
 
         vm.start(BoundaryKind.EXACT)
         clock += stretch
@@ -150,6 +160,8 @@ class CriteriaViewModelTest {
     fun aMissedBoundaryIsStoredAsSuch() = runTest {
         val vm = riding()
 
+        // Something has to be approved, or the segment describes nothing and is discarded.
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EARLIER)
         clock += stretch
         vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
@@ -187,6 +199,7 @@ class CriteriaViewModelTest {
     fun theChainedSegmentContinuesFromTheSameBoundary() = runTest {
         val vm = riding()
 
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
         vm.end(BoundaryKind.EARLIER, action = SegmentAction.START_NEXT)
@@ -199,18 +212,110 @@ class CriteriaViewModelTest {
     }
 
     @Test
-    fun selectionsCarryOverIntoTheNextSegment() = runTest {
+    fun onlyWhatTheRiderApprovedForThisSegmentIsStored() = runTest {
         val vm = riding()
 
-        vm.onSelect(users, "CARS")
+        aSegmentThenTheNext(vm)
+        // The second stretch is described by WIDTH alone; CARS is last segment's answer, never stood by.
+        vm.onTap(width, "W_1")
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(2, dao.inserted.size)
+        assertEquals(
+            Selections(mapOf("WIDTH" to setOf("W_1"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+    }
+
+    @Test
+    fun theFirstTapOnACarriedOverValueApprovesItRatherThanClearingIt() = runTest {
+        val vm = riding()
+
+        aSegmentThenTheNext(vm)
+        vm.onTap(users, "CARS")
+        testScheduler.advanceUntilIdle()
+
+        // Tapping what is already there says "yes, this one too" — it must not toggle CARS off.
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), ready.selections[users])
+        assertEquals(listOf(users), ready.describing)
+
+        // Approved now, so a second tap is an ordinary one and does toggle.
+        vm.onTap(users, "CARS")
+        testScheduler.advanceUntilIdle()
+        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).selections[users])
+    }
+
+    @Test
+    fun approvingACriterionStandsByItWithoutTouchingItsValues() = runTest {
+        val vm = riding()
+
+        aSegmentThenTheNext(vm)
+        vm.onApprove(users)
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), ready.selections[users])
+        assertEquals(listOf(users), ready.describing)
+        assertEquals(emptyList(), ready.carriedOver)
+    }
+
+    @Test
+    fun selectionsCarryOverIntoTheSegmentThatContinuesFromTheSameBoundary() = runTest {
+        val vm = riding()
+
+        aSegmentThenTheNext(vm)
+
+        val state = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), state.selections[users])
+        assertEquals(SaveState.Idle, state.saveState)
+        // Carried over, but no longer approved: the previous segment's answer is only a suggestion now.
+        assertEquals(emptySet(), state.approved)
+        assertEquals(listOf(users), state.carriedOver)
+        assertEquals(emptyList(), state.describing)
+    }
+
+    @Test
+    fun stoppingLeavesNothingBehindForTheNextSegment() = runTest {
+        val vm = riding()
+
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
         testScheduler.advanceUntilIdle()
 
+        // Ending the survey outright: whatever is described next starts from scratch.
         val state = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf("CARS"), state.selections[users])
-        assertEquals(SaveState.Idle, state.saveState)
+        assertEquals(Segment.Idle, state.segment)
+        assertEquals(emptyList(), state.carriedOver)
+        assertEquals(emptySet(), state.selections[users])
+    }
+
+    @Test
+    fun aSegmentNobodyApprovedAnythingInIsDiscardedRatherThanStoredEmpty() = runTest {
+        val vm = riding()
+        val outcomes = record(vm.outcomes)
+
+        aSegmentThenTheNext(vm)
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        // Only the first segment reached the database; the second said nothing at all.
+        assertEquals(1, dao.inserted.size)
+        assertEquals(listOf(SegmentOutcome.SAVED, SegmentOutcome.NOTHING_TO_STORE), outcomes)
+    }
+
+    /** Rides one segment with [users] = CARS and leaves the next one open, inheriting it unapproved. */
+    private suspend fun TestScope.aSegmentThenTheNext(vm: CriteriaViewModel) {
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.START_NEXT)
+        testScheduler.advanceUntilIdle()
     }
 
     @Test
@@ -230,7 +335,7 @@ class CriteriaViewModelTest {
     fun aStoredSegmentBelongsToTheOpenRide() = runTest {
         val vm = riding()
 
-        vm.onSelect(users, "CARS")
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
@@ -256,10 +361,15 @@ class CriteriaViewModelTest {
     fun theSummaryReportsWhatTheRideCameTo() = runTest {
         val vm = riding()
 
-        vm.onSelect(users, "CARS")
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.START_NEXT)
+        testScheduler.advanceUntilIdle()
+
+        // The next stretch is like the last one, which the rider says by standing by CARS again —
+        // without that the segment describes nothing and would be discarded rather than counted.
+        vm.onTap(users, "CARS")
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
         testScheduler.advanceUntilIdle()
@@ -333,7 +443,7 @@ class CriteriaViewModelTest {
     }
 
     private fun TestScope.recordASegment(vm: CriteriaViewModel) {
-        vm.onSelect(users, "CARS")
+        vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)

@@ -16,8 +16,26 @@ sealed interface Segment {
     data class Open(val startedAt: Instant, val startKind: BoundaryKind) : Segment
 }
 
-/** What the rider has entered but not stored yet. */
-data class Draft(val segment: Segment = Segment.Idle, val selections: Selections = Selections())
+/** What ending a segment did with it. */
+enum class SegmentOutcome {
+    SAVED,
+
+    /** Ended with nothing approved, so there was nothing to describe the stretch with. */
+    NOTHING_TO_STORE,
+}
+
+/**
+ * What the rider has entered but not stored yet.
+ *
+ * [approved] holds the criteria the rider has stood by *for the current segment*. Selections outlive a
+ * segment, this set does not: after an end every carried-over value is a suggestion again, and only what
+ * the rider approves is stored. See [ObservationRepository.tap].
+ */
+data class Draft(
+    val segment: Segment = Segment.Idle,
+    val selections: Selections = Selections(),
+    val approved: Set<String> = emptySet(),
+)
 
 /**
  * Persists observations locally and owns the segment currently being recorded.
@@ -32,8 +50,21 @@ class ObservationRepository(
     private val _draft = MutableStateFlow(Draft())
     val draft: StateFlow<Draft> = _draft.asStateFlow()
 
-    fun select(criterion: Criterion, value: String) =
-        _draft.update { it.copy(selections = it.selections.select(criterion, value)) }
+    /**
+     * Applies a tap on [value]. The first tap on a value still carried over from the previous segment only
+     * approves it: the rider is standing by what is already there, not toggling it off. Every other tap
+     * selects, and either way the criterion counts as approved from then on — so a second tap does toggle.
+     */
+    fun tap(criterion: Criterion, value: String) = _draft.update {
+        val standingBy = criterion.id !in it.approved && value in it.selections[criterion]
+        it.copy(
+            selections = if (standingBy) it.selections else it.selections.select(criterion, value),
+            approved = it.approved + criterion.id,
+        )
+    }
+
+    /** Stands by [criterion] as it is, without touching its values. */
+    fun approve(criterion: Criterion) = _draft.update { it.copy(approved = it.approved + criterion.id) }
 
     /** Marks the start of a segment. Ignored while one is already open. */
     fun start(kind: BoundaryKind) = _draft.update {
@@ -41,30 +72,49 @@ class ObservationRepository(
     }
 
     /**
-     * Stores the open segment against the ride it was recorded during. With [action] =
-     * [SegmentAction.START_NEXT] the next segment opens on the same instant and inherits [kind] — it is
-     * the same boundary, so a late end means a late start too. Selections are kept either way:
-     * consecutive stretches of path usually differ in only one criterion. Ignored while idle, and
-     * ignored outside a ride: a stretch of path with no outing around it has nothing to belong to.
+     * Stores the open segment against the ride it was recorded during and reports what happened, or
+     * null while idle — and likewise outside a ride: a stretch of path with no outing around it has
+     * nothing to belong to.
+     *
+     * Only approved criteria are stored — a value the rider rode past without standing by describes the
+     * previous stretch, not this one. A segment that ends with nothing approved would say nothing at all,
+     * so it is discarded instead of stored empty; the boundary still holds, so [SegmentAction.START_NEXT]
+     * opens the next segment either way.
+     *
+     * With [action] = [SegmentAction.START_NEXT] the next segment opens on the same instant and inherits
+     * [kind] — it is the same boundary, so a late end means a late start too — and keeps the selections,
+     * unapproved again, because consecutive stretches of path usually differ in only one criterion.
+     * [SegmentAction.STOP] instead ends the survey: it leaves nothing behind for whatever the rider
+     * describes next.
      */
-    suspend fun end(kind: BoundaryKind, action: SegmentAction) {
-        val open = _draft.value.segment as? Segment.Open ?: return
-        val rideId = rides.openId ?: return
+    suspend fun end(kind: BoundaryKind, action: SegmentAction): SegmentOutcome? {
+        val draft = _draft.value
+        val open = draft.segment as? Segment.Open ?: return null
+        val rideId = rides.openId ?: return null
         val endedAt = clock.now()
+        val values = draft.selections.retain(draft.approved).compact()
 
-        dao.insert(
-            ObservationEntity(
-                rideId = rideId,
-                startedAtEpochMs = open.startedAt.toEpochMilliseconds(),
-                startKind = open.startKind,
-                endedAtEpochMs = endedAt.toEpochMilliseconds(),
-                endKind = kind,
-                valuesJson = Json.encodeToString(_draft.value.selections.compact()),
-            ),
-        )
+        if (!values.isEmpty()) {
+            dao.insert(
+                ObservationEntity(
+                    rideId = rideId,
+                    startedAtEpochMs = open.startedAt.toEpochMilliseconds(),
+                    startKind = open.startKind,
+                    endedAtEpochMs = endedAt.toEpochMilliseconds(),
+                    endKind = kind,
+                    valuesJson = Json.encodeToString(values),
+                ),
+            )
+        }
 
         _draft.update {
-            it.copy(segment = if (action == SegmentAction.START_NEXT) Segment.Open(endedAt, kind) else Segment.Idle)
+            if (action == SegmentAction.START_NEXT) {
+                it.copy(segment = Segment.Open(endedAt, kind), approved = emptySet())
+            } else {
+                Draft()
+            }
         }
+
+        return if (values.isEmpty()) SegmentOutcome.NOTHING_TO_STORE else SegmentOutcome.SAVED
     }
 }

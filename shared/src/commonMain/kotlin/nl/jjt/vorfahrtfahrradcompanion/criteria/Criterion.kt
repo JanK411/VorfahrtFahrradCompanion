@@ -29,6 +29,15 @@ value class Selections(private val byCriterion: Map<String, Set<String>> = empty
         return Selections(byCriterion + (criterion.id to next))
     }
 
+    /** The criteria actually holding a value — everything a segment ending now could be described by. */
+    val filled: Set<String> get() = byCriterion.filterValues(Set<String>::isNotEmpty).keys
+
     /** Drops criteria the rider deselected back to nothing, so they never reach storage. */
     fun compact(): Selections = Selections(byCriterion.filterValues(Set<String>::isNotEmpty))
+
+    /** Narrows to [criterionIds] — used to store only what the rider approved for this segment. */
+    fun retain(criterionIds: Set<String>): Selections =
+        Selections(byCriterion.filterKeys { it in criterionIds })
+
+    fun isEmpty(): Boolean = byCriterion.values.all(Set<String>::isEmpty)
 }

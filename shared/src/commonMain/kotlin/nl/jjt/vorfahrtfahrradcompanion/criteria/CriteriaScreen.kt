@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.Flow
 import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -41,7 +42,8 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
 
         is CriteriaUiState.Ready -> Catalogue(
             state = s,
-            onSelect = viewModel::onSelect,
+            outcomes = viewModel.outcomes,
+            onSelect = viewModel::onTap,
             onStart = viewModel::start,
             onEnd = viewModel::end,
             onStartRide = viewModel::startRide,
@@ -54,6 +56,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
 @Composable
 private fun Catalogue(
     state: CriteriaUiState.Ready,
+    outcomes: Flow<SegmentOutcome>,
     onSelect: (Criterion, String) -> Unit,
     onStart: (BoundaryKind) -> Unit,
     onEnd: (BoundaryKind, SegmentAction) -> Unit,
@@ -63,13 +66,15 @@ private fun Catalogue(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // The ViewModel returns to Idle only after a successful write, so InFlight → Idle is the success edge.
-    var wasInFlight by remember { mutableStateOf(false) }
-    LaunchedEffect(state.saveState) {
-        if (wasInFlight && state.saveState is SaveState.Idle) {
-            snackbarHostState.showSnackbar("Segment saved")
+    LaunchedEffect(outcomes) {
+        outcomes.collect { outcome ->
+            snackbarHostState.showSnackbar(
+                when (outcome) {
+                    SegmentOutcome.SAVED -> "Segment saved"
+                    SegmentOutcome.NOTHING_TO_STORE -> "Nothing approved — segment discarded"
+                },
+            )
         }
-        wasInFlight = state.saveState is SaveState.InFlight
     }
 
     Column(modifier.fillMaxSize()) {
