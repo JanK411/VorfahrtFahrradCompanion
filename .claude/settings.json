@@ -3,6 +3,8 @@
     "allow": [
       "Bash(./gradlew:*)",
       "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
