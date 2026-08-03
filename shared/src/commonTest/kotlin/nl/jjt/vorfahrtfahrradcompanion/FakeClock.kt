@@ -1,10 +1,13 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion
 
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
-/** Advanceable, because a segment's start and end must not land on the same instant. */
+/**
+ * A clock a test drives itself. Advanceable rather than fixed, because most of what wants one here
+ * cares about the distance between two moments — a segment's start and end, a cache going stale.
+ */
 class FakeClock(var instant: Instant) : Clock {
     override fun now() = instant
 

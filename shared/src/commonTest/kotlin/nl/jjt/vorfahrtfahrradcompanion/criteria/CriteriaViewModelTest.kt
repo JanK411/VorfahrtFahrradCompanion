@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.serialization.json.Json
+import nl.jjt.vorfahrtfahrradcompanion.FakeClock
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationEntity
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideDao
