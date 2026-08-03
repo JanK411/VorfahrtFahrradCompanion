@@ -27,6 +27,7 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -44,7 +45,10 @@ import kotlinx.coroutines.withTimeoutOrNull
  * press is still a tap.
  *
  * The press is claimed the moment it lands, so a gesture started here belongs to it whatever it does
- * next — which is what lets a hold live on a target inside a scrolling list.
+ * next — which is what lets a hold live on a target inside a scrolling list. Where it does, give a
+ * [tapSlack]: past that much drift the press was a swipe that came up short rather than a tap, and
+ * nothing should happen. [onPressedChange] tracks the finger being down at all, for a target that
+ * shows it.
  *
  * This is how every boundary in this app that cannot afford a dialog is marked: the rider holds, the
  * answers fill the screen above their thumb, and they slide onto one and let go, in one movement,
@@ -59,8 +63,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 fun Modifier.holdAndSlide(
     key: Any?,
     enabled: Boolean = true,
+    tapSlack: Dp? = null,
+    onPressedChange: (Boolean) -> Unit = {},
     onTap: () -> Unit,
-    onHold: (() -> Unit)? = null,
+    onHold: ((from: Offset) -> Unit)? = null,
     onSlide: (Offset) -> Unit = {},
     onRelease: () -> Unit = {},
 ): Modifier {
@@ -68,34 +74,52 @@ fun Modifier.holdAndSlide(
     val currentHold by rememberUpdatedState(onHold)
     val currentSlide by rememberUpdatedState(onSlide)
     val currentRelease by rememberUpdatedState(onRelease)
+    val currentPressed by rememberUpdatedState(onPressedChange)
 
     // Whether there is anything behind a hold is part of what the gesture *is*, so it restarts on
     // that — but on the fact of it, never on the identity of the lambda carrying it.
     val holdable = onHold != null
 
-    return pointerInput(key, enabled, holdable) {
+    return pointerInput(key, enabled, holdable, tapSlack) {
         if (!enabled) return@pointerInput
+        val slack = tapSlack?.toPx()
+
         awaitEachGesture {
             val down = awaitFirstDown()
             down.consume()
+            currentPressed(true)
 
-            when (withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { follow(down) }) {
-                // Let go before the hold registered: an ordinary tap.
-                true -> return@awaitEachGesture currentTap()
-                // The pointer went elsewhere; nothing was meant by it.
-                false -> return@awaitEachGesture
-                // Still down, so the hold has taken.
-                null -> Unit
+            try {
+                var strayed = false
+                val lifted = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                    follow(down) { at ->
+                        if (slack != null && (at - down.position).getDistance() > slack) strayed = true
+                    }
+                }
+
+                when (lifted) {
+                    // Let go before the hold registered: an ordinary tap, unless the finger travelled.
+                    true -> {
+                        if (!strayed) currentTap()
+                        return@awaitEachGesture
+                    }
+                    // The pointer went elsewhere; nothing was meant by it.
+                    false -> return@awaitEachGesture
+                    // Still down, so the hold has taken.
+                    null -> Unit
+                }
+
+                if (!holdable) {
+                    if (follow(down)) currentTap()
+                    return@awaitEachGesture
+                }
+
+                currentHold?.invoke(down.position)
+                follow(down, currentSlide)
+                currentRelease()
+            } finally {
+                currentPressed(false)
             }
-
-            if (!holdable) {
-                if (follow(down)) currentTap()
-                return@awaitEachGesture
-            }
-
-            currentHold?.invoke()
-            follow(down, currentSlide)
-            currentRelease()
         }
     }
 }

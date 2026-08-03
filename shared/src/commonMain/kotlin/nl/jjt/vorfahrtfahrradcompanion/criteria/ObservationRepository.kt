@@ -114,6 +114,16 @@ class ObservationRepository(
         _draft.update { it.copy(approved = it.approved + it.selections.filled) }
     }
 
+    /**
+     * Describes the open segment as the last one with [criterion] changed to [value], and stands by
+     * all of it — which is precisely what a rider says by picking that value off a folded card: this
+     * one thing is different now, the rest still holds.
+     */
+    fun carryOnWith(criterion: Criterion, value: String) = _draft.update {
+        val selections = it.selections.pick(criterion, value)
+        it.copy(selections = selections, approved = it.approved + selections.filled)
+    }
+
     /** Puts back what the last of those two replaced. Does nothing if there is nothing to take back. */
     fun undo() {
         val previous = replaced ?: return

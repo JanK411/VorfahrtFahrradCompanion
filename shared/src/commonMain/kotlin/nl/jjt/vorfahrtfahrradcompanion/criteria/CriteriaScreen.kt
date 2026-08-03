@@ -54,6 +54,7 @@ internal class CriteriaActions(
     val clearCarriedOver: () -> Unit,
     val approveAll: () -> Unit,
     val undo: () -> Unit,
+    val split: (Criterion, String) -> Unit,
     val start: (BoundaryKind) -> Unit,
     val end: (SegmentAction) -> Unit,
     val endAs: (SegmentAction, EndTiming) -> Unit,
@@ -85,6 +86,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             clearCarriedOver = viewModel::clearCarriedOver,
             approveAll = viewModel::approveAll,
             undo = viewModel::undo,
+            split = viewModel::splitSegment,
             start = viewModel::start,
             end = viewModel::end,
             endAs = viewModel::endAs,
@@ -296,6 +298,7 @@ private fun Catalogue(
                                 actions.approve(criterion)
                                 pinned = null
                             },
+                            onSplit = { value -> actions.split(criterion, value) },
                         )
                     }
 
@@ -569,7 +572,7 @@ private fun RowScope.RecorderButton(
                     onTap()
                 },
                 onHold = onPick?.let {
-                    {
+                    { _ ->
                         // The heavier buzz, so the two gestures feel apart without a look at the screen.
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         picking = true

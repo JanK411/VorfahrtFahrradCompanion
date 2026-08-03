@@ -251,18 +251,37 @@ class CriteriaViewModel(
     /** Takes back the end, leaving the segment running and its carried-over criteria untouched. */
     fun cancelEnd() = updateReady { copy(pendingEnd = null) }
 
+    /**
+     * The boundary a rider marks by picking [value] off a folded card: the stretch they are on ends
+     * here and the next one begins, described exactly as this one was but for [criterion].
+     *
+     * It says two things at once, which is the whole point of it. The segment being closed is stood
+     * by as it stands — picking a value off a card is saying the description held up to here — and
+     * the one that opens is stood by as well, since the rider has just said what is different about
+     * it. Neither asks anything: this is the one boundary that is fully answered before it is made.
+     */
+    fun splitSegment(criterion: Criterion, value: String) {
+        if (!canEnd()) return
+        observations.approveAll()
+        store(EndRequest(BoundaryKind.EXACT, SegmentAction.START_NEXT, observations.now)) {
+            observations.carryOnWith(criterion, value)
+        }
+    }
+
     /** Throws the open segment away — a stretch not worth recording, or one recorded wrong. */
     fun discardSegment() {
         updateReady { copy(pendingTiming = null, pendingEnd = null) }
         if (observations.discardSegment()) _outcomes.tryEmit(SegmentOutcome.DISCARDED)
     }
 
-    private fun store(request: EndRequest) {
+    /** [andThen] runs on the segment the end opened, once the one it closed is safely stored. */
+    private fun store(request: EndRequest, andThen: () -> Unit = {}) {
         viewModelScope.launch {
             updateReady { copy(saveState = SaveState.InFlight) }
 
             try {
                 observations.end(request.kind, request.action, request.at)?.let(_outcomes::tryEmit)
+                andThen()
                 updateReady { copy(saveState = SaveState.Idle) }
             } catch (e: Exception) {
                 fail(e.message ?: "Could not save the segment")

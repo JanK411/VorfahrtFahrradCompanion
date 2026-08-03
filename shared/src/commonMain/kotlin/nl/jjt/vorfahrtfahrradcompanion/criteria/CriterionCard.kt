@@ -1,12 +1,18 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -26,13 +34,33 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import nl.jjt.vorfahrtfahrradcompanion.ui.HoldMenuOption
+import nl.jjt.vorfahrtfahrradcompanion.ui.WindowOrigin
+import nl.jjt.vorfahrtfahrradcompanion.ui.holdAndSlide
+import kotlin.math.abs
 
 /** How far along a criterion is in the current segment. This drives the whole look of its card. */
 internal enum class CriterionState {
@@ -76,6 +104,7 @@ internal fun CriterionCard(
     onOpen: () -> Unit,
     onApprove: () -> Unit,
     onDone: () -> Unit,
+    onSplit: (String) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
 
@@ -95,13 +124,172 @@ internal fun CriterionCard(
             else -> null
         },
     ) {
-        when {
-            expanded -> ExpandedCriterion(criterion, selected, state, onTapValue, onDone)
-            state == CriterionState.CARRIED_OVER ->
-                CarriedOverCriterion(criterion, selected, onOpen, onApprove)
-
-            else -> FoldedCriterion(criterion, selected, state, onOpen)
+        if (expanded) {
+            ExpandedCriterion(criterion, selected, state, onTapValue, onDone)
+            return@Card
         }
+
+        // Folded, the card is in two parts: everything the rider reads, which opens on a tap and
+        // lets a drag through to scroll the list, and the strip down the right-hand edge, which is
+        // where the value menu lives and where a drag belongs to the menu instead.
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            Box(Modifier.weight(1f)) {
+                if (state == CriterionState.CARRIED_OVER) {
+                    CarriedOverCriterion(criterion, selected, onOpen, onApprove)
+                } else {
+                    FoldedCriterion(criterion, selected, state, onOpen)
+                }
+            }
+
+            SplitHandle(criterion, selected, onOpen = onOpen, onSplit = onSplit)
+        }
+    }
+}
+
+/** Wide enough to be found and held by a thumb that is not looking for it. */
+private val HandleWidth = 56.dp
+
+private val KnobWidth = 34.dp
+private val KnobArrow = 20.dp
+
+/** How far the knob grows under a thumb — enough to notice at a glance, not enough to jump. */
+private const val PressedScale = 1.15f
+
+/** How far the thumb has to travel before the hold counts as having picked anything. */
+private val PickSlack = 24.dp
+
+/**
+ * What the strip looks like: a raised capsule in the app's own green, carrying an arrow at each end.
+ *
+ * Three dots would say "there is a menu here, tap it", which is neither what this does nor how it is
+ * worked. A knob that stands off the card and points both ways says the two things that matter — it
+ * is a thing to take hold of, and it goes up and down — and it swells under the thumb, so a rider
+ * who has never used it learns what a hold does by starting one.
+ */
+@Composable
+private fun Knob(pressed: Boolean) {
+    val scale by animateFloatAsState(if (pressed) PressedScale else 1f, label = "knob")
+
+    Surface(
+        modifier = Modifier.fillMaxHeight().padding(vertical = 6.dp).width(KnobWidth).scale(scale)
+            .semantics { contentDescription = "Hold and slide to change this from here on" },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        shadowElevation = if (pressed) 8.dp else 3.dp,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            // Pulled together into one double-headed arrow: two chevrons, not two buttons.
+            verticalArrangement = Arrangement.spacedBy((-9).dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null, modifier = Modifier.size(KnobArrow))
+            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(KnobArrow))
+        }
+    }
+}
+
+/**
+ * The strip down the right-hand edge of a folded card, and the only place its value menu opens.
+ *
+ * A hold anywhere on the card would put the gesture in a fight with the list it sits in: a thumb
+ * that drifted while pressing would scroll instead, and a thumb that meant to scroll would open a
+ * menu. Here the two are settled by where the finger lands. This strip claims the touch the moment
+ * it arrives — consumed before the list ever sees it, so a drag started here cannot scroll — and
+ * everything to its left is left alone to scroll as it always did.
+ */
+@Composable
+private fun SplitHandle(
+    criterion: Criterion,
+    selected: Set<String>,
+    onOpen: () -> Unit,
+    onSplit: (String) -> Unit,
+) {
+    val haptics = LocalHapticFeedback.current
+    val window = LocalWindowInfo.current.containerSize
+    val slack = with(LocalDensity.current) { PickSlack.toPx() }
+
+    // Where the strip sits in the window, since the menu is laid over the window while the thumb is
+    // reported against the strip.
+    var handleTop by remember { mutableFloatStateOf(0f) }
+    var from by remember { mutableFloatStateOf(0f) }
+
+    var picking by remember { mutableStateOf(false) }
+    var choice by remember { mutableStateOf<String?>(null) }
+
+    // A thumb resting on the knob makes it grow under itself, which is the whole answer to "is
+    // something happening yet?" during the half-second before the hold takes.
+    var pressed by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier.fillMaxHeight().width(HandleWidth)
+            .onGloballyPositioned { handleTop = it.positionInWindow().y }
+            .holdAndSlide(
+                key = criterion,
+                tapSlack = PickSlack,
+                onPressedChange = { pressed = it },
+                onTap = onOpen,
+                onHold = { at ->
+                    // The heavier buzz that says a hold has taken, as on the recorder buttons.
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    from = handleTop + at.y
+                    picking = true
+                },
+                onSlide = { at ->
+                    val y = handleTop + at.y
+                    // Nothing is picked until the thumb has actually gone somewhere, so a hold the
+                    // rider thinks better of ends by lifting off where it started.
+                    val slid = if (abs(y - from) < slack) null else criterion.valueUnder(y, window.height)
+                    if (slid != choice) {
+                        choice = slid
+                        if (slid != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                    }
+                },
+                onRelease = {
+                    picking = false
+                    choice?.let(onSplit)
+                    choice = null
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Knob(pressed)
+
+        if (picking) Popup(WindowOrigin) { ValuePicker(criterion, selected, choice) }
+    }
+}
+
+/**
+ * Which value the thumb is over: the menu is the whole window, split evenly, so the only aim asked
+ * for is roughly how far up or down to go. There is nowhere on the screen that is not a value —
+ * [PickSlack] is what keeps a hold the rider thinks better of from picking the one under their thumb.
+ */
+private fun Criterion.valueUnder(y: Float, windowHeight: Int): String? {
+    if (windowHeight <= 0) return null
+    val band = windowHeight.toFloat() / values.size
+    return values.getOrNull((y / band).toInt().coerceIn(values.indices))
+}
+
+/**
+ * The values of one criterion, filling the screen: hold a folded card's knob, slide onto the one
+ * that is true from here on, and let go — which ends the segment and opens the next one with that
+ * one change. The value the segment already carries is marked, so a rider can see what they leave.
+ */
+@Composable
+private fun ValuePicker(criterion: Criterion, selected: Set<String>, choice: String?) = Column(
+    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+) {
+    criterion.values.forEach { value ->
+        HoldMenuOption(
+            title = value,
+            subtitle = if (value in selected) criterion.label() + " now" else null,
+            selected = value == choice,
+            selectedColor = MaterialTheme.colorScheme.primary,
+            selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

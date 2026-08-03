@@ -597,6 +597,87 @@ class CriteriaViewModelTest {
     }
 
     @Test
+    fun pickingAValueOffACardEndsTheSegmentAndCarriesOnWithThatOneChange() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.onTap(width, "W_1")
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += ride
+        val pickedAt = clock.now()
+
+        vm.splitSegment(width, "W_2")
+        testScheduler.advanceUntilIdle()
+
+        // The stretch just ridden is stored as it was described, ending where the value was picked.
+        assertEquals(
+            Selections(mapOf("WIDTH" to setOf("W_1"), "ALLOWED_USERS" to setOf("CARS"))),
+            Json.decodeFromString<Selections>(stored.valuesJson),
+        )
+        assertEquals(pickedAt.toEpochMilliseconds(), stored.endedAtEpochMs)
+
+        // And the next one is already described: the same, but for the one thing that changed — and
+        // stood by, so it can be ended without being asked about any of it.
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(Segment.Open(pickedAt, BoundaryKind.EXACT), ready.segment)
+        assertEquals(setOf("W_2"), ready.selections[width])
+        assertEquals(setOf("CARS"), ready.selections[users])
+        assertEquals(emptyList(), ready.carriedOver)
+        assertEquals(listOf(width, users), ready.describing)
+    }
+
+    @Test
+    fun pickingAValueStandsByWhatWasStillCarriedOver() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        // The second segment inherits CARS unapproved, and nothing else is answered in it.
+        aSegmentThenTheNext(vm)
+        clock += ride
+        vm.splitSegment(width, "W_1")
+        testScheduler.advanceUntilIdle()
+
+        // Picking a value says the description held up to here, so the inherited value is stored
+        // rather than dropped — and the rider is asked nothing on the way out.
+        assertEquals(2, dao.inserted.size)
+        assertEquals(
+            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+        assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
+    }
+
+    @Test
+    fun pickingAValueIsIgnoredWhileNoSegmentIsRunning() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.onTap(width, "W_1")
+        vm.splitSegment(width, "W_2")
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), dao.inserted)
+        assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
+    }
+
+    @Test
+    fun pickingOffACardSetsAPickOneAndTogglesAPickAny() {
+        // Picking what is already there must not leave the next segment with nothing to describe it.
+        assertEquals(setOf("W_1"), Selections(mapOf("WIDTH" to setOf("W_1"))).pick(width, "W_1")[width])
+        assertEquals(setOf("W_2"), Selections(mapOf("WIDTH" to setOf("W_1"))).pick(width, "W_2")[width])
+
+        // A criterion that holds several values is a different question: there, picking one it
+        // already holds is how a rider says that one no longer applies.
+        val both = Selections(mapOf("ALLOWED_USERS" to setOf("CARS", "CYCLISTS")))
+        assertEquals(setOf("CYCLISTS"), both.pick(users, "CARS")[users])
+        assertEquals(
+            setOf("CARS", "CYCLISTS"),
+            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))).pick(users, "CYCLISTS")[users],
+        )
+    }
+
+    @Test
     fun discardingASegmentStoresNothingAndLeavesNothingBehind() = runTest {
         val vm = vm()
         testScheduler.advanceUntilIdle()
