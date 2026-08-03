@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -62,6 +63,7 @@ internal class CriteriaActions(
     val endRide: () -> Unit,
     val confirmEnd: (Set<String>) -> Unit,
     val cancelEnd: () -> Unit,
+    val discardSegment: () -> Unit,
 )
 
 // TODO VF-116: guard an open segment with a LeaveGuard (see ServerConnectionScreen), so navigating away
@@ -92,6 +94,7 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             endRide = viewModel::askToEndRide,
             confirmEnd = viewModel::confirmEnd,
             cancelEnd = viewModel::cancelEnd,
+            discardSegment = viewModel::discardSegment,
         )
     }
 
@@ -132,6 +135,7 @@ private fun Catalogue(
                 when (outcome) {
                     SegmentOutcome.SAVED -> "Segment saved"
                     SegmentOutcome.NOTHING_TO_STORE -> "Nothing approved — segment discarded"
+                    SegmentOutcome.DISCARDED -> "Segment discarded"
                     SegmentOutcome.TOO_LATE ->
                         "More than ${LateEndGrace.inWholeSeconds} s late — segment discarded"
                 },
@@ -209,6 +213,17 @@ private fun Catalogue(
 
     // Answer one and the next one comes to you — no scrolling while riding.
     LaunchedEffect(expanded?.id) { bringUp(expanded) }
+
+    var discarding by remember { mutableStateOf(false) }
+    if (discarding) {
+        DiscardSegmentDialog(
+            onConfirm = {
+                discarding = false
+                actions.discardSegment()
+            },
+            onDismiss = { discarding = false },
+        )
+    }
 
     state.pendingTiming?.let {
         EndTimingDialog(
@@ -356,6 +371,7 @@ private fun Catalogue(
                         describing = state.describing.size,
                         carried = state.carriedOver.size,
                         total = state.catalogue.criteria.size,
+                        onDiscard = { discarding = true },
                     )
                     ButtonRow {
                         RecorderButton(
@@ -409,47 +425,90 @@ private fun SegmentButton(
  * unapproved values are not stored — how much of it would be dropped right now.
  */
 @Composable
-private fun Progress(segment: Segment.Open, describing: Int, carried: Int, total: Int) =
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        val elapsed = secondsSince(segment.startedAt)
-        val startedEarlier = if (segment.startKind == BoundaryKind.EARLIER) " · started earlier" else ""
+private fun Progress(
+    segment: Segment.Open,
+    describing: Int,
+    carried: Int,
+    total: Int,
+    onDiscard: () -> Unit,
+) = Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    val elapsed = secondsSince(segment.startedAt)
+    val startedEarlier = if (segment.startKind == BoundaryKind.EARLIER) " · started earlier" else ""
 
-        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
-            Text(
-                "● ${elapsed / 60}:${(elapsed % 60).toString().padStart(2, '0')}$startedEarlier",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
+        Text(
+            "● ${elapsed / 60}:${(elapsed % 60).toString().padStart(2, '0')}$startedEarlier",
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Icon(
+            Icons.Filled.Check,
+            contentDescription = "Approved",
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            "$describing / $total",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        IconButton(onDiscard, Modifier.size(40.dp)) {
             Icon(
-                Icons.Filled.Check,
-                contentDescription = "Approved",
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                Icons.Filled.Delete,
+                contentDescription = "Discard segment",
+                tint = MaterialTheme.colorScheme.error,
             )
-            Text(
-                "$describing / $total",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-
-        if (carried > 0) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Filled.Warning,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.tertiary,
-                )
-                Text(
-                    "$carried carried over, not approved",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
-            }
         }
     }
+
+    if (carried > 0) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Filled.Warning,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.tertiary,
+            )
+            Text(
+                "$carried carried over, not approved",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
+        }
+    }
+}
+
+/**
+ * The question in front of throwing a segment away. Unlike a boundary, nothing about this is
+ * time-critical, so it can afford to be asked.
+ */
+@Composable
+private fun DiscardSegmentDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) = AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text("Discard this segment?") },
+    text = {
+        Text(
+            "Nothing about the stretch you are recording is stored, and whatever you described it " +
+                "with is cleared. The next segment starts from scratch.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    },
+    confirmButton = {
+        Button(
+            onConfirm,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            ),
+        ) {
+            Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Discard")
+        }
+    },
+    dismissButton = { TextButton(onDismiss) { Text("Keep recording") } },
+)
 
 /** Keeps both buttons the same height when one of them wraps onto a second line. */
 @Composable

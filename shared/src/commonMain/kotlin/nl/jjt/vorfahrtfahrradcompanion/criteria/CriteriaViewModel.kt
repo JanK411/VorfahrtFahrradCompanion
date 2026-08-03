@@ -251,6 +251,12 @@ class CriteriaViewModel(
     /** Takes back the end, leaving the segment running and its carried-over criteria untouched. */
     fun cancelEnd() = updateReady { copy(pendingEnd = null) }
 
+    /** Throws the open segment away — a stretch not worth recording, or one recorded wrong. */
+    fun discardSegment() {
+        updateReady { copy(pendingTiming = null, pendingEnd = null) }
+        if (observations.discardSegment()) _outcomes.tryEmit(SegmentOutcome.DISCARDED)
+    }
+
     private fun store(request: EndRequest) {
         viewModelScope.launch {
             updateReady { copy(saveState = SaveState.InFlight) }

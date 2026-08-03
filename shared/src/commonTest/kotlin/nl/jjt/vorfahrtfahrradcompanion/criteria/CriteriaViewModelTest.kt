@@ -597,6 +597,39 @@ class CriteriaViewModelTest {
     }
 
     @Test
+    fun discardingASegmentStoresNothingAndLeavesNothingBehind() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val outcomes = record(vm.outcomes)
+
+        vm.start(BoundaryKind.EXACT)
+        vm.onTap(users, "CARS")
+        clock += ride
+        vm.discardSegment()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), dao.inserted)
+        assertEquals(listOf(SegmentOutcome.DISCARDED), outcomes)
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(Segment.Idle, ready.segment)
+        assertEquals(emptySet(), ready.selections[users])
+        assertNull(ready.pendingEnd)
+    }
+
+    @Test
+    fun discardingWithNoSegmentRunningSaysNothing() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val outcomes = record(vm.outcomes)
+
+        vm.discardSegment()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), outcomes)
+    }
+
+    @Test
     fun theFlowMovesDownTheListThenComesBackForWhatWasSkipped() {
         val criteria = (1..5).map { Criterion("C$it", CriterionKind.SINGLE, listOf("A", "B")) }
         val state = CriteriaUiState.Ready(Catalogue(criteria), approved = setOf("C1", "C2", "C4"))
