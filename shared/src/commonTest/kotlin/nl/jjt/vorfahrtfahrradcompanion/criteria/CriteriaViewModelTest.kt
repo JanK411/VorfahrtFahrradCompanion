@@ -309,6 +309,111 @@ class CriteriaViewModelTest {
         assertEquals(listOf(SegmentOutcome.SAVED, SegmentOutcome.NOTHING_TO_STORE), outcomes)
     }
 
+    @Test
+    fun clearingDropsWhatIsCarriedOverAndKeepsWhatIsApproved() = runTest {
+        val vm = riding()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        vm.onTap(width, "W_2")
+        vm.clearCarriedOver()
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(emptySet(), ready.selections[users])
+        assertEquals(setOf("W_2"), ready.selections[width])
+        assertEquals(emptyList(), ready.carriedOver)
+        // Still recording; only what described the last stretch is gone.
+        assertEquals(Segment.Open(startedAt + stretch, BoundaryKind.EXACT), ready.segment)
+    }
+
+    @Test
+    fun approvingAllStandsByEveryCarriedOverValueAtOnce() = runTest {
+        val vm = riding()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        vm.approveAll()
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(emptyList(), ready.carriedOver)
+        assertEquals(listOf(width, users), ready.describing)
+
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(
+            Selections(mapOf("WIDTH" to setOf("W_1"), "ALLOWED_USERS" to setOf("CARS"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+    }
+
+    @Test
+    fun approvingAllCanBeTakenBack() = runTest {
+        val vm = riding()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        // One of them approved by hand first: taking back the whole lot must not take that with it.
+        vm.onApprove(width)
+        vm.approveAll()
+        vm.undo()
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(listOf(users), ready.carriedOver)
+        assertEquals(listOf(width), ready.describing)
+    }
+
+    @Test
+    fun clearingCanBeTakenBack() = runTest {
+        val vm = riding()
+
+        aSegmentThenTheNext(vm)
+        vm.clearCarriedOver()
+        vm.undo()
+        testScheduler.advanceUntilIdle()
+
+        // Back to carried over and waiting for a nod, exactly as before the clear.
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(setOf("CARS"), ready.selections[users])
+        assertEquals(listOf(users), ready.carriedOver)
+    }
+
+    @Test
+    fun theFlowMovesDownTheListThenComesBackForWhatWasSkipped() {
+        val criteria = (1..5).map { Criterion("C$it", CriterionKind.SINGLE, listOf("A", "B")) }
+        val state = CriteriaUiState.Ready(Catalogue(criteria), approved = setOf("C1", "C2", "C4"))
+
+        // C3 was skipped and C4 dealt with: the way on is C5, not back up to C3.
+        assertEquals(criteria[4], state.openAfter(criteria[3]))
+        assertEquals(criteria[4], state.leadingAfter(criteria[3]))
+        assertEquals(criteria[2], state.nextOpen)
+        assertNull(state.openAfter(criteria[4]))
+
+        // With the last one answered there is nothing below to go on to, so the skipped C3 comes round.
+        val bottom = state.copy(approved = state.approved + "C5")
+        assertEquals(criteria[2], bottom.leadingAfter(criteria[4]))
+
+        // And once that is answered too, there is nowhere left to lead.
+        assertNull(bottom.copy(approved = criteria.map(Criterion::id).toSet()).leadingAfter(criteria[2]))
+    }
+
+    @Test
+    fun aTapThatClearsTheLastValueAsksForNoAdvance() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val advanced = record(vm.advances)
+
+        vm.onTap(width, "W_1")
+        testScheduler.advanceUntilIdle()
+        assertEquals(listOf(width), advanced)
+
+        // Clearing a value leaves the rider with nothing answered, so the screen must stay put.
+        vm.onTap(width, "W_1")
+        testScheduler.advanceUntilIdle()
+        assertEquals(listOf(width), advanced)
+    }
+
     /** Rides one segment with [users] = CARS and leaves the next one open, inheriting it unapproved. */
     private suspend fun TestScope.aSegmentThenTheNext(vm: CriteriaViewModel) {
         vm.onTap(users, "CARS")
@@ -447,6 +552,16 @@ class CriteriaViewModelTest {
         vm.start(BoundaryKind.EXACT)
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+    }
+
+    /** Rides one segment with both criteria filled, so both carry over into the next one. */
+    private suspend fun TestScope.bothCarriedOverIntoTheNextSegment(vm: CriteriaViewModel) {
+        vm.onTap(width, "W_1")
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.START_NEXT)
         testScheduler.advanceUntilIdle()
     }
 }

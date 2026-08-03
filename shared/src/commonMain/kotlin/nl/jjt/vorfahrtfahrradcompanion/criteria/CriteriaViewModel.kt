@@ -29,6 +29,28 @@ sealed interface CriteriaUiState {
         /** Carried over from the previous segment, still unapproved, so it would not be stored. */
         val carriedOver: List<Criterion> get() = catalogue.criteria.filter { it.id !in approved && it.hasValues }
 
+        /** The criterion the rider still has to deal with; null once nothing is left. */
+        val nextOpen: Criterion? get() = catalogue.criteria.firstOrNull { it.id !in approved }
+
+        /**
+         * The next criterion still needing attention *after* [criterion], in catalogue order — null past
+         * the end. Moving on always moves forward: a rider who skipped one and dealt with a later one
+         * meant to skip it, and does not want to be dragged back up the list for it.
+         */
+        fun openAfter(criterion: Criterion): Criterion? = catalogue.criteria
+            .asSequence()
+            .dropWhile { it.id != criterion.id }
+            .drop(1)
+            .firstOrNull { it.id !in approved }
+
+        /**
+         * What to put in front of the rider once [settled] is dealt with: the next criterion below it,
+         * or — with the bottom of the list reached — whatever was skipped on the way down, which is
+         * where a rider who has answered the last one still has something left to answer.
+         */
+        fun leadingAfter(settled: Criterion?): Criterion? =
+            if (settled == null) nextOpen else openAfter(settled) ?: nextOpen
+
         private val Criterion.hasValues: Boolean get() = selections[this].isNotEmpty()
     }
 }
@@ -60,6 +82,14 @@ class CriteriaViewModel(
     /** Ended segments, so the screen can report saved-versus-discarded once per end. */
     val outcomes: SharedFlow<SegmentOutcome> = _outcomes.asSharedFlow()
 
+    private val _advances = MutableSharedFlow<Criterion>(extraBufferCapacity = 1)
+
+    /**
+     * Criteria a tap just answered — the cue to move the rider on to the next one. Emitted here rather
+     * than derived in the UI because only this side knows whether a tap left a value behind or cleared it.
+     */
+    val advances: SharedFlow<Criterion> = _advances.asSharedFlow()
+
     init {
         load()
         viewModelScope.launch {
@@ -80,10 +110,22 @@ class CriteriaViewModel(
     fun onTap(criterion: Criterion, value: String) {
         observations.tap(criterion, value)
         updateReady { copy(saveState = SaveState.Idle) }
+
+        // A tap that cleared the last value leaves nothing to move on from, so the rider stays put.
+        if (observations.draft.value.selections[criterion].isNotEmpty()) _advances.tryEmit(criterion)
     }
 
     /** Stands by [criterion] unchanged — the rider approving a whole criterion instead of a value. */
     fun onApprove(criterion: Criterion) = observations.approve(criterion)
+
+    /** Drops the values carried over but not approved, for a stretch unlike the one before it. */
+    fun clearCarriedOver() = observations.clearCarriedOver()
+
+    /** Stands by all of them instead, for the stretch that is exactly like the one before it. */
+    fun approveAll() = observations.approveAll()
+
+    /** Takes back whichever of the two the rider just pressed. */
+    fun undo() = observations.undo()
 
     /** Opens the ride the segments will be recorded into. */
     fun startRide() {

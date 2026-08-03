@@ -51,6 +51,12 @@ class ObservationRepository(
     val draft: StateFlow<Draft> = _draft.asStateFlow()
 
     /**
+     * What the last change made to the whole carried-over list replaced, held for as long as the
+     * rider might take it back — see [clearCarriedOver] and [approveAll].
+     */
+    private var replaced: Draft? = null
+
+    /**
      * Applies a tap on [value]. The first tap on a value still carried over from the previous segment only
      * approves it: the rider is standing by what is already there, not toggling it off. Every other tap
      * selects, and either way the criterion counts as approved from then on — so a second tap does toggle.
@@ -65,6 +71,33 @@ class ObservationRepository(
 
     /** Stands by [criterion] as it is, without touching its values. */
     fun approve(criterion: Criterion) = _draft.update { it.copy(approved = it.approved + criterion.id) }
+
+    /**
+     * Drops every value the rider has not approved, leaving those criteria open to be answered from
+     * scratch — for the stretch that has nothing in common with the last one. What they have already
+     * approved for this segment is their own work and stays. Reversible via [undo].
+     */
+    fun clearCarriedOver() {
+        replaced = _draft.value
+        _draft.update { it.copy(selections = it.selections.retain(it.approved)) }
+    }
+
+    /**
+     * Stands by every value in the draft at once — the other way out of a carried-over list, for the
+     * stretch that is exactly like the one before it and needs no line-by-line nod. Reversible via
+     * [undo].
+     */
+    fun approveAll() {
+        replaced = _draft.value
+        _draft.update { it.copy(approved = it.approved + it.selections.filled) }
+    }
+
+    /** Puts back what the last of those two replaced. Does nothing if there is nothing to take back. */
+    fun undo() {
+        val previous = replaced ?: return
+        replaced = null
+        _draft.update { it.copy(selections = previous.selections, approved = previous.approved) }
+    }
 
     /** Marks the start of a segment. Ignored while one is already open. */
     fun start(kind: BoundaryKind) = _draft.update {
@@ -107,6 +140,7 @@ class ObservationRepository(
             )
         }
 
+        replaced = null
         _draft.update {
             if (action == SegmentAction.START_NEXT) {
                 it.copy(segment = Segment.Open(endedAt, kind), approved = emptySet())
