@@ -19,6 +19,11 @@ import org.koin.compose.viewmodel.koinViewModel
 fun CriteriaScreen(modifier: Modifier = Modifier) {
     val viewModel: CriteriaViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val endingRide by viewModel.endingRide.collectAsStateWithLifecycle()
+
+    endingRide?.let {
+        EndRideDialog(it, onSave = viewModel::saveRide, onDismiss = viewModel::cancelEndRide)
+    }
 
     when (val s = state) {
         CriteriaUiState.Loading -> Box(modifier.fillMaxSize(), Alignment.Center) {
@@ -34,8 +39,15 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             Button(onClick = viewModel::retry) { Text("Retry") }
         }
 
-        is CriteriaUiState.Ready ->
-            Catalogue(s, viewModel::onSelect, viewModel::start, viewModel::end, modifier)
+        is CriteriaUiState.Ready -> Catalogue(
+            state = s,
+            onSelect = viewModel::onSelect,
+            onStart = viewModel::start,
+            onEnd = viewModel::end,
+            onStartRide = viewModel::startRide,
+            onEndRide = viewModel::askToEndRide,
+            modifier = modifier,
+        )
     }
 }
 
@@ -45,6 +57,8 @@ private fun Catalogue(
     onSelect: (Criterion, String) -> Unit,
     onStart: (BoundaryKind) -> Unit,
     onEnd: (BoundaryKind, SegmentAction) -> Unit,
+    onStartRide: () -> Unit,
+    onEndRide: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -72,7 +86,7 @@ private fun Catalogue(
                 }
             } else {
                 Text(
-                    "Start a segment to describe it.",
+                    if (state.ride is Ride.Open) "Start a segment to describe it." else "Start a ride to record segments.",
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -91,10 +105,18 @@ private fun Catalogue(
             }
 
             val enabled = state.saveState !is SaveState.InFlight
-            when (val segment = state.segment) {
-                Segment.Idle -> ButtonRow {
-                    RecorderButton("Start now", enabled, BoundaryKind.EXACT, onStart)
-                    RecorderButton("Started earlier", enabled, BoundaryKind.EARLIER, onStart)
+
+            // Segments are recorded into a ride, so there is nothing to start before one is running.
+            if (state.ride !is Ride.Open) {
+                Button(onStartRide, Modifier.fillMaxWidth(), enabled) { Text("Start ride") }
+            } else when (val segment = state.segment) {
+                Segment.Idle -> {
+                    ButtonRow {
+                        RecorderButton("Start now", enabled, BoundaryKind.EXACT, onStart)
+                        RecorderButton("Started earlier", enabled, BoundaryKind.EARLIER, onStart)
+                    }
+                    // Only offered between segments: a ride ends where the last stretch of it did.
+                    OutlinedButton(onEndRide, Modifier.fillMaxWidth(), enabled) { Text("End ride") }
                 }
 
                 is Segment.Open -> {

@@ -3,6 +3,16 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.6",
+        date = "2026-08-03",
+        changes = listOf(
+            "Segments are now recorded into a ride: press \"Start ride\" before the first one, and every segment you mark belongs to that outing.",
+            "\"End ride\" appears between segments and shows what the ride came to — when it began and ended, and how many segments it holds. Give it a name there if you want one, or save it without.",
+            "A ride you never got to end survives the app being closed: reopen it and you are still on the same ride.",
+            "Ending a ride with no segments in it throws it away rather than storing an empty one.",
+        ),
+    ),
+    PatchNote(
         version = "1.5",
         date = "2026-07-31",
         changes = listOf(
