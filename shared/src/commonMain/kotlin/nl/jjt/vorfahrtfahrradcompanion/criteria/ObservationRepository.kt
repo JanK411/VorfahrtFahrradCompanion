@@ -56,6 +56,9 @@ class ObservationRepository(
      */
     private var replaced: Draft? = null
 
+    /** The clock this repository stamps boundaries with, for a caller that has to mark one early. */
+    val now: Instant get() = clock.now()
+
     /**
      * Applies a tap on [value]. The first tap on a value still carried over from the previous segment only
      * approves it: the rider is standing by what is already there, not toggling it off. Every other tap
@@ -71,6 +74,19 @@ class ObservationRepository(
 
     /** Stands by [criterion] as it is, without touching its values. */
     fun approve(criterion: Criterion) = _draft.update { it.copy(approved = it.approved + criterion.id) }
+
+    /**
+     * Settles every criterion still carried over in one go: those in [approve] are stood by, the rest
+     * lose their values. This is what the rider answers on their way out of a segment.
+     *
+     * [drop] is turned down explicitly, which takes back a criterion the rider settled while answering —
+     * changing a value in the question approves it there and then, and rejecting it afterwards has to
+     * undo that.
+     */
+    fun resolveCarriedOver(approve: Set<String>, drop: Set<String> = emptySet()) = _draft.update {
+        val approved = it.approved + approve - drop
+        it.copy(selections = it.selections.retain(approved), approved = approved)
+    }
 
     /**
      * Drops every value the rider has not approved, leaving those criteria open to be answered from
@@ -119,12 +135,18 @@ class ObservationRepository(
      * unapproved again, because consecutive stretches of path usually differ in only one criterion.
      * [SegmentAction.STOP] instead ends the survey: it leaves nothing behind for whatever the rider
      * describes next.
+     *
+     * [endedAt] defaults to now, but is passed explicitly when the rider was asked something on the way
+     * out: the boundary is where they pressed the button, not where they finished answering.
      */
-    suspend fun end(kind: BoundaryKind, action: SegmentAction): SegmentOutcome? {
+    suspend fun end(
+        kind: BoundaryKind,
+        action: SegmentAction,
+        endedAt: Instant = clock.now(),
+    ): SegmentOutcome? {
         val draft = _draft.value
         val open = draft.segment as? Segment.Open ?: return null
         val rideId = rides.openId ?: return null
-        val endedAt = clock.now()
         val values = draft.selections.retain(draft.approved).compact()
 
         if (!values.isEmpty()) {

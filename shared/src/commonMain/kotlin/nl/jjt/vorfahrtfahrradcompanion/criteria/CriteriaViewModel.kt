@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Instant
 
 sealed interface CriteriaUiState {
     data object Loading : CriteriaUiState
@@ -21,6 +22,7 @@ sealed interface CriteriaUiState {
         val segment: Segment = Segment.Idle,
         val ride: Ride = Ride.Idle,
         val saveState: SaveState = SaveState.Idle,
+        val pendingEnd: EndRequest? = null,
     ) : CriteriaUiState {
 
         /** Approved for this segment and holding values — exactly what ending it would store. */
@@ -54,6 +56,21 @@ sealed interface CriteriaUiState {
         private val Criterion.hasValues: Boolean get() = selections[this].isNotEmpty()
     }
 }
+
+/**
+ * An end the rider has asked for but not answered for yet. [at] is when they pressed the button — the
+ * boundary belongs there, not to wherever the answering ends up.
+ *
+ * [asked] holds the criteria the question puts up for a decision, as they were when it was raised.
+ * Editing one in the question approves it there and then, which would drop it out of a list derived from
+ * the state — so the question keeps the list it opened with instead.
+ */
+data class EndRequest(
+    val kind: BoundaryKind,
+    val action: SegmentAction,
+    val at: Instant,
+    val asked: List<Criterion> = emptyList(),
+)
 
 sealed interface SaveState {
     data object Idle : SaveState
@@ -154,16 +171,52 @@ class CriteriaViewModel(
 
     fun start(kind: BoundaryKind) = observations.start(kind)
 
-    /** Ends the open segment and stores it; see [ObservationRepository.end] for what [action] does. */
+    /**
+     * The rider pressing End or Start next. The boundary is stamped here, at the press, because what
+     * follows may be a question — and a rider standing at a junction must not have their answer time
+     * added to the stretch. See [ObservationRepository.end] for what [action] does.
+     */
     fun end(kind: BoundaryKind, action: SegmentAction) {
-        val ready = _state.value as? CriteriaUiState.Ready ?: return
-        if (ready.saveState is SaveState.InFlight) return
+        if (!canEnd()) return
+        ask(EndRequest(kind, action, observations.now))
+    }
 
+    /** Nothing to end while one end is already being answered for, or being stored. */
+    private fun canEnd(): Boolean {
+        val ready = _state.value as? CriteriaUiState.Ready ?: return false
+        // Asked of the repository rather than the state, which only catches up with it a dispatch later.
+        return observations.draft.value.segment is Segment.Open &&
+            ready.saveState !is SaveState.InFlight &&
+            ready.pendingEnd == null
+    }
+
+    /** Stores the segment, or asks about the criteria still carried over if there are any. */
+    private fun ask(request: EndRequest) {
+        val ready = _state.value as? CriteriaUiState.Ready ?: return
+        if (ready.carriedOver.isEmpty()) store(request)
+        else updateReady { copy(pendingEnd = request.copy(asked = ready.carriedOver)) }
+    }
+
+    /**
+     * Ends the segment the rider was asked about, standing by the criteria in [approve]. Everything else
+     * the question put up loses its values, edits made in the question included.
+     */
+    fun confirmEnd(approve: Set<String>) {
+        val request = (_state.value as? CriteriaUiState.Ready)?.pendingEnd ?: return
+        observations.resolveCarriedOver(approve, request.asked.map(Criterion::id).toSet() - approve)
+        updateReady { copy(pendingEnd = null) }
+        store(request)
+    }
+
+    /** Takes back the end, leaving the segment running and its carried-over criteria untouched. */
+    fun cancelEnd() = updateReady { copy(pendingEnd = null) }
+
+    private fun store(request: EndRequest) {
         viewModelScope.launch {
             updateReady { copy(saveState = SaveState.InFlight) }
 
             try {
-                observations.end(kind, action)?.let(_outcomes::tryEmit)
+                observations.end(request.kind, request.action, request.at)?.let(_outcomes::tryEmit)
                 updateReady { copy(saveState = SaveState.Idle) }
             } catch (e: Exception) {
                 fail(e.message ?: "Could not save the segment")

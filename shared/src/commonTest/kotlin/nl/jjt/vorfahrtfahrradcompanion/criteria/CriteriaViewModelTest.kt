@@ -220,6 +220,7 @@ class CriteriaViewModelTest {
         vm.onTap(width, "W_1")
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.confirmEnd(approve = emptySet())
         testScheduler.advanceUntilIdle()
 
         assertEquals(2, dao.inserted.size)
@@ -302,11 +303,118 @@ class CriteriaViewModelTest {
         aSegmentThenTheNext(vm)
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.confirmEnd(approve = emptySet())
         testScheduler.advanceUntilIdle()
 
         // Only the first segment reached the database; the second said nothing at all.
         assertEquals(1, dao.inserted.size)
         assertEquals(listOf(SegmentOutcome.SAVED, SegmentOutcome.NOTHING_TO_STORE), outcomes)
+    }
+
+    @Test
+    fun endingWithCarriedOverValuesAsksBeforeStoringAnything() = runTest {
+        val vm = riding()
+
+        aSegmentThenTheNext(vm)
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        // Only the first segment is stored; the second waits on an answer.
+        assertEquals(1, dao.inserted.size)
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertEquals(listOf(users), ready.carriedOver)
+        assertEquals(BoundaryKind.EXACT, ready.pendingEnd?.kind)
+        assertEquals(SegmentAction.STOP, ready.pendingEnd?.action)
+    }
+
+    @Test
+    fun theAnswerKeepsWhatWasApprovedAndDropsTheRest() = runTest {
+        val vm = riding()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.confirmEnd(approve = setOf(users.id))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(2, dao.inserted.size)
+        assertEquals(
+            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+        assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
+    }
+
+    @Test
+    fun anAnswerChangedOnTheWayOutIsStoredAsChanged() = runTest {
+        val vm = riding()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        // The question keeps the list it opened with, so editing one does not take it out of the answer.
+        assertEquals(listOf(width, users), (vm.state.value as CriteriaUiState.Ready).pendingEnd?.asked)
+
+        vm.onTap(width, "W_2")
+        vm.confirmEnd(approve = setOf(width.id))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(
+            Selections(mapOf("WIDTH" to setOf("W_2"))),
+            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+        )
+    }
+
+    @Test
+    fun anAnswerChangedOnTheWayOutIsStillDroppedIfItIsThenTurnedDown() = runTest {
+        val vm = riding()
+
+        bothCarriedOverIntoTheNextSegment(vm)
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.onTap(width, "W_2")
+        vm.confirmEnd(approve = emptySet())
+        testScheduler.advanceUntilIdle()
+
+        // Changing a value stands by it there and then; crossing it out afterwards takes that back.
+        assertEquals(1, dao.inserted.size)
+    }
+
+    @Test
+    fun theBoundaryIsWhereTheRiderPressedEndNotWhereTheyAnswered() = runTest {
+        val vm = riding()
+
+        aSegmentThenTheNext(vm)
+        clock += stretch
+        val pressedAt = clock.now()
+
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        // Standing at a junction thinking about it must not lengthen the stretch.
+        clock += stretch
+        vm.confirmEnd(approve = setOf(users.id))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(pressedAt.toEpochMilliseconds(), dao.inserted.last().endedAtEpochMs)
+    }
+
+    @Test
+    fun takingBackTheEndLeavesTheSegmentRunning() = runTest {
+        val vm = riding()
+
+        aSegmentThenTheNext(vm)
+        clock += stretch
+        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.cancelEnd()
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertNull(ready.pendingEnd)
+        assertEquals(Segment.Open(startedAt + stretch, BoundaryKind.EXACT), ready.segment)
+        assertEquals(listOf(users), ready.carriedOver)
+        assertEquals(1, dao.inserted.size)
     }
 
     @Test
@@ -475,6 +583,8 @@ class CriteriaViewModelTest {
         // The next stretch is like the last one, which the rider says by standing by CARS again —
         // without that the segment describes nothing and would be discarded rather than counted.
         vm.onTap(users, "CARS")
+        testScheduler.advanceUntilIdle()
+
         clock += stretch
         vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
         testScheduler.advanceUntilIdle()

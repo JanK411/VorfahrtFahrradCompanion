@@ -47,6 +47,8 @@ internal class CriteriaActions(
     val end: (BoundaryKind, SegmentAction) -> Unit,
     val startRide: () -> Unit,
     val endRide: () -> Unit,
+    val confirmEnd: (Set<String>) -> Unit,
+    val cancelEnd: () -> Unit,
 )
 
 // TODO VF-116: guard an open segment with a LeaveGuard (see ServerConnectionScreen), so navigating away
@@ -72,6 +74,8 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             end = viewModel::end,
             startRide = viewModel::startRide,
             endRide = viewModel::askToEndRide,
+            confirmEnd = viewModel::confirmEnd,
+            cancelEnd = viewModel::cancelEnd,
         )
     }
 
@@ -187,6 +191,19 @@ private fun Catalogue(
 
     // Answer one and the next one comes to you — no scrolling while riding.
     LaunchedEffect(expanded?.id) { bringUp(expanded) }
+
+    state.pendingEnd?.let { pending ->
+        EndSegmentDialog(
+            // The list the question opened with: editing an answer in it approves that criterion,
+            // which would take it out of a list read off the state mid-answer.
+            carriedOver = pending.asked,
+            selections = state.selections,
+            approved = state.approved,
+            onEdit = actions.tap,
+            onConfirm = actions.confirmEnd,
+            onDismiss = actions.cancelEnd,
+        )
+    }
 
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
