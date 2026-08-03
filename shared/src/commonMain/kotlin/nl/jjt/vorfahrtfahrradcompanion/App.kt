@@ -27,6 +27,7 @@ import kotlinx.serialization.Serializable
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaScreen
 import nl.jjt.vorfahrtfahrradcompanion.criteria.ObservationRepository
 import nl.jjt.vorfahrtfahrradcompanion.criteria.Segment
+import nl.jjt.vorfahrtfahrradcompanion.daylight.Daylight
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationScreen
 import nl.jjt.vorfahrtfahrradcompanion.navigation.LocalNavigationGate
@@ -77,7 +78,11 @@ fun App(additionalModules: List<Module> = emptyList()) {
     KoinApplication(
         configuration = koinConfiguration(declaration = { modules(appModules + additionalModules) }),
         content = {
-            AppTheme {
+            // Collected here rather than inside the theme: it stops while the app is in the
+            // background, where nobody is looking at the colours anyway.
+            val night by koinInject<Daylight>().isNight.collectAsStateWithLifecycle(false)
+
+            AppTheme(night) {
                 val navController = rememberNavController()
                 // The screen on display may ask the user before it lets go; see NavigationGate.
                 val gate = remember { NavigationGate() }

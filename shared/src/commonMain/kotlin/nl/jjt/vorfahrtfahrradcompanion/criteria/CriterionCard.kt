@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import nl.jjt.vorfahrtfahrradcompanion.ui.HoldMenuOption
+import nl.jjt.vorfahrtfahrradcompanion.ui.Spotlight
 import nl.jjt.vorfahrtfahrradcompanion.ui.WindowOrigin
 import nl.jjt.vorfahrtfahrradcompanion.ui.holdAndSlide
 import kotlin.math.abs
@@ -256,7 +257,7 @@ private fun SplitHandle(
     ) {
         Knob(pressed)
 
-        if (picking) Popup(WindowOrigin) { ValuePicker(criterion, selected, choice) }
+        if (picking) Popup(WindowOrigin) { Spotlight(lit = true) { ValuePicker(criterion, selected, choice) } }
     }
 }
 
