@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 sealed interface CriteriaUiState {
@@ -22,6 +23,7 @@ sealed interface CriteriaUiState {
         val segment: Segment = Segment.Idle,
         val ride: Ride = Ride.Idle,
         val saveState: SaveState = SaveState.Idle,
+        val pendingTiming: TimingRequest? = null,
         val pendingEnd: EndRequest? = null,
     ) : CriteriaUiState {
 
@@ -58,8 +60,15 @@ sealed interface CriteriaUiState {
 }
 
 /**
+ * An end the rider has pressed for but not said the timing of yet. [at] is the press, so the boundary
+ * keeps its moment however long they take over the answer.
+ */
+data class TimingRequest(val action: SegmentAction, val at: Instant)
+
+/**
  * An end the rider has asked for but not answered for yet. [at] is when they pressed the button — the
- * boundary belongs there, not to wherever the answering ends up.
+ * boundary belongs there, not to wherever the answering ends up, give or take the step back an end
+ * marked late takes.
  *
  * [asked] holds the criteria the question puts up for a decision, as they were when it was raised.
  * Editing one in the question approves it there and then, which would drop it out of a list derived from
@@ -172,14 +181,31 @@ class CriteriaViewModel(
     fun start(kind: BoundaryKind) = observations.start(kind)
 
     /**
-     * The rider pressing End or Start next. The boundary is stamped here, at the press, because what
-     * follows may be a question — and a rider standing at a junction must not have their answer time
-     * added to the stretch. See [ObservationRepository.end] for what [action] does.
+     * The rider pressing End or Start next. How well the press hit the boundary decides whether the
+     * stretch is worth keeping at all, so it is asked as a [CriteriaUiState.Ready.pendingTiming] before
+     * anything else happens — see [answerTiming]. The boundary is stamped here, at the press.
+     * See [ObservationRepository.end] for what [action] does.
      */
-    fun end(kind: BoundaryKind, action: SegmentAction) {
+    fun end(action: SegmentAction) {
         if (!canEnd()) return
-        ask(EndRequest(kind, action, observations.now))
+        updateReady { copy(pendingTiming = TimingRequest(action, observations.now)) }
     }
+
+    /** The same press, with [timing] already answered on the button itself, which skips the question. */
+    fun endAs(action: SegmentAction, timing: EndTiming) {
+        if (!canEnd()) return
+        finish(TimingRequest(action, observations.now), timing)
+    }
+
+    /** The rider answering how well they hit the boundary, in the question the press raised. */
+    fun answerTiming(timing: EndTiming) {
+        val request = (_state.value as? CriteriaUiState.Ready)?.pendingTiming ?: return
+        updateReady { copy(pendingTiming = null) }
+        finish(request, timing)
+    }
+
+    /** Takes back the end before it was timed, leaving the segment running. */
+    fun cancelTiming() = updateReady { copy(pendingTiming = null) }
 
     /** Nothing to end while one end is already being answered for, or being stored. */
     private fun canEnd(): Boolean {
@@ -187,7 +213,21 @@ class CriteriaViewModel(
         // Asked of the repository rather than the state, which only catches up with it a dispatch later.
         return observations.draft.value.segment is Segment.Open &&
             ready.saveState !is SaveState.InFlight &&
+            ready.pendingTiming == null &&
             ready.pendingEnd == null
+    }
+
+    /** Turns a timed press into the end it stands for: a boundary, a step back, or nothing at all. */
+    private fun finish(request: TimingRequest, timing: EndTiming) {
+        // Missed by longer than the grace: there is no telling where the stretch ended, so it is thrown
+        // away rather than stored over ground it may well not cover.
+        if (timing == EndTiming.TOO_LATE) {
+            if (observations.discardSegment()) _outcomes.tryEmit(SegmentOutcome.TOO_LATE)
+            return
+        }
+
+        val at = request.at - if (timing == EndTiming.SLIGHTLY_LATE) LateEndGrace else Duration.ZERO
+        ask(EndRequest(timing.boundary, request.action, at))
     }
 
     /** Stores the segment, or asks about the criteria still carried over if there are any. */

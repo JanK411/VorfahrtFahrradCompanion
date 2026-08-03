@@ -22,6 +22,9 @@ enum class SegmentOutcome {
 
     /** Ended with nothing approved, so there was nothing to describe the stretch with. */
     NOTHING_TO_STORE,
+
+    /** Ended so long after the boundary that there was no saying where the stretch ended. */
+    TOO_LATE,
 }
 
 /**
@@ -115,6 +118,17 @@ class ObservationRepository(
         _draft.update { it.copy(selections = previous.selections, approved = previous.approved) }
     }
 
+    /**
+     * Throws the open segment away: nothing is stored, and nothing of it is carried into what comes
+     * next. Reports whether there was anything to throw away.
+     */
+    fun discardSegment(): Boolean {
+        if (_draft.value.segment !is Segment.Open) return false
+        replaced = null
+        _draft.value = Draft()
+        return true
+    }
+
     /** Marks the start of a segment. Ignored while one is already open. */
     fun start(kind: BoundaryKind) = _draft.update {
         if (it.segment is Segment.Open) it else it.copy(segment = Segment.Open(clock.now(), kind))
@@ -149,13 +163,16 @@ class ObservationRepository(
         val rideId = rides.openId ?: return null
         val values = draft.selections.retain(draft.approved).compact()
 
+        // A boundary moved back for a missed moment must not land before the segment began.
+        val boundary = maxOf(endedAt, open.startedAt)
+
         if (!values.isEmpty()) {
             dao.insert(
                 ObservationEntity(
                     rideId = rideId,
                     startedAtEpochMs = open.startedAt.toEpochMilliseconds(),
                     startKind = open.startKind,
-                    endedAtEpochMs = endedAt.toEpochMilliseconds(),
+                    endedAtEpochMs = boundary.toEpochMilliseconds(),
                     endKind = kind,
                     valuesJson = Json.encodeToString(values),
                 ),
@@ -165,7 +182,7 @@ class ObservationRepository(
         replaced = null
         _draft.update {
             if (action == SegmentAction.START_NEXT) {
-                it.copy(segment = Segment.Open(endedAt, kind), approved = emptySet())
+                it.copy(segment = Segment.Open(boundary, kind), approved = emptySet())
             } else {
                 Draft()
             }

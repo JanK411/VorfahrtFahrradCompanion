@@ -5,8 +5,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,14 +17,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import nl.jjt.vorfahrtfahrradcompanion.ui.HoldMenuOption
+import nl.jjt.vorfahrtfahrradcompanion.ui.WindowOrigin
+import nl.jjt.vorfahrtfahrradcompanion.ui.holdAndSlide
 import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -44,7 +54,10 @@ internal class CriteriaActions(
     val approveAll: () -> Unit,
     val undo: () -> Unit,
     val start: (BoundaryKind) -> Unit,
-    val end: (BoundaryKind, SegmentAction) -> Unit,
+    val end: (SegmentAction) -> Unit,
+    val endAs: (SegmentAction, EndTiming) -> Unit,
+    val answerTiming: (EndTiming) -> Unit,
+    val cancelTiming: () -> Unit,
     val startRide: () -> Unit,
     val endRide: () -> Unit,
     val confirmEnd: (Set<String>) -> Unit,
@@ -72,6 +85,9 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             undo = viewModel::undo,
             start = viewModel::start,
             end = viewModel::end,
+            endAs = viewModel::endAs,
+            answerTiming = viewModel::answerTiming,
+            cancelTiming = viewModel::cancelTiming,
             startRide = viewModel::startRide,
             endRide = viewModel::askToEndRide,
             confirmEnd = viewModel::confirmEnd,
@@ -116,6 +132,8 @@ private fun Catalogue(
                 when (outcome) {
                     SegmentOutcome.SAVED -> "Segment saved"
                     SegmentOutcome.NOTHING_TO_STORE -> "Nothing approved — segment discarded"
+                    SegmentOutcome.TOO_LATE ->
+                        "More than ${LateEndGrace.inWholeSeconds} s late — segment discarded"
                 },
             )
         }
@@ -191,6 +209,14 @@ private fun Catalogue(
 
     // Answer one and the next one comes to you — no scrolling while riding.
     LaunchedEffect(expanded?.id) { bringUp(expanded) }
+
+    state.pendingTiming?.let {
+        EndTimingDialog(
+            action = it.action,
+            onAnswer = actions.answerTiming,
+            onDismiss = actions.cancelTiming,
+        )
+    }
 
     state.pendingEnd?.let { pending ->
         EndSegmentDialog(
@@ -302,10 +328,23 @@ private fun Catalogue(
             if (state.ride !is Ride.Open) {
                 Button(actions.startRide, Modifier.fillMaxWidth(), enabled) { Text("Start ride") }
             } else when (val segment = state.segment) {
+                // Two buttons rather than one behind a hold: where a segment begins is a decision, not
+                // a correction, and a rider who has already ridden onto the new stretch should not
+                // have to hold anything down to say so.
                 Segment.Idle -> {
                     ButtonRow {
-                        RecorderButton("Start now", enabled, BoundaryKind.EXACT, actions.start)
-                        RecorderButton("Started earlier", enabled, BoundaryKind.EARLIER, actions.start)
+                        RecorderButton(
+                            label = "Start precise",
+                            icon = Icons.Filled.Place,
+                            enabled = enabled,
+                            onTap = { actions.start(BoundaryKind.EXACT) },
+                        )
+                        RecorderButton(
+                            label = "Start earlier",
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
+                            enabled = enabled,
+                            onTap = { actions.start(BoundaryKind.EARLIER) },
+                        )
                     }
                     // Only offered between segments: a ride ends where the last stretch of it did.
                     OutlinedButton(actions.endRide, Modifier.fillMaxWidth(), enabled) { Text("End ride") }
@@ -319,20 +358,18 @@ private fun Catalogue(
                         total = state.catalogue.criteria.size,
                     )
                     ButtonRow {
-                        RecorderButton("End now", enabled, BoundaryKind.EXACT) {
-                            actions.end(it, SegmentAction.STOP)
-                        }
-                        RecorderButton("End now, start next", enabled, BoundaryKind.EXACT) {
-                            actions.end(it, SegmentAction.START_NEXT)
-                        }
-                    }
-                    ButtonRow {
-                        RecorderButton("Ended earlier", enabled, BoundaryKind.EARLIER) {
-                            actions.end(it, SegmentAction.STOP)
-                        }
-                        RecorderButton("Ended earlier, start next", enabled, BoundaryKind.EARLIER) {
-                            actions.end(it, SegmentAction.START_NEXT)
-                        }
+                        RecorderButton(
+                            label = "End",
+                            enabled = enabled,
+                            onTap = { actions.end(SegmentAction.STOP) },
+                            onPick = { actions.endAs(SegmentAction.STOP, it) },
+                        )
+                        RecorderButton(
+                            label = "Start next",
+                            enabled = enabled,
+                            onTap = { actions.end(SegmentAction.START_NEXT) },
+                            onPick = { actions.endAs(SegmentAction.START_NEXT, it) },
+                        )
                     }
                 }
             }
@@ -422,27 +459,130 @@ private fun ButtonRow(content: @Composable RowScope.() -> Unit) = Row(
     content = content,
 )
 
+private val ActionButtonHeight = 72.dp
+
+/** How far above the button the stack of answers starts, and how far in from the sides it sits. */
+private val MenuGap = 12.dp
+
+/** Bottom to top, so the further the thumb travels, the later the press was. */
+private val TimingCards = EndTiming.entries.reversed()
+
 /**
- * One boundary marker, styled after the [kind] it records: filled for "I pressed at the boundary", amber
- * outline for the "it already happened earlier" correction a rider reaches for after missing the moment.
+ * A boundary marker. A tap marks the boundary here and now; where there is an [onPick], holding it says
+ * something about the moment that has passed — the correction a rider reaches for after missing it, on
+ * the same button rather than beside it.
+ *
+ * Holding answers the question a tap would raise as a dialog: how well the press caught the boundary
+ * decides whether the segment is worth keeping, so the hold fills the screen above the thumb with the
+ * three answers and the rider slides straight up onto one and lets go, in one movement, the way a
+ * phone's quick launch works. Lifting off without having gone anywhere leaves the segment alone.
+ *
+ * Built out of a Surface because a Button has room for neither a long press nor what follows it.
  */
 @Composable
 private fun RowScope.RecorderButton(
     label: String,
     enabled: Boolean,
-    kind: BoundaryKind,
-    onClick: (BoundaryKind) -> Unit,
+    onTap: () -> Unit,
+    icon: ImageVector? = null,
+    onPick: ((EndTiming) -> Unit)? = null,
 ) {
-    val modifier = Modifier.weight(1f).fillMaxHeight()
-    val text = @Composable { Text(label, textAlign = TextAlign.Center) }
+    val haptics = LocalHapticFeedback.current
+    val scheme = MaterialTheme.colorScheme
+    val gapPx = with(LocalDensity.current) { MenuGap.toPx() }
 
-    when (kind) {
-        BoundaryKind.EXACT -> Button({ onClick(kind) }, modifier, enabled) { text() }
-        BoundaryKind.EARLIER -> OutlinedButton(
-            { onClick(kind) },
-            modifier,
-            enabled,
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.tertiary),
-        ) { text() }
+    // Where the button's top edge sits in the window — the stack fills everything above it, and the
+    // slide is measured against exactly that, so the card that lights up is the one under the thumb.
+    var buttonTop by remember { mutableFloatStateOf(0f) }
+    val stackPx = buttonTop - gapPx
+
+    var picking by remember { mutableStateOf(false) }
+    var choice by remember { mutableStateOf<EndTiming?>(null) }
+
+    Surface(
+        modifier = Modifier.weight(1f).heightIn(min = ActionButtonHeight).fillMaxHeight()
+            .onGloballyPositioned { buttonTop = it.positionInWindow().y }
+            .holdAndSlide(
+                key = onPick,
+                enabled = enabled,
+                onTap = {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                    onTap()
+                },
+                onHold = onPick?.let {
+                    {
+                        // The heavier buzz, so the two gestures feel apart without a look at the screen.
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        picking = true
+                    }
+                },
+                onSlide = { position ->
+                    // Measured off the button's top edge, which is where the stack is anchored — not
+                    // off the press, which lands anywhere on the button.
+                    val slid = cardUnder(-position.y, stackPx, gapPx)
+                    if (slid != choice) {
+                        choice = slid
+                        // A tick as the thumb crosses onto an answer, since it covers the screen.
+                        if (slid != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                    }
+                },
+                onRelease = {
+                    picking = false
+                    choice?.let { onPick?.invoke(it) }
+                    choice = null
+                },
+            ),
+        shape = ButtonDefaults.shape,
+        color = if (enabled) scheme.primary else scheme.onSurface.copy(alpha = 0.12f),
+        contentColor = if (enabled) scheme.onPrimary else scheme.onSurface.copy(alpha = 0.38f),
+    ) {
+        Box(Modifier.fillMaxSize().padding(8.dp), contentAlignment = Alignment.Center) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(24.dp)) }
+                Text(label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            }
+
+            if (picking) {
+                Popup(WindowOrigin) {
+                    HowLatePicker(choice, with(LocalDensity.current) { stackPx.toDp() })
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Which card the thumb is on, from how far above the button's top edge it has got: the [stack] is the
+ * whole screen above the button, split three ways, so the only aim asked for is how far up to slide.
+ * Below the stack is no answer at all; past the top one the answer stays on it, since the thumb cannot
+ * be anywhere else.
+ */
+private fun cardUnder(aboveButton: Float, stack: Float, gap: Float): EndTiming? {
+    if (stack <= 0f || aboveButton < gap) return null
+    val index = ((aboveButton - gap) / (stack / TimingCards.size)).toInt()
+    return TimingCards.getOrElse(index) { TimingCards.last() }
+}
+
+/**
+ * The three answers, filling the screen above the thumb that is still holding the button down: a third
+ * of it each, so none of them can be missed by a thumb that slid roughly the right distance.
+ */
+@Composable
+private fun HowLatePicker(choice: EndTiming?, height: Dp) = Column(
+    modifier = Modifier.fillMaxWidth().height(height).padding(horizontal = MenuGap),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+) {
+    TimingCards.forEach { timing ->
+        HoldMenuOption(
+            title = timing.title,
+            icon = timing.icon,
+            selected = timing == choice,
+            selectedColor = timing.color,
+            selectedContentColor = timing.onColor,
+            modifier = Modifier.weight(1f),
+        )
     }
 }

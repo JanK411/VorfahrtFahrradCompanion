@@ -143,7 +143,7 @@ class CriteriaViewModelTest {
 
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         assertEquals(startedAt.toEpochMilliseconds(), stored.startedAtEpochMs)
@@ -164,7 +164,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EARLIER)
         clock += stretch
-        vm.end(BoundaryKind.EARLIER, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.SLIGHTLY_LATE)
         testScheduler.advanceUntilIdle()
 
         assertEquals(BoundaryKind.EARLIER, stored.startKind)
@@ -175,7 +175,7 @@ class CriteriaViewModelTest {
     fun endingWithoutAStartIsIgnored() = runTest {
         val vm = riding()
 
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         assertEquals(emptyList(), dao.inserted)
@@ -202,12 +202,13 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EARLIER, action = SegmentAction.START_NEXT)
+        vm.endAs(SegmentAction.START_NEXT, EndTiming.SLIGHTLY_LATE)
         testScheduler.advanceUntilIdle()
 
-        // The end of one stretch is the start of the next — including how late it was marked.
+        // The end of one stretch is the start of the next — including how late it was marked, and the
+        // step back that being late is worth.
         val segment = (vm.state.value as CriteriaUiState.Ready).segment
-        assertEquals(Segment.Open(startedAt + stretch, BoundaryKind.EARLIER), segment)
+        assertEquals(Segment.Open(startedAt + stretch - LateEndGrace, BoundaryKind.EARLIER), segment)
         assertEquals(BoundaryKind.EARLIER, stored.endKind)
     }
 
@@ -219,7 +220,7 @@ class CriteriaViewModelTest {
         // The second stretch is described by WIDTH alone; CARS is last segment's answer, never stood by.
         vm.onTap(width, "W_1")
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         vm.confirmEnd(approve = emptySet())
         testScheduler.advanceUntilIdle()
 
@@ -285,7 +286,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         // Ending the survey outright: whatever is described next starts from scratch.
@@ -302,7 +303,7 @@ class CriteriaViewModelTest {
 
         aSegmentThenTheNext(vm)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         vm.confirmEnd(approve = emptySet())
         testScheduler.advanceUntilIdle()
 
@@ -312,12 +313,120 @@ class CriteriaViewModelTest {
     }
 
     @Test
+    fun pressingEndAsksHowWellItWasCaughtBeforeStoringAnything() = runTest {
+        val vm = riding()
+
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += stretch
+        vm.end(SegmentAction.STOP)
+        testScheduler.advanceUntilIdle()
+
+        // Nothing is stored on the press alone — the segment waits on the timing.
+        assertEquals(emptyList(), dao.inserted)
+        assertEquals(SegmentAction.STOP, (vm.state.value as CriteriaUiState.Ready).pendingTiming?.action)
+
+        vm.answerTiming(EndTiming.PRECISE)
+        testScheduler.advanceUntilIdle()
+
+        assertNull((vm.state.value as CriteriaUiState.Ready).pendingTiming)
+        assertEquals(BoundaryKind.EXACT, stored.endKind)
+    }
+
+    @Test
+    fun theBoundaryIsWhereTheRiderPressedEndNotWhereTheyAnsweredTheTiming() = runTest {
+        val vm = riding()
+
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += stretch
+        val pressedAt = clock.now()
+
+        vm.end(SegmentAction.STOP)
+        // Answering takes a while — the boundary must not travel with it.
+        clock += stretch
+        vm.answerTiming(EndTiming.SLIGHTLY_LATE)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals((pressedAt - LateEndGrace).toEpochMilliseconds(), stored.endedAtEpochMs)
+        assertEquals(BoundaryKind.EARLIER, stored.endKind)
+    }
+
+    @Test
+    fun takingBackTheTimingLeavesTheSegmentRunning() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += stretch
+        vm.end(SegmentAction.STOP)
+        vm.cancelTiming()
+        testScheduler.advanceUntilIdle()
+
+        val ready = vm.state.value as CriteriaUiState.Ready
+        assertNull(ready.pendingTiming)
+        assertEquals(emptyList(), dao.inserted)
+        assertEquals(Segment.Open(startedAt, BoundaryKind.EXACT), ready.segment)
+    }
+
+    @Test
+    fun anEndMissedByLongerThanTheGraceThrowsTheSegmentAway() = runTest {
+        val vm = vm()
+        testScheduler.advanceUntilIdle()
+        val outcomes = record(vm.outcomes)
+
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        clock += stretch
+        vm.endAs(SegmentAction.STOP, EndTiming.TOO_LATE)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), dao.inserted)
+        assertEquals(listOf(SegmentOutcome.TOO_LATE), outcomes)
+        assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
+    }
+
+    @Test
+    fun aLateEndStillAsksAboutWhatIsCarriedOver() = runTest {
+        val vm = riding()
+
+        aSegmentThenTheNext(vm)
+        clock += stretch
+        val pressedAt = clock.now()
+
+        vm.endAs(SegmentAction.STOP, EndTiming.SLIGHTLY_LATE)
+
+        // The slide answers one question; what is carried over is still the other, and the step back
+        // survives it.
+        assertNotNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
+
+        vm.confirmEnd(approve = setOf(users.id))
+        testScheduler.advanceUntilIdle()
+        assertEquals((pressedAt - LateEndGrace).toEpochMilliseconds(), dao.inserted.last().endedAtEpochMs)
+    }
+
+    @Test
+    fun anEndCannotLandBeforeItsOwnStart() = runTest {
+        val vm = riding()
+
+        vm.onTap(users, "CARS")
+        vm.start(BoundaryKind.EXACT)
+        // Ended late within a second of starting: the step back would reach behind the start.
+        vm.endAs(SegmentAction.STOP, EndTiming.SLIGHTLY_LATE)
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(startedAt.toEpochMilliseconds(), stored.endedAtEpochMs)
+        assertEquals(stored.startedAtEpochMs, stored.endedAtEpochMs)
+    }
+
+    @Test
     fun endingWithCarriedOverValuesAsksBeforeStoringAnything() = runTest {
         val vm = riding()
 
         aSegmentThenTheNext(vm)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         // Only the first segment is stored; the second waits on an answer.
@@ -334,7 +443,7 @@ class CriteriaViewModelTest {
 
         bothCarriedOverIntoTheNextSegment(vm)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         vm.confirmEnd(approve = setOf(users.id))
         testScheduler.advanceUntilIdle()
 
@@ -352,7 +461,7 @@ class CriteriaViewModelTest {
 
         bothCarriedOverIntoTheNextSegment(vm)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         // The question keeps the list it opened with, so editing one does not take it out of the answer.
@@ -374,7 +483,7 @@ class CriteriaViewModelTest {
 
         bothCarriedOverIntoTheNextSegment(vm)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         vm.onTap(width, "W_2")
         vm.confirmEnd(approve = emptySet())
         testScheduler.advanceUntilIdle()
@@ -391,7 +500,7 @@ class CriteriaViewModelTest {
         clock += stretch
         val pressedAt = clock.now()
 
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         // Standing at a junction thinking about it must not lengthen the stretch.
         clock += stretch
         vm.confirmEnd(approve = setOf(users.id))
@@ -406,7 +515,7 @@ class CriteriaViewModelTest {
 
         aSegmentThenTheNext(vm)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         vm.cancelEnd()
         testScheduler.advanceUntilIdle()
 
@@ -447,7 +556,7 @@ class CriteriaViewModelTest {
         assertEquals(listOf(width, users), ready.describing)
 
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         assertEquals(
@@ -527,7 +636,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.START_NEXT)
+        vm.endAs(SegmentAction.START_NEXT, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
     }
 
@@ -538,7 +647,7 @@ class CriteriaViewModelTest {
 
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         assertEquals(emptyList(), dao.inserted)
@@ -551,7 +660,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         assertEquals(storedRide.id, stored.rideId)
@@ -577,7 +686,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.START_NEXT)
+        vm.endAs(SegmentAction.START_NEXT, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         // The next stretch is like the last one, which the rider says by standing by CARS again —
@@ -586,7 +695,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
         vm.askToEndRide()
@@ -661,7 +770,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.STOP)
+        vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
     }
 
@@ -671,7 +780,7 @@ class CriteriaViewModelTest {
         vm.onTap(users, "CARS")
         vm.start(BoundaryKind.EXACT)
         clock += stretch
-        vm.end(BoundaryKind.EXACT, SegmentAction.START_NEXT)
+        vm.endAs(SegmentAction.START_NEXT, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
     }
 }
