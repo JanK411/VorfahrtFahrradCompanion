@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationEntity
+import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideDao
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -26,6 +27,7 @@ data class Draft(val segment: Segment = Segment.Idle, val selections: Selections
  */
 class ObservationRepository(
     private val dao: ObservationDao,
+    private val rides: RideDao,
     private val clock: Clock = Clock.System,
 ) {
     private val _draft = MutableStateFlow(Draft())
@@ -40,17 +42,20 @@ class ObservationRepository(
     }
 
     /**
-     * Stores the open segment. With [action] = [SegmentAction.START_NEXT] the next segment opens on the
-     * same instant and inherits [kind] — it is the same boundary, so a late end means a late start too.
-     * Selections are kept either way: consecutive stretches of path usually differ in only one criterion.
-     * Ignored while idle.
+     * Stores the open segment against the ride it was recorded during. With [action] =
+     * [SegmentAction.START_NEXT] the next segment opens on the same instant and inherits [kind] — it is
+     * the same boundary, so a late end means a late start too. Selections are kept either way:
+     * consecutive stretches of path usually differ in only one criterion. Ignored while idle, and
+     * ignored outside a ride: a stretch of path with no outing around it has nothing to belong to.
      */
     suspend fun end(kind: BoundaryKind, action: SegmentAction) {
         val open = _draft.value.segment as? Segment.Open ?: return
+        val rideId = rides.open()?.id ?: return
         val endedAt = clock.now()
 
         dao.insert(
             ObservationEntity(
+                rideId = rideId,
                 startedAtEpochMs = open.startedAt.toEpochMilliseconds(),
                 startKind = open.startKind,
                 endedAtEpochMs = endedAt.toEpochMilliseconds(),

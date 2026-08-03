@@ -7,6 +7,8 @@ import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheEntity
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
 import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationEntity
+import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideDao
+import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideEntity
 import nl.jjt.vorfahrtfahrradcompanion.patchnotes.db.PatchNotesStateDao
 import nl.jjt.vorfahrtfahrradcompanion.patchnotes.db.PatchNotesStateEntity
 
@@ -16,8 +18,9 @@ import nl.jjt.vorfahrtfahrradcompanion.patchnotes.db.PatchNotesStateEntity
         PatchNotesStateEntity::class,
         CatalogueCacheEntity::class,
         ObservationEntity::class,
+        RideEntity::class,
     ],
-    version = 5,
+    version = 6,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -25,4 +28,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun patchNotesStateDao(): PatchNotesStateDao
     abstract fun catalogueCacheDao(): CatalogueCacheDao
     abstract fun observationDao(): ObservationDao
+    abstract fun rideDao(): RideDao
 }

@@ -5,6 +5,7 @@ import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaViewModel
 import nl.jjt.vorfahrtfahrradcompanion.criteria.KtorCriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.criteria.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.criteria.RideRepository
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationViewModel
 import nl.jjt.vorfahrtfahrradcompanion.net.createHttpClient
 import nl.jjt.vorfahrtfahrradcompanion.patchnotes.PatchNotesRepository
@@ -25,9 +26,11 @@ val locationModule = module {
 val criteriaModule = module {
     single { get<AppDatabase>().catalogueCacheDao() }
     single { get<AppDatabase>().observationDao() }
+    single { get<AppDatabase>().rideDao() }
     single<CriteriaApi> { CachingCriteriaApi(KtorCriteriaApi(get(), get()), get(), get(), get()) }
-    single { ObservationRepository(get()) }
-    viewModel { CriteriaViewModel(get(), get()) }
+    single { ObservationRepository(get(), get()) }
+    single { RideRepository(get(), get()) }
+    viewModel { CriteriaViewModel(get(), get(), get()) }
 }
 
 /** [AppDatabase] itself is bound per platform — its builder needs a platform context. */

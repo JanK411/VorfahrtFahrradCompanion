@@ -15,6 +15,7 @@ sealed interface CriteriaUiState {
         val catalogue: Catalogue,
         val selections: Selections = Selections(),
         val segment: Segment = Segment.Idle,
+        val ride: Ride = Ride.Idle,
         val saveState: SaveState = SaveState.Idle,
     ) : CriteriaUiState
 }
@@ -28,10 +29,18 @@ sealed interface SaveState {
 class CriteriaViewModel(
     private val api: CriteriaApi,
     private val observations: ObservationRepository,
+    private val rides: RideRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<CriteriaUiState>(CriteriaUiState.Loading)
     val state: StateFlow<CriteriaUiState> = _state.asStateFlow()
+
+    /**
+     * The ride the rider is being asked to sign off, or null while none is being ended. It sits beside
+     * [state] rather than inside it because it is an overlay on the screen, not a state of the screen.
+     */
+    private val _endingRide = MutableStateFlow<RideSummary?>(null)
+    val endingRide: StateFlow<RideSummary?> = _endingRide.asStateFlow()
 
     init {
         load()
@@ -39,6 +48,9 @@ class CriteriaViewModel(
             observations.draft.collect { draft ->
                 updateReady { copy(selections = draft.selections, segment = draft.segment) }
             }
+        }
+        viewModelScope.launch {
+            rides.ride.collect { ride -> updateReady { copy(ride = ride) } }
         }
     }
 
@@ -48,6 +60,31 @@ class CriteriaViewModel(
     fun onSelect(criterion: Criterion, value: String) {
         observations.select(criterion, value)
         updateReady { copy(saveState = SaveState.Idle) }
+    }
+
+    /** Opens the ride the segments will be recorded into. */
+    fun startRide() {
+        viewModelScope.launch { rides.start() }
+    }
+
+    /**
+     * Asks the rider to sign the open ride off, showing what it came to. The ride ends here, at the
+     * press, not wherever the summary is finally saved — the same rule the segment boundary follows.
+     */
+    fun askToEndRide() {
+        viewModelScope.launch { _endingRide.value = rides.summary(rides.now) }
+    }
+
+    /** Leaves the summary without closing the ride, which goes on running untouched. */
+    fun cancelEndRide() {
+        _endingRide.value = null
+    }
+
+    /** Closes the ride being signed off under [name]; see [RideRepository.end]. */
+    fun saveRide(name: String?) {
+        val summary = _endingRide.value ?: return
+        _endingRide.value = null
+        viewModelScope.launch { rides.end(summary.endedAt, name) }
     }
 
     fun start(kind: BoundaryKind) = observations.start(kind)
@@ -74,7 +111,7 @@ class CriteriaViewModel(
         viewModelScope.launch {
             _state.value = try {
                 val draft = observations.draft.value
-                CriteriaUiState.Ready(api.catalogue(), draft.selections, draft.segment)
+                CriteriaUiState.Ready(api.catalogue(), draft.selections, draft.segment, rides.current())
             } catch (e: Exception) {
                 CriteriaUiState.Failed(e.message ?: "Could not load the criterion catalogue")
             }

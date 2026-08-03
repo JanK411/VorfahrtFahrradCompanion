@@ -63,3 +63,29 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         )
     }
 }
+
+/**
+ * v5 → v6: adds the `rides` table and makes every observation belong to one. Destructive, like the
+ * v4 → v5 reshape before it: an observation recorded before rides existed has no ride to be attached to,
+ * and the app is still in testing, so those rows are dropped rather than folded into an invented ride.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("DROP TABLE IF EXISTS `observations`")
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `rides` " +
+                "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startedAtEpochMs` INTEGER NOT NULL, " +
+                "`endedAtEpochMs` INTEGER, `name` TEXT)",
+        )
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `observations` " +
+                "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `rideId` INTEGER NOT NULL, " +
+                "`startedAtEpochMs` INTEGER NOT NULL, `startKind` TEXT NOT NULL, " +
+                "`endedAtEpochMs` INTEGER NOT NULL, `endKind` TEXT NOT NULL, `valuesJson` TEXT NOT NULL, " +
+                "FOREIGN KEY(`rideId`) REFERENCES `rides`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_observations_rideId` ON `observations` (`rideId`)",
+        )
+    }
+}
