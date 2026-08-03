@@ -13,6 +13,8 @@ import com.google.android.gms.location.Priority
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import kotlin.time.Instant
 
 class AndroidLocationProvider(private val context: Context) : LocationProvider {
@@ -39,6 +41,17 @@ class AndroidLocationProvider(private val context: Context) : LocationProvider {
         client.requestLocationUpdates(request, callback, Looper.getMainLooper())
 
         awaitClose { client.removeLocationUpdates(callback) }
+    }
+
+    @SuppressLint("MissingPermission") // guarded below
+    override suspend fun lastKnown(): Location? {
+        if (!hasLocationPermission()) return null
+        return suspendCancellableCoroutine { continuation ->
+            client.lastLocation
+                .addOnSuccessListener { continuation.resume(it?.toLocation()) }
+                // A position nobody asked the hardware for is never worth failing over.
+                .addOnFailureListener { continuation.resume(null) }
+        }
     }
 
     private fun hasLocationPermission() =
