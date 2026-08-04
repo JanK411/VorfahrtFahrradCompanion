@@ -2,8 +2,16 @@
 
 ## Project
 
-Kotlin Multiplatform + Compose Multiplatform. Still at the KMP wizard template stage — only domain code is the
-`Greeting`/`Platform` sample. Package `nl.jjt.vorfahrtfahrradcompanion`.
+Kotlin Multiplatform + Compose Multiplatform. Package `nl.jjt.vorfahrtfahrradcompanion`.
+
+A survey tool for cycling infrastructure, filled in from the handlebars while riding. The rider starts a **ride**, and
+records it as a sequence of **segments**; each segment is described by answering the **criteria** of a catalogue fetched
+from the server (cached in Room for offline use). Answers carry over from one segment to the next as suggestions that
+have to be approved. Observations are stored locally — there is no upload yet.
+
+Three bottom-bar tabs — criteria, ride, settings — over `commonMain` packages: `criteria/` (catalogue, recording, the
+criteria screen), `location/` (GPS), `daylight/` (sunset where the rider is, driving screen dimming), `settings/`
+(server connection, Room `AppDatabase` and migrations), `patchnotes/`, `navigation/`, `net/`, `ui/`, `di/`.
 
 **Android is the only target being developed.** iOS exists to keep a future port cheap.
 
@@ -15,7 +23,8 @@ Kotlin Multiplatform + Compose Multiplatform. Still at the KMP wizard template s
 ./gradlew :shared:testAndroidHostTest --tests "*.SharedCommonTest.example"
 ```
 
-iOS tasks need macOS and are not part of the workflow. On Linux, verify iOS-affecting changes by compiling `:shared`.
+iOS tasks need macOS and are not part of the workflow. On Linux, verify iOS-affecting changes with
+`./gradlew :shared:compileIosMainKotlinMetadata` — it compiles `iosMain` without a Mac.
 
 ## Architecture
 
