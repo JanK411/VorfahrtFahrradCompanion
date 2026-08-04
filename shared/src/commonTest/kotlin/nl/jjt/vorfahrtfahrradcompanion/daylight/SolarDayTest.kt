@@ -20,7 +20,7 @@ private const val TROMSO_LONGITUDE = 18.96
 /** Published rise and set times are quoted to the minute; a few either way is neither here nor there. */
 private val TOLERANCE = 4.minutes
 
-class SunTest {
+class SolarDayTest {
 
     @Test
     fun midsummerInAmsterdamRunsFromQuarterPastFiveToJustAfterTen() {

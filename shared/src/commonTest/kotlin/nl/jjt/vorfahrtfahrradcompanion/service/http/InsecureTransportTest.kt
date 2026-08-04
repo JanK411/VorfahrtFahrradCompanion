@@ -3,7 +3,7 @@ package nl.jjt.vorfahrtfahrradcompanion.service.http
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class TransportSecurityTest {
+class InsecureTransportTest {
 
     @Test
     fun classifiesHosts() {
