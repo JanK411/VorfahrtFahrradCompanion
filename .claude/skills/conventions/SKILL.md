@@ -40,6 +40,7 @@ domain/settings     Settings
 service/http        HttpClient, HttpClientEngine (expect/actual), TransportSecurity, BaseUrl
 service/criteria    CriteriaApi, KtorCriteriaApi, CachingCriteriaApi, CatalogueDto
 service/connection  ConnectionTester
+ui/navigation       Routes, NavigationGate/LeaveGuard, ConfirmPrompt
 ui/theme            AppTheme, Spotlight, LocalNight, BicycleIcon
 ui/common           HoldMenu, ElapsedSeconds, TimeOfDay, DimWhenIdle, KeepScreenAwake, SystemBarIcons
 ui/criteria         CriteriaScreen and its cards, buttons, dialogs, CriteriaViewModel
@@ -49,7 +50,6 @@ ui/settings         SettingsScreen, ServerConnectionScreen, ServerConnectionView
 location            Location, LocationProvider, LocationPermissions, LocationSettings + Android*/Ios*
 platform            ScreenAwake, ScreenBrightness, SystemBars, SystemCacheMarker + Android*/Ios*
 daylight            Sun, Daylight
-navigation          Routes, NavigationGate/LeaveGuard, ConfirmPrompt
 di                  AppModules, AndroidModule
 testing             (commonTest only) the fakes
 ```
@@ -59,12 +59,12 @@ testing             (commonTest only) the fakes
 ### What may depend on what
 
 - **`domain` depends on nothing else in the app**, and on no framework: no `db`, `service`, `ui`,
-  `navigation`, `di`, and no Room, Ktor, Compose or Lifecycle. It declares the interfaces it needs and
+  `di`, and no Room, Ktor, Compose or Lifecycle. It declares the interfaces it needs and
   lets `db` implement them.
 - Everything else may depend on `db`. Only `domain` is held to purity.
 - `androidx.room` appears only under `db`.
 - A `<X>Dao` is used only inside its own `db/<feature>` package. Everything outside talks to a Store.
-- `@Composable` only under `ui`, `navigation`, `location` (the permission state) and `App.kt`.
+- `@Composable` only under `ui`, `location` (the permission state) and `App.kt`.
 - No `java.*`, `android.*` or `javax.*` in `commonMain`.
 
 ## Naming
@@ -114,7 +114,7 @@ Each suffix means one thing, everywhere:
 
 ### UI
 
-- Routed destinations end in `Screen` and are reachable from `navigation/Routes.kt`.
+- Routed destinations end in `Screen` and are reachable from `ui/navigation/Routes.kt`.
 - Anything shown in a dialog or sheet ends in `Dialog`.
 - Everything else is named after what it draws: `CriterionCard`, `RecorderButton`, `HoldMenuOption`.
 - Exactly one `<Screen>UiState` per ViewModel — what its `state` flow emits. Auxiliary state types keep

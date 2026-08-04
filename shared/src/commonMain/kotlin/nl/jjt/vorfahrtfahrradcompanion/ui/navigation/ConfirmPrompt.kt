@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.navigation
+package nl.jjt.vorfahrtfahrradcompanion.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect

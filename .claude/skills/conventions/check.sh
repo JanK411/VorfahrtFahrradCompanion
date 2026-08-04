@@ -65,14 +65,14 @@ for f in $(sources); do
   esac
 
   if [[ "$d" == domain/* ]]; then
-    grep -nE "^import ($PKG\.(db|service|ui|navigation|di)\.|androidx\.(room|compose|lifecycle)\.|io\.ktor\.)" "$f" \
+    grep -nE "^import ($PKG\.(db|service|ui|di)\.|androidx\.(room|compose|lifecycle)\.|io\.ktor\.)" "$f" \
       | while IFS=: read -r n line; do say "$f:$n" "domain-purity" "domain must not import ${line#import }"; done
   fi
 
   case "$d" in
-    ui|ui/*|navigation|location|"") ;;
+    ui|ui/*|location|"") ;;
     *) grep -n '@Composable' "$f" | head -1 \
-         | while IFS=: read -r n _; do say "$f:$n" "composable-in-ui" "@Composable outside ui/, navigation/, location/"; done ;;
+         | while IFS=: read -r n _; do say "$f:$n" "composable-in-ui" "@Composable outside ui/, location/"; done ;;
   esac
 
   # 7. entity/dao annotations match the file name
@@ -167,7 +167,7 @@ grep -rn 'UiState' shared/src --include='*.kt' 2>/dev/null | grep -E '(sealed in
     done
 
 # 20. every *Screen is reachable from the routes
-routes="shared/src/commonMain/kotlin/$PKGPATH/navigation/Routes.kt"
+routes="shared/src/commonMain/kotlin/$PKGPATH/ui/navigation/Routes.kt"
 if [ -f "$routes" ]; then
   for s in $(find shared/src -name '*Screen.kt' 2>/dev/null); do
     n=$(basename "$s" .kt)

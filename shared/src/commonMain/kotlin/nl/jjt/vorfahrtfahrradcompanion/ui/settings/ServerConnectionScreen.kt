@@ -18,8 +18,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import nl.jjt.vorfahrtfahrradcompanion.navigation.LeaveGuard
-import nl.jjt.vorfahrtfahrradcompanion.navigation.rememberConfirmPrompt
+import nl.jjt.vorfahrtfahrradcompanion.ui.navigation.LeaveGuard
+import nl.jjt.vorfahrtfahrradcompanion.ui.navigation.rememberConfirmPrompt
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.navigation
+package nl.jjt.vorfahrtfahrradcompanion.ui.navigation
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
