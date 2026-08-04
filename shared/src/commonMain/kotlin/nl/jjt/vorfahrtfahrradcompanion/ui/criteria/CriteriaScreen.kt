@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.*
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.KeepScreenAwake
@@ -43,13 +44,13 @@ private const val MULTI_ADVANCE_MILLIS = 1500L
  */
 @Immutable
 internal class CriteriaActions(
-    val tap: (Criterion, String) -> Unit,
+    val tap: (Criterion, CriterionValue) -> Unit,
     val approve: (Criterion) -> Unit,
     val clearCarriedOver: () -> Unit,
     val approveAll: () -> Unit,
     val undo: () -> Unit,
     val copyPrevious: () -> Unit,
-    val split: (Criterion, String) -> Unit,
+    val split: (Criterion, CriterionValue) -> Unit,
     val start: (BoundaryKind) -> Unit,
     val end: (SegmentAction) -> Unit,
     val endAs: (SegmentAction, EndTiming) -> Unit,
@@ -253,6 +254,7 @@ private fun Catalogue(
                 // The list the question opened with: editing an answer in it approves that criterion,
                 // which would take it out of a list read off the state mid-answer.
                 carriedOver = pending.asked,
+                catalogue = state.catalogue,
                 selections = state.selections,
                 approved = state.approved,
                 onEdit = actions.tap,
@@ -307,6 +309,7 @@ private fun Catalogue(
                         Spotlight(lit = criterion.id == attention?.id) {
                             CriterionCard(
                                 criterion = criterion,
+                                values = state.catalogue[criterion],
                                 selected = state.selections[criterion],
                                 state = state.stateOf(criterion),
                                 expanded = criterion.id == expanded?.id,

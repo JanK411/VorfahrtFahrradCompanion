@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
@@ -151,7 +152,7 @@ class CriteriaViewModel(
     /** Reloads the catalogue; reachable from [CriteriaUiState.Failed], where no cached copy was available. */
     fun retry() = load()
 
-    fun onTap(criterion: Criterion, value: String) {
+    fun onTap(criterion: Criterion, value: CriterionValue) {
         observations.tap(criterion, value)
         updateReady { copy(saveState = SaveState.Idle) }
 
@@ -288,7 +289,7 @@ class CriteriaViewModel(
      * the one that opens is stood by as well, since the rider has just said what is different about
      * it. Neither asks anything: this is the one boundary that is fully answered before it is made.
      */
-    fun splitSegment(criterion: Criterion, value: String) {
+    fun splitSegment(criterion: Criterion, value: CriterionValue) {
         if (!canEnd()) return
         observations.approveAll()
         store(EndRequest(BoundaryKind.EXACT, SegmentAction.START_NEXT, observations.now)) {

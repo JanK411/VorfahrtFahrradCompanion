@@ -7,7 +7,7 @@ import kotlin.test.Test
 
 class CriterionLabelTest {
 
-    private fun label(id: String) = Criterion(id, CriterionKind.SINGLE, emptyList()).label()
+    private fun label(id: String) = Criterion(id, CriterionKind.SINGLE).label()
 
     @Test
     fun readsIdsAsWords() {

@@ -2,6 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment
 
 import kotlinx.coroutines.flow.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
@@ -38,7 +39,7 @@ class SegmentRecorder(
      * approves it: the rider is standing by what is already there, not toggling it off. Every other tap
      * selects, and either way the criterion counts as approved from then on — so a second tap does toggle.
      */
-    fun tap(criterion: Criterion, value: String) = _draft.update {
+    fun tap(criterion: Criterion, value: CriterionValue) = _draft.update {
         val standingBy = criterion.id !in it.approved && value in it.selections[criterion]
         it.copy(
             selections = if (standingBy) it.selections else it.selections.select(criterion, value),
@@ -100,7 +101,7 @@ class SegmentRecorder(
      * all of it — which is precisely what a rider says by picking that value off a folded card: this
      * one thing is different now, the rest still holds.
      */
-    fun carryOnWith(criterion: Criterion, value: String) = _draft.update {
+    fun carryOnWith(criterion: Criterion, value: CriterionValue) = _draft.update {
         val selections = it.selections.pick(criterion, value)
         it.copy(selections = selections, approved = it.approved + selections.filled)
     }

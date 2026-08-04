@@ -42,8 +42,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 
 /** The one precise target on a row; everything else about it opens the criterion up. */
@@ -65,9 +67,10 @@ private val APPROVE_BUTTON_SIZE = 56.dp
 @Composable
 internal fun EndSegmentDialog(
     carriedOver: List<Criterion>,
+    catalogue: Catalogue,
     selections: Selections,
     approved: Set<String>,
-    onEdit: (Criterion, String) -> Unit,
+    onEdit: (Criterion, CriterionValue) -> Unit,
     onConfirm: (approve: Set<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -98,6 +101,7 @@ internal fun EndSegmentDialog(
                         if (criterion.id == editing) {
                             EditingRow(
                                 criterion = criterion,
+                                values = catalogue[criterion],
                                 selected = selections[criterion],
                                 state = if (criterion.id in approved) CriterionState.APPROVED
                                 else CriterionState.CARRIED_OVER,
@@ -114,7 +118,7 @@ internal fun EndSegmentDialog(
                         } else {
                             CarriedOverRow(
                                 criterion = criterion,
-                                values = selections[criterion],
+                                selected = selections[criterion],
                                 approve = criterion.id in keep,
                                 onEdit = {
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
@@ -191,7 +195,7 @@ private fun ExitLabel(icon: ImageVector, text: String) {
 @Composable
 private fun CarriedOverRow(
     criterion: Criterion,
-    values: Set<String>,
+    selected: Set<CriterionValue>,
     approve: Boolean,
     onEdit: () -> Unit,
     onApprove: () -> Unit,
@@ -220,7 +224,7 @@ private fun CarriedOverRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                values.joinToString(" · "),
+                selected.joinToString(" · ") { it.id },
                 style = MaterialTheme.typography.titleLarge,
                 color = if (approve) MaterialTheme.colorScheme.onSecondaryContainer
                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -256,9 +260,10 @@ private fun CarriedOverRow(
 @Composable
 private fun EditingRow(
     criterion: Criterion,
-    selected: Set<String>,
+    values: List<CriterionValue>,
+    selected: Set<CriterionValue>,
     state: CriterionState,
-    onTapValue: (String) -> Unit,
+    onTapValue: (CriterionValue) -> Unit,
     onDone: () -> Unit,
 ) = Column(
     modifier = Modifier.fillMaxWidth()
@@ -267,6 +272,7 @@ private fun EditingRow(
 ) {
     ExpandedCriterion(
         criterion = criterion,
+        values = values,
         selected = selected,
         state = state,
         onTapValue = onTapValue,

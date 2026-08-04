@@ -5,6 +5,7 @@ import io.ktor.http.takeFrom
 import io.ktor.http.URLBuilder
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import kotlin.test.assertEquals
 import kotlin.test.Test
 
@@ -29,7 +30,10 @@ class CriteriaTest {
         val width = catalogue.criteria[0]
         assertEquals("WIDTH", width.id)
         assertEquals(CriterionKind.SINGLE, width.kind)
-        assertEquals(listOf("W_0_5", "W_1", "W_2", "W_3", "W_4"), width.values)
+        assertEquals(
+            listOf("W_0_5", "W_1", "W_2", "W_3", "W_4").map(::CriterionValue),
+            catalogue[width],
+        )
 
         val allowed = catalogue.criteria[1]
         assertEquals("ALLOWED_USERS", allowed.id)

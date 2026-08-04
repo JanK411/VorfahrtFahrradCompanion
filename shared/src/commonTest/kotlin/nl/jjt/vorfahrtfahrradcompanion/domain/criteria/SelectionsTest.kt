@@ -5,8 +5,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.Test
 
-private val width = Criterion("WIDTH", CriterionKind.SINGLE, listOf("W_1", "W_2"))
-private val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI, listOf("CARS", "CYCLISTS"))
+private val width = Criterion("WIDTH", CriterionKind.SINGLE)
+private val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI)
+
+private val w1 = CriterionValue("W_1")
+private val w2 = CriterionValue("W_2")
+private val cars = CriterionValue("CARS")
+private val cyclists = CriterionValue("CYCLISTS")
 
 class SelectionsTest {
 
@@ -20,15 +25,15 @@ class SelectionsTest {
     fun singleSelectionReplacesAndClears() {
         var selections = Selections()
 
-        selections = selections.select(width, "W_1")
-        assertEquals(setOf("W_1"), selections[width])
+        selections = selections.select(width, w1)
+        assertEquals(setOf(w1), selections[width])
 
         // A different chip replaces
-        selections = selections.select(width, "W_2")
-        assertEquals(setOf("W_2"), selections[width])
+        selections = selections.select(width, w2)
+        assertEquals(setOf(w2), selections[width])
 
         // The selected chip clears
-        selections = selections.select(width, "W_2")
+        selections = selections.select(width, w2)
         assertEquals(emptySet(), selections[width])
     }
 
@@ -36,24 +41,24 @@ class SelectionsTest {
     fun multiSelectionToggles() {
         var selections = Selections()
 
-        selections = selections.select(users, "CARS")
-        selections = selections.select(users, "CYCLISTS")
-        assertEquals(setOf("CARS", "CYCLISTS"), selections[users])
+        selections = selections.select(users, cars)
+        selections = selections.select(users, cyclists)
+        assertEquals(setOf(cars, cyclists), selections[users])
 
-        selections = selections.select(users, "CARS")
-        assertEquals(setOf("CYCLISTS"), selections[users])
+        selections = selections.select(users, cars)
+        assertEquals(setOf(cyclists), selections[users])
     }
 
     @Test
     fun pickingOffACardSetsTheValueTheCriterionHolds() {
         // Picking what is already there must not leave the next segment with nothing to describe it.
-        assertEquals(setOf("W_1"), Selections(mapOf("WIDTH" to setOf("W_1"))).pick(width, "W_1")[width])
-        assertEquals(setOf("W_2"), Selections(mapOf("WIDTH" to setOf("W_1"))).pick(width, "W_2")[width])
+        assertEquals(setOf(w1), Selections(mapOf("WIDTH" to setOf(w1))).pick(width, w1)[width])
+        assertEquals(setOf(w2), Selections(mapOf("WIDTH" to setOf(w1))).pick(width, w2)[width])
     }
 
     @Test
     fun onlyCriteriaHoldingValuesCountAsFilled() {
-        val selections = Selections(mapOf("WIDTH" to setOf("W_1"), "ALLOWED_USERS" to emptySet()))
+        val selections = Selections(mapOf("WIDTH" to setOf(w1), "ALLOWED_USERS" to emptySet()))
 
         assertEquals(setOf("WIDTH"), selections.filled)
     }
@@ -65,7 +70,7 @@ class SelectionsTest {
      */
     @Test
     fun clearingACriterionLeavesAnEmptyEntryForCompactToDrop() {
-        val cleared = Selections().select(width, "W_1").select(width, "W_1")
+        val cleared = Selections().select(width, w1).select(width, w1)
 
         assertEquals(emptySet(), cleared.filled)
         assertTrue(cleared.isEmpty())
@@ -74,15 +79,15 @@ class SelectionsTest {
 
     @Test
     fun retainNarrowsToTheCriteriaNamed() {
-        val selections = Selections(mapOf("WIDTH" to setOf("W_1"), "ALLOWED_USERS" to setOf("CARS")))
+        val selections = Selections(mapOf("WIDTH" to setOf(w1), "ALLOWED_USERS" to setOf(cars)))
 
-        assertEquals(Selections(mapOf("WIDTH" to setOf("W_1"))), selections.retain(setOf("WIDTH")))
+        assertEquals(Selections(mapOf("WIDTH" to setOf(w1))), selections.retain(setOf("WIDTH")))
         assertEquals(Selections(), selections.retain(emptySet()))
     }
 
     @Test
     fun holdingNothingButEmptySetsCountsAsEmpty() {
-        assertFalse(Selections(mapOf("WIDTH" to setOf("W_1"))).isEmpty())
+        assertFalse(Selections(mapOf("WIDTH" to setOf(w1))).isEmpty())
         assertTrue(Selections(mapOf("WIDTH" to emptySet())).isEmpty())
     }
 }

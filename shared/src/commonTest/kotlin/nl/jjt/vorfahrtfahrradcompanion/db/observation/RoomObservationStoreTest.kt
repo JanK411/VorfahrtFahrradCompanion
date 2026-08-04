@@ -2,6 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.db.observation
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeObservationDao
@@ -12,7 +13,7 @@ import kotlin.time.Instant
 
 private val startedAt = Instant.parse("2026-07-20T12:43:37Z")
 private val endedAt = Instant.parse("2026-07-20T12:46:37Z")
-private val values = Selections(mapOf("ALLOWED_USERS" to setOf("CARS")))
+private val values = Selections(mapOf("ALLOWED_USERS" to setOf(CriterionValue("CARS"))))
 
 class RoomObservationStoreTest {
 

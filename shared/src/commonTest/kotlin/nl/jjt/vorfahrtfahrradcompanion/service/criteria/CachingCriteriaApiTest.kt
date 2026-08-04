@@ -13,6 +13,7 @@ import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.util.platform.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeCatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeClock
@@ -27,7 +28,9 @@ import kotlin.test.Test
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
-private val catalogue = Catalogue(listOf(Criterion("WIDTH", CriterionKind.SINGLE, listOf("W_1", "W_2"))))
+private val catalogue = Catalogue(
+    mapOf(Criterion("WIDTH", CriterionKind.SINGLE) to listOf(CriterionValue("W_1"), CriterionValue("W_2"))),
+)
 
 private const val BASE_URL = "http://example.test"
 private val json = Json

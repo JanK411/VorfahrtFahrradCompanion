@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.holdAndSlide
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.HoldMenuOption
 import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
@@ -101,14 +102,15 @@ private val ApproveButtonSize = 64.dp
 @Composable
 internal fun CriterionCard(
     criterion: Criterion,
-    selected: Set<String>,
+    values: List<CriterionValue>,
+    selected: Set<CriterionValue>,
     state: CriterionState,
     expanded: Boolean,
-    onTapValue: (String) -> Unit,
+    onTapValue: (CriterionValue) -> Unit,
     onOpen: () -> Unit,
     onApprove: () -> Unit,
     onDone: () -> Unit,
-    onSplit: (String) -> Unit,
+    onSplit: (CriterionValue) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
 
@@ -129,7 +131,7 @@ internal fun CriterionCard(
         },
     ) {
         if (expanded) {
-            ExpandedCriterion(criterion, selected, state, onTapValue, onDone)
+            ExpandedCriterion(criterion, values, selected, state, onTapValue, onDone)
             return@Card
         }
 
@@ -148,7 +150,7 @@ internal fun CriterionCard(
             // Only on a pick-one card. Sliding onto a value says "this is what it is from here on",
             // which a pick-any criterion has no single value to answer with.
             if (criterion.kind == CriterionKind.SINGLE) {
-                SplitHandle(criterion, selected, onOpen = onOpen, onSplit = onSplit)
+                SplitHandle(criterion, values, selected, onOpen = onOpen, onSplit = onSplit)
             }
         }
     }
@@ -210,9 +212,10 @@ private fun Knob(pressed: Boolean) {
 @Composable
 private fun SplitHandle(
     criterion: Criterion,
-    selected: Set<String>,
+    values: List<CriterionValue>,
+    selected: Set<CriterionValue>,
     onOpen: () -> Unit,
-    onSplit: (String) -> Unit,
+    onSplit: (CriterionValue) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
     val window = LocalWindowInfo.current.containerSize
@@ -224,7 +227,7 @@ private fun SplitHandle(
     var from by remember { mutableFloatStateOf(0f) }
 
     var picking by remember { mutableStateOf(false) }
-    var choice by remember { mutableStateOf<String?>(null) }
+    var choice by remember { mutableStateOf<CriterionValue?>(null) }
 
     // A thumb resting on the knob makes it grow under itself, which is the whole answer to "is
     // something happening yet?" during the half-second before the hold takes.
@@ -248,7 +251,7 @@ private fun SplitHandle(
                     val y = handleTop + at.y
                     // Nothing is picked until the thumb has actually gone somewhere, so a hold the
                     // rider thinks better of ends by lifting off where it started.
-                    val slid = if (abs(y - from) < slack) null else criterion.valueUnder(y, window.height)
+                    val slid = if (abs(y - from) < slack) null else values.valueUnder(y, window.height)
                     if (slid != choice) {
                         choice = slid
                         if (slid != null) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
@@ -264,7 +267,11 @@ private fun SplitHandle(
     ) {
         Knob(pressed)
 
-        if (picking) Popup(WindowOrigin) { Spotlight(lit = true) { ValuePicker(criterion, selected, choice) } }
+        if (picking) {
+            Popup(WindowOrigin) {
+                Spotlight(lit = true) { ValuePicker(criterion, values, selected, choice) }
+            }
+        }
     }
 }
 
@@ -273,10 +280,10 @@ private fun SplitHandle(
  * for is roughly how far up or down to go. There is nowhere on the screen that is not a value —
  * [PICK_SLACK] is what keeps a hold the rider thinks better of from picking the one under their thumb.
  */
-private fun Criterion.valueUnder(y: Float, windowHeight: Int): String? {
+private fun List<CriterionValue>.valueUnder(y: Float, windowHeight: Int): CriterionValue? {
     if (windowHeight <= 0) return null
-    val band = windowHeight.toFloat() / values.size
-    return values.getOrNull((y / band).toInt().coerceIn(values.indices))
+    val band = windowHeight.toFloat() / size
+    return getOrNull((y / band).toInt().coerceIn(indices))
 }
 
 /**
@@ -285,13 +292,18 @@ private fun Criterion.valueUnder(y: Float, windowHeight: Int): String? {
  * one change. The value the segment already carries is marked, so a rider can see what they leave.
  */
 @Composable
-private fun ValuePicker(criterion: Criterion, selected: Set<String>, choice: String?) = Column(
+private fun ValuePicker(
+    criterion: Criterion,
+    values: List<CriterionValue>,
+    selected: Set<CriterionValue>,
+    choice: CriterionValue?,
+) = Column(
     modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp),
 ) {
-    criterion.values.forEach { value ->
+    values.forEach { value ->
         HoldMenuOption(
-            title = value,
+            title = value.id,
             subtitle = if (value in selected) criterion.label() + " now" else null,
             selected = value == choice,
             selectedColor = MaterialTheme.colorScheme.primary,
@@ -312,7 +324,7 @@ private fun ValuePicker(criterion: Criterion, selected: Set<String>, choice: Str
 @Composable
 private fun CarriedOverCriterion(
     criterion: Criterion,
-    selected: Set<String>,
+    selected: Set<CriterionValue>,
     onOpen: () -> Unit,
     onApprove: () -> Unit,
 ) = Row(
@@ -343,7 +355,7 @@ private fun CarriedOverCriterion(
 @Composable
 private fun FoldedCriterion(
     criterion: Criterion,
-    selected: Set<String>,
+    selected: Set<CriterionValue>,
     state: CriterionState,
     onOpen: () -> Unit,
 ) = Row(
@@ -372,7 +384,7 @@ private fun FoldedCriterion(
 @Composable
 private fun CriterionSummary(
     criterion: Criterion,
-    selected: Set<String>,
+    selected: Set<CriterionValue>,
     valueColor: Color,
     modifier: Modifier = Modifier,
 ) = Column(modifier, Arrangement.spacedBy(2.dp)) {
@@ -382,7 +394,7 @@ private fun CriterionSummary(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Text(
-        selected.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "—",
+        selected.takeIf { it.isNotEmpty() }?.joinToString(" · ") { it.id } ?: "—",
         style = MaterialTheme.typography.titleLarge,
         color = valueColor,
     )
@@ -396,9 +408,10 @@ private fun CriterionSummary(
 @Composable
 internal fun ExpandedCriterion(
     criterion: Criterion,
-    selected: Set<String>,
+    values: List<CriterionValue>,
+    selected: Set<CriterionValue>,
     state: CriterionState,
-    onTapValue: (String) -> Unit,
+    onTapValue: (CriterionValue) -> Unit,
     onDone: () -> Unit,
 ) = Column(
     modifier = Modifier.padding(12.dp),
@@ -418,9 +431,9 @@ internal fun ExpandedCriterion(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        criterion.values.forEach { value ->
+        values.forEach { value ->
             ValueButton(
-                label = value,
+                label = value.id,
                 state = when {
                     value !in selected -> CriterionState.OPEN
                     state == CriterionState.CARRIED_OVER -> CriterionState.CARRIED_OVER
