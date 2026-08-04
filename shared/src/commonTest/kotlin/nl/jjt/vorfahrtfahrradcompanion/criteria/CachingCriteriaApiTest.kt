@@ -3,19 +3,22 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
-import nl.jjt.vorfahrtfahrradcompanion.FakeClock
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheEntity
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsDao
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsEntity
-import kotlin.test.Test
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
+import nl.jjt.vorfahrtfahrradcompanion.FakeClock
+import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.Test
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 

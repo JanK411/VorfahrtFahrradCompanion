@@ -1,13 +1,7 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.domain.criteria
 
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
-
-data class Criterion(val id: String, val kind: CriterionKind, val values: List<String>)
-
-enum class CriterionKind { SINGLE, MULTI }
-
-data class Catalogue(val criteria: List<Criterion>)
 
 /** The values chosen per criterion id. A criterion the rider has not touched is simply absent. */
 @Serializable

@@ -1,15 +1,16 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
-import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.HttpClient
 import io.ktor.client.request.basicAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.url
 import io.ktor.http.appendPathSegments
 import io.ktor.http.takeFrom
 import kotlinx.coroutines.flow.first
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.settings.normalizeBaseUrl
+import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
 
 class KtorCriteriaApi(
     private val client: HttpClient,

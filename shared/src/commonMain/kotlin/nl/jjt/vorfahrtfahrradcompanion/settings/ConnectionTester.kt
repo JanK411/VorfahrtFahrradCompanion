@@ -4,9 +4,10 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.basicAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.url
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.appendPathSegments
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.takeFrom
+import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
 import kotlin.coroutines.cancellation.CancellationException
 
 sealed interface ConnectionTestResult {

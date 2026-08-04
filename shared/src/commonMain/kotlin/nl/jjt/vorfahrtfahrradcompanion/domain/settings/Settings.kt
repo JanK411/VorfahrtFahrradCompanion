@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.settings
+package nl.jjt.vorfahrtfahrradcompanion.domain.settings
 
 data class Settings(
     val baseUrl: String,

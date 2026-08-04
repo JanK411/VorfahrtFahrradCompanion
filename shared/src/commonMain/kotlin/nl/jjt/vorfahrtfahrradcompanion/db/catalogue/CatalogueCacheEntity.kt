@@ -2,6 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.db.catalogue
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
 
 /**
  * Single-row cache of the criterion catalogue so the app works offline and does not re-fetch on every

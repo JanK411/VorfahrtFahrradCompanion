@@ -5,8 +5,9 @@ import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheEntity
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.settings.normalizeBaseUrl
+import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 

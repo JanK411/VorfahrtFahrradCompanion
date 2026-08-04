@@ -1,49 +1,23 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationDao
 import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationEntity
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Draft
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
 import kotlin.time.Clock
 import kotlin.time.Instant
-
-/** The segment being recorded right now, if any. */
-sealed interface Segment {
-    data object Idle : Segment
-    data class Open(val startedAt: Instant, val startKind: BoundaryKind) : Segment
-}
-
-/** What ending a segment did with it. */
-enum class SegmentOutcome {
-    SAVED,
-
-    /** Ended with nothing approved, so there was nothing to describe the stretch with. */
-    NOTHING_TO_STORE,
-
-    /** Thrown away by the rider. */
-    DISCARDED,
-
-    /** Ended so long after the boundary that there was no saying where the stretch ended. */
-    TOO_LATE,
-}
-
-/**
- * What the rider has entered but not stored yet.
- *
- * [approved] holds the criteria the rider has stood by *for the current segment*. Selections outlive a
- * segment, this set does not: after an end every carried-over value is a suggestion again, and only what
- * the rider approves is stored. See [ObservationRepository.tap].
- */
-data class Draft(
-    val segment: Segment = Segment.Idle,
-    val selections: Selections = Selections(),
-    val approved: Set<String> = emptySet(),
-)
 
 /**
  * Persists observations locally and owns the segment currently being recorded.

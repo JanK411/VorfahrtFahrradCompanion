@@ -9,9 +9,9 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.Flow
 
 class AndroidLocationSettings(private val context: Context) : LocationSettings {
 

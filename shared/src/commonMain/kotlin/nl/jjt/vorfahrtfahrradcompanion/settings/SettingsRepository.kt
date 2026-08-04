@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsDao
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsEntity
+import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
 
 class SettingsRepository(private val dao: SettingsDao) {
 

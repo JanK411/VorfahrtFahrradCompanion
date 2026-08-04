@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.patchnotes
+package nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes
 
 /**
  * One entry in the app's user-facing changelog.

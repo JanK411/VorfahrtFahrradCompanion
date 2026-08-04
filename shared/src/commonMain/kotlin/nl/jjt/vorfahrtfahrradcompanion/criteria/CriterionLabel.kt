@@ -1,5 +1,8 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
+
+
 // TODO: have the catalogue endpoint send display labels for criteria *and* values, falling back to this.
 //  Deriving a label from an id can only ever be a stopgap: it cannot know that "W_0_5" means "0.5 m wide",
 //  which is exactly the kind of thing a rider has to recognise at a glance.

@@ -1,8 +1,11 @@
 package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 
-import kotlin.test.Test
+import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.PatchNote
+import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.patchNotes
+import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.splitPatchNotes
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.Test
 
 class PatchNotesTest {
 

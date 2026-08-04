@@ -2,12 +2,15 @@ package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.PatchNote
+import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.patchNotes
+import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.splitPatchNotes
 
 data class PatchNotesUiState(
     val loading: Boolean = true,

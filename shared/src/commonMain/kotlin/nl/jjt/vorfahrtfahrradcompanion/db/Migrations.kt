@@ -1,9 +1,9 @@
 package nl.jjt.vorfahrtfahrradcompanion.db
 
 import androidx.room.migration.Migration
-import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
-import nl.jjt.vorfahrtfahrradcompanion.criteria.BoundaryKind
+import androidx.sqlite.SQLiteConnection
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 
 /**
  * v1 → v2: adds the single-row `patch_notes_state` table backing the What's New "already seen" tracking.

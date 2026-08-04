@@ -1,7 +1,9 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
-import kotlin.test.Test
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
 import kotlin.test.assertEquals
+import kotlin.test.Test
 
 class CriterionLabelTest {
 

@@ -1,11 +1,12 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
-import io.ktor.http.URLBuilder
 import io.ktor.http.appendPathSegments
 import io.ktor.http.takeFrom
+import io.ktor.http.URLBuilder
 import kotlinx.serialization.json.Json
-import kotlin.test.Test
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
 import kotlin.test.assertEquals
+import kotlin.test.Test
 
 private val json = Json { ignoreUnknownKeys = true }
 

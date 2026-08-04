@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.domain.recording
 
 /** What happens to recording once the open segment ends. */
 enum class SegmentAction { STOP, START_NEXT }

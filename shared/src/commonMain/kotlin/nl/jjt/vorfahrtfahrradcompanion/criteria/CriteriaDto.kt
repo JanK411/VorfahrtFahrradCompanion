@@ -1,6 +1,9 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
 import kotlinx.serialization.Serializable
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
 
 @Serializable
 internal data class CatalogueDto(val criteria: List<CriterionDto>)

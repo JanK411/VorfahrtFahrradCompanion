@@ -1,13 +1,6 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.domain.recording
 
 import kotlin.time.Duration.Companion.seconds
-
-/**
- * Where the boundary of a segment really lies. A rider cannot always press the button at the exact
- * moment the path changes, so [EARLIER] records that the segment already started (or ended) some time
- * before the timestamp that was captured.
- */
-enum class BoundaryKind { EXACT, EARLIER }
 
 /**
  * How well the press hit the end the rider meant — asked on every end, because an end is worth keeping

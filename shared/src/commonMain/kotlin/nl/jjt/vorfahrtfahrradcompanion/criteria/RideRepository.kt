@@ -1,22 +1,15 @@
 package nl.jjt.vorfahrtfahrradcompanion.criteria
 
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationDao
 import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideDao
 import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideEntity
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideSummary
 import kotlin.time.Clock
 import kotlin.time.Instant
-
-/** The ride being recorded right now, if any. */
-sealed interface Ride {
-    data object Idle : Ride
-    data class Open(val id: Long, val startedAt: Instant) : Ride
-}
-
-/** What the rider is shown on their way out of a ride, so they can see what they are about to save. */
-data class RideSummary(val startedAt: Instant, val endedAt: Instant, val segments: Int)
 
 /**
  * Owns the ride the segments are being recorded into.
