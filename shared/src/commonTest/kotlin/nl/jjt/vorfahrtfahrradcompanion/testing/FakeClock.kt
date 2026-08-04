@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion
+package nl.jjt.vorfahrtfahrradcompanion.testing
 
 import kotlin.time.Clock
 import kotlin.time.Duration

@@ -26,8 +26,11 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
-import nl.jjt.vorfahrtfahrradcompanion.FakeClock
 import nl.jjt.vorfahrtfahrradcompanion.service.criteria.CriteriaApi
+import nl.jjt.vorfahrtfahrradcompanion.testing.FakeClock
+import nl.jjt.vorfahrtfahrradcompanion.testing.FakeCriteriaApi
+import nl.jjt.vorfahrtfahrradcompanion.testing.FakeObservationStore
+import nl.jjt.vorfahrtfahrradcompanion.testing.FakeRideStore
 import kotlin.test.AfterTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -45,66 +48,8 @@ private val catalogue = Catalogue(listOf(width, users))
 private val startedAt = Instant.parse("2026-07-20T12:43:37Z")
 private val stretch = 3.minutes
 
-private class FakeApi : CriteriaApi {
-    override suspend fun catalogue() = catalogue
-}
 
-private class FakeObservationStore : ObservationStore {
-    data class Stored(
-        val rideId: Long,
-        val startedAt: Instant,
-        val startKind: BoundaryKind,
-        val endedAt: Instant,
-        val endKind: BoundaryKind,
-        val values: Selections,
-    )
 
-    val inserted = mutableListOf<Stored>()
-    private val last = MutableStateFlow<Selections?>(null)
-
-    override suspend fun insert(
-        rideId: Long,
-        startedAt: Instant,
-        startKind: BoundaryKind,
-        endedAt: Instant,
-        endKind: BoundaryKind,
-        values: Selections,
-    ) {
-        inserted += Stored(rideId, startedAt, startKind, endedAt, endKind, values)
-        last.value = values
-    }
-
-    override suspend fun countForRide(rideId: Long) = inserted.count { it.rideId == rideId }
-
-    override fun lastValues(): Flow<Selections?> = last
-}
-
-private class FakeRideStore : RideStore {
-    data class Row(
-        val id: Long,
-        val startedAt: Instant,
-        val endedAt: Instant? = null,
-        val name: String? = null,
-    )
-
-    val rows = mutableListOf<Row>()
-    private var nextId = 1L
-
-    override suspend fun open(startedAt: Instant): Long {
-        val id = nextId++
-        rows += Row(id, startedAt)
-        return id
-    }
-
-    override suspend fun close(id: Long, endedAt: Instant, name: String?) {
-        val at = rows.indexOfFirst { it.id == id }
-        if (at >= 0) rows[at] = rows[at].copy(endedAt = endedAt, name = name)
-    }
-
-    override suspend fun delete(id: Long) {
-        rows.removeAll { it.id == id }
-    }
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CriteriaViewModelTest {
@@ -121,7 +66,7 @@ class CriteriaViewModelTest {
 
     private fun vm(): CriteriaViewModel {
         val rides = RideRepository(rideStore, observations, clock)
-        return CriteriaViewModel(FakeApi(), ObservationRepository(observations, rides, clock), rides)
+        return CriteriaViewModel(FakeCriteriaApi(catalogue), ObservationRepository(observations, rides, clock), rides)
     }
 
     /** A view model with a ride already running — the only state in which segments can be recorded. */

@@ -1,14 +1,15 @@
 package nl.jjt.vorfahrtfahrradcompanion.daylight
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.runTest
-import nl.jjt.vorfahrtfahrradcompanion.FakeClock
 import nl.jjt.vorfahrtfahrradcompanion.location.Location
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
-import kotlin.test.Test
+import nl.jjt.vorfahrtfahrradcompanion.testing.FakeClock
+import nl.jjt.vorfahrtfahrradcompanion.testing.FakeLocationProvider
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.Test
 import kotlin.time.Instant
 
 private val amsterdam = Location(
@@ -20,10 +21,6 @@ private val amsterdam = Location(
     timestamp = Instant.parse("2026-06-21T12:00:00Z"),
 )
 
-private class FakeLocationProvider(var known: Location?) : LocationProvider {
-    override fun locations(intervalMillis: Long): Flow<Location> = throw AssertionError("not streamed")
-    override suspend fun lastKnown(): Location? = known
-}
 
 class DaylightTest {
 
