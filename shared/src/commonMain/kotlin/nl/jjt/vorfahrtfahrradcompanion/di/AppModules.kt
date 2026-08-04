@@ -15,7 +15,7 @@ import nl.jjt.vorfahrtfahrradcompanion.net.platformHttpClientEngine
 import nl.jjt.vorfahrtfahrradcompanion.settings.ConnectionTester
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsViewModel
-import nl.jjt.vorfahrtfahrradcompanion.settings.db.AppDatabase
+import nl.jjt.vorfahrtfahrradcompanion.db.AppDatabase
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module

@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.patchnotes.db
+package nl.jjt.vorfahrtfahrradcompanion.db.patchnotes
 
 import androidx.room.Dao
 import androidx.room.Query

@@ -13,10 +13,10 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.FakeClock
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationEntity
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideDao
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationDao
+import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideDao
+import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideEntity
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

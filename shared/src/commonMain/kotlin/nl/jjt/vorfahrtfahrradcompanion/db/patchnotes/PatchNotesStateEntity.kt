@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.patchnotes.db
+package nl.jjt.vorfahrtfahrradcompanion.db.patchnotes
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

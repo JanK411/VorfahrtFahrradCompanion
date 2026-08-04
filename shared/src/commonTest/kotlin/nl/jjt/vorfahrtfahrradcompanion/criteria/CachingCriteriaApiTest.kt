@@ -6,11 +6,11 @@ import kotlinx.coroutines.test.runTest
 import nl.jjt.vorfahrtfahrradcompanion.FakeClock
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheDao
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.CatalogueCacheEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheDao
+import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheEntity
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
-import nl.jjt.vorfahrtfahrradcompanion.settings.db.SettingsDao
-import nl.jjt.vorfahrtfahrradcompanion.settings.db.SettingsEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsDao
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsEntity
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -1,8 +1,8 @@
 package nl.jjt.vorfahrtfahrradcompanion.patchnotes
 
 import kotlinx.coroutines.flow.Flow
-import nl.jjt.vorfahrtfahrradcompanion.patchnotes.db.PatchNotesStateDao
-import nl.jjt.vorfahrtfahrradcompanion.patchnotes.db.PatchNotesStateEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.patchnotes.PatchNotesStateDao
+import nl.jjt.vorfahrtfahrradcompanion.db.patchnotes.PatchNotesStateEntity
 
 class PatchNotesRepository(private val dao: PatchNotesStateDao) {
 

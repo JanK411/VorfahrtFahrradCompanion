@@ -3,9 +3,9 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideDao
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.RideEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationDao
+import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideDao
+import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideEntity
 import kotlin.time.Clock
 import kotlin.time.Instant
 

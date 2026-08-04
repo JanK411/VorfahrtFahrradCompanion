@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationDao
-import nl.jjt.vorfahrtfahrradcompanion.criteria.db.ObservationEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationDao
+import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationEntity
 import kotlin.time.Clock
 import kotlin.time.Instant
 

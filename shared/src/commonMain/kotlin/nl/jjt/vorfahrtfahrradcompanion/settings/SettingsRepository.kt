@@ -2,8 +2,8 @@ package nl.jjt.vorfahrtfahrradcompanion.settings
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import nl.jjt.vorfahrtfahrradcompanion.settings.db.SettingsDao
-import nl.jjt.vorfahrtfahrradcompanion.settings.db.SettingsEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsDao
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsEntity
 
 class SettingsRepository(private val dao: SettingsDao) {
 

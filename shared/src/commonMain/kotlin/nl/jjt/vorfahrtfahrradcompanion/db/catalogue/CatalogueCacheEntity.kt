@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria.db
+package nl.jjt.vorfahrtfahrradcompanion.db.catalogue
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

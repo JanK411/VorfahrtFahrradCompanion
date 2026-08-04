@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.settings.db
+package nl.jjt.vorfahrtfahrradcompanion.db
 
 import android.content.Context
 import androidx.room.Room

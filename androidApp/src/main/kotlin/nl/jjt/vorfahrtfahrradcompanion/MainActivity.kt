@@ -13,7 +13,7 @@ import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationSettings
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationPermissions
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationSettings
-import nl.jjt.vorfahrtfahrradcompanion.settings.db.createAppDatabase
+import nl.jjt.vorfahrtfahrradcompanion.db.createAppDatabase
 import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidScreenAwake
 import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidScreenBrightness
 import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidSystemBars
