@@ -1,46 +1,18 @@
 package nl.jjt.vorfahrtfahrradcompanion
 
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import nl.jjt.vorfahrtfahrradcompanion.platform.AndroidSystemCacheMarker
-import nl.jjt.vorfahrtfahrradcompanion.platform.SystemCacheMarker
-import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationPermissions
-import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationProvider
-import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationSettings
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationPermissions
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationSettings
-import nl.jjt.vorfahrtfahrradcompanion.db.createAppDatabase
-import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidScreenAwake
-import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidScreenBrightness
-import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidSystemBars
-import nl.jjt.vorfahrtfahrradcompanion.platform.ScreenAwake
-import nl.jjt.vorfahrtfahrradcompanion.platform.ScreenBrightness
-import nl.jjt.vorfahrtfahrradcompanion.platform.SystemBars
-import org.koin.dsl.module
+import nl.jjt.vorfahrtfahrradcompanion.di.androidModule
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val androidModule = module {
-            single<Context> { applicationContext }
-            single<LocationProvider> { AndroidLocationProvider(get()) }
-            single<LocationPermissions> { AndroidLocationPermissions(get()) }
-            single<LocationSettings> { AndroidLocationSettings(get()) }
-            single<ScreenAwake> { AndroidScreenAwake(window) }
-            single<SystemBars> { AndroidSystemBars(window) }
-            single<ScreenBrightness> { AndroidScreenBrightness(window) }
-            single<SystemCacheMarker> { AndroidSystemCacheMarker(get()) }
-            single { createAppDatabase(get()) }
-        }
-
         setContent {
-            App(listOf(androidModule))
+            App(listOf(androidModule(applicationContext, window)))
         }
     }
 }

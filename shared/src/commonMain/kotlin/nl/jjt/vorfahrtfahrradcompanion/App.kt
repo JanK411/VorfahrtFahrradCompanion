@@ -23,17 +23,20 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaScreen
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
 import nl.jjt.vorfahrtfahrradcompanion.daylight.Daylight
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
-import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
 import nl.jjt.vorfahrtfahrradcompanion.location.LocationScreen
+import nl.jjt.vorfahrtfahrradcompanion.navigation.CriteriaRoute
 import nl.jjt.vorfahrtfahrradcompanion.navigation.LocalNavigationGate
 import nl.jjt.vorfahrtfahrradcompanion.navigation.NavigationGate
+import nl.jjt.vorfahrtfahrradcompanion.navigation.PatchNotesRoute
+import nl.jjt.vorfahrtfahrradcompanion.navigation.RideRoute
+import nl.jjt.vorfahrtfahrradcompanion.navigation.ServerConnectionRoute
+import nl.jjt.vorfahrtfahrradcompanion.navigation.SettingsRoute
+import nl.jjt.vorfahrtfahrradcompanion.navigation.subPages
 import nl.jjt.vorfahrtfahrradcompanion.patchnotes.PatchNotesScreen
 import nl.jjt.vorfahrtfahrradcompanion.settings.ServerConnectionScreen
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsScreen
@@ -44,30 +47,6 @@ import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.core.module.Module
 import org.koin.dsl.koinConfiguration
-
-@Serializable
-private data object CriteriaRoute
-@Serializable
-private data object RideRoute
-@Serializable
-private data object SettingsRoute
-
-/** A sub-page pushed onto the back stack from a tab; each owns the title shown in the top bar. */
-private sealed interface SubPage {
-    val title: String
-}
-
-@Serializable
-private data object ServerConnectionRoute : SubPage {
-    override val title = "Server connection"
-}
-
-@Serializable
-private data object PatchNotesRoute : SubPage {
-    override val title = "What's New"
-}
-
-private val subPages: List<SubPage> = listOf(ServerConnectionRoute, PatchNotesRoute)
 
 /** Bottom-bar destinations. [PatchNotesRoute] is a sub-page reached from Settings, not a tab. */
 private enum class Tab(val label: String, val icon: ImageVector, val route: Any) {
