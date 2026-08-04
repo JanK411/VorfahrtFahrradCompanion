@@ -5,8 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import nl.jjt.vorfahrtfahrradcompanion.cache.AndroidSystemCacheMarker
-import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
+import nl.jjt.vorfahrtfahrradcompanion.platform.AndroidSystemCacheMarker
+import nl.jjt.vorfahrtfahrradcompanion.platform.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationPermissions
 import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationProvider
 import nl.jjt.vorfahrtfahrradcompanion.location.AndroidLocationSettings
@@ -17,9 +17,9 @@ import nl.jjt.vorfahrtfahrradcompanion.db.createAppDatabase
 import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidScreenAwake
 import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidScreenBrightness
 import nl.jjt.vorfahrtfahrradcompanion.ui.AndroidSystemBars
-import nl.jjt.vorfahrtfahrradcompanion.ui.ScreenAwake
-import nl.jjt.vorfahrtfahrradcompanion.ui.ScreenBrightness
-import nl.jjt.vorfahrtfahrradcompanion.ui.SystemBars
+import nl.jjt.vorfahrtfahrradcompanion.platform.ScreenAwake
+import nl.jjt.vorfahrtfahrradcompanion.platform.ScreenBrightness
+import nl.jjt.vorfahrtfahrradcompanion.platform.SystemBars
 import org.koin.dsl.module
 
 class MainActivity : ComponentActivity() {

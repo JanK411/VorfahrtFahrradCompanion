@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
-import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
+import nl.jjt.vorfahrtfahrradcompanion.platform.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheEntity
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheStore

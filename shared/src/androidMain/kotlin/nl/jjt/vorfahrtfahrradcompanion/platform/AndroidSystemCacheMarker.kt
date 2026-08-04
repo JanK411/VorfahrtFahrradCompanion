@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.cache
+package nl.jjt.vorfahrtfahrradcompanion.platform
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers

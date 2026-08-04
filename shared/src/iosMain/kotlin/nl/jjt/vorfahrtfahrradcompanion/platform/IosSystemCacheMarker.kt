@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.cache
+package nl.jjt.vorfahrtfahrradcompanion.platform
 
 /**
  * When iOS is picked up: put the marker in `NSCachesDirectory`

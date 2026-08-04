@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.cache
+package nl.jjt.vorfahrtfahrradcompanion.platform
 
 /**
  * Detects an OS-level cache wipe ("Clear cache" in the Android app info screen). That wipe only empties

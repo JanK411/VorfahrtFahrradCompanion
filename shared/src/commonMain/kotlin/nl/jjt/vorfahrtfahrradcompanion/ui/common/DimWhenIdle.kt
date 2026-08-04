@@ -1,7 +1,7 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui
+package nl.jjt.vorfahrtfahrradcompanion.ui.common
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -10,19 +10,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import nl.jjt.vorfahrtfahrradcompanion.platform.ScreenBrightness
 import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.seconds
 
@@ -41,15 +42,6 @@ private const val ScrimAlpha = 0.7f
 
 /** How long the veil takes to draw: slow enough to read as the screen resting, not as a fault. */
 private const val FadeMillis = 2000
-
-/**
- * The display's brightness. Behind an interface because, like the keep-awake flag, it is a property
- * of a platform window.
- */
-interface ScreenBrightness {
-    /** Turns the display down to [level], from 0 to 1 — or back to the device's own setting at null. */
-    fun set(level: Float?)
-}
 
 /**
  * Turns the display down after [DimAfter] without a touch, and back up on the next one.

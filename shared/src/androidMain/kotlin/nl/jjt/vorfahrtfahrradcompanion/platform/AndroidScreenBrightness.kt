@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui
+package nl.jjt.vorfahrtfahrradcompanion.platform
 
 import android.view.Window
 import android.view.WindowManager

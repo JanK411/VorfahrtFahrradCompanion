@@ -2,7 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.service.criteria
 
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
-import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
+import nl.jjt.vorfahrtfahrradcompanion.platform.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CachedCatalogue
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheStore
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore

@@ -44,7 +44,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
 import nl.jjt.vorfahrtfahrradcompanion.ui.holdAndSlide
 import nl.jjt.vorfahrtfahrradcompanion.ui.HoldMenuOption
-import nl.jjt.vorfahrtfahrradcompanion.ui.KeepScreenAwake
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.KeepScreenAwake
 import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
 import nl.jjt.vorfahrtfahrradcompanion.ui.Spotlight
 import nl.jjt.vorfahrtfahrradcompanion.ui.WindowOrigin

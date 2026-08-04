@@ -39,7 +39,7 @@ import nl.jjt.vorfahrtfahrradcompanion.settings.ServerConnectionScreen
 import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.AppTheme
 import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
-import nl.jjt.vorfahrtfahrradcompanion.ui.DimWhenIdle
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.DimWhenIdle
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.core.module.Module
