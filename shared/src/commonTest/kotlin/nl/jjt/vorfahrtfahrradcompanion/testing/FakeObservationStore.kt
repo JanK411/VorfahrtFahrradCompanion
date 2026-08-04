@@ -3,6 +3,7 @@ package nl.jjt.vorfahrtfahrradcompanion.testing
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredSelections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import kotlin.time.Instant
@@ -19,7 +20,7 @@ class FakeObservationStore : ObservationStore {
     )
 
     val inserted = mutableListOf<Stored>()
-    private val last = MutableStateFlow<Selections?>(null)
+    private val last = MutableStateFlow<StoredSelections?>(null)
 
     override suspend fun insert(
         rideId: Long,
@@ -30,10 +31,12 @@ class FakeObservationStore : ObservationStore {
         values: Selections,
     ) {
         inserted += Stored(rideId, startedAt, startKind, endedAt, endKind, values)
-        last.value = values
+        // Through the id-keyed form the real store writes, so reading back still has to be resolved
+        // against a catalogue — which is the whole point of the seam.
+        last.value = values.stored()
     }
 
     override suspend fun countForRide(rideId: Long) = inserted.count { it.rideId == rideId }
 
-    override fun lastValues(): Flow<Selections?> = last
+    override fun lastValues(): Flow<StoredSelections?> = last
 }

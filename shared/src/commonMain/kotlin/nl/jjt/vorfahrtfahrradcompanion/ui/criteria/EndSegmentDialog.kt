@@ -69,17 +69,17 @@ internal fun EndSegmentDialog(
     carriedOver: List<Criterion>,
     catalogue: Catalogue,
     selections: Selections,
-    approved: Set<String>,
+    approved: Set<Criterion>,
     onEdit: (Criterion, CriterionValue) -> Unit,
-    onConfirm: (approve: Set<String>) -> Unit,
+    onConfirm: (approve: Set<Criterion>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val ids = carriedOver.map(Criterion::id).toSet()
+    val asked = carriedOver.toSet()
 
     // What the rider has ticked. Nothing is in here to begin with: the exits below take the lot either
     // way, so a row nobody touched is a row nobody stood by.
-    var keep by remember(ids) { mutableStateOf(emptySet<String>()) }
-    var editing by remember(ids) { mutableStateOf<String?>(null) }
+    var keep by remember(asked) { mutableStateOf(emptySet<Criterion>()) }
+    var editing by remember(asked) { mutableStateOf<Criterion?>(null) }
     val haptics = LocalHapticFeedback.current
 
     AlertDialog(
@@ -98,18 +98,18 @@ internal fun EndSegmentDialog(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     carriedOver.forEach { criterion ->
-                        if (criterion.id == editing) {
+                        if (criterion == editing) {
                             EditingRow(
                                 criterion = criterion,
                                 values = catalogue[criterion],
                                 selected = selections[criterion],
-                                state = if (criterion.id in approved) CriterionState.APPROVED
+                                state = if (criterion in approved) CriterionState.APPROVED
                                 else CriterionState.CARRIED_OVER,
                                 onTapValue = { value ->
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                                     onEdit(criterion, value)
                                     // Changing an answer is standing by it; nothing more is asked.
-                                    keep = keep + criterion.id
+                                    keep = keep + criterion
                                     // A pick-one criterion is answered by that one tap.
                                     if (criterion.kind == CriterionKind.SINGLE) editing = null
                                 },
@@ -119,15 +119,15 @@ internal fun EndSegmentDialog(
                             CarriedOverRow(
                                 criterion = criterion,
                                 selected = selections[criterion],
-                                approve = criterion.id in keep,
+                                approve = criterion in keep,
                                 onEdit = {
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    editing = criterion.id
+                                    editing = criterion
                                 },
                                 onApprove = {
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    keep = if (criterion.id in keep) keep - criterion.id
-                                    else keep + criterion.id
+                                    keep = if (criterion in keep) keep - criterion
+                                    else keep + criterion
                                 },
                             )
                         }
@@ -140,8 +140,8 @@ internal fun EndSegmentDialog(
         confirmButton = {
             Exits(
                 approving = keep.size,
-                total = ids.size,
-                onApproveAll = { onConfirm(ids) },
+                total = asked.size,
+                onApproveAll = { onConfirm(asked) },
                 onApproveTicked = { onConfirm(keep) },
                 onDropAll = { onConfirm(emptySet()) },
                 onBack = onDismiss,

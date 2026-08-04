@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
 /**
- * The values chosen per criterion id. A criterion the rider has not touched is simply absent.
+ * The values chosen per criterion. A criterion the rider has not touched is simply absent.
  *
  * ```
  * val width = Criterion("WIDTH", CriterionKind.SINGLE)
@@ -20,11 +20,10 @@ import kotlin.jvm.JvmInline
  *     .select(users, cars)     // USERS -> [CYCLISTS]        tapping again removes
  * ```
  */
-@Serializable
 @JvmInline
-value class Selections(private val byCriterion: Map<String, Set<CriterionValue>> = emptyMap()) {
+value class Selections(private val byCriterion: Map<Criterion, Set<CriterionValue>> = emptyMap()) {
 
-    operator fun get(criterion: Criterion): Set<CriterionValue> = byCriterion[criterion.id].orEmpty()
+    operator fun get(criterion: Criterion): Set<CriterionValue> = byCriterion[criterion].orEmpty()
 
     /**
      * Applies a chip tap. [CriterionKind] is the only thing that differs between criteria, which is what
@@ -36,7 +35,7 @@ value class Selections(private val byCriterion: Map<String, Set<CriterionValue>>
             CriterionKind.SINGLE -> if (value in current) emptySet() else setOf(value)
             CriterionKind.MULTI -> if (value in current) current - value else current + value
         }
-        return Selections(byCriterion + (criterion.id to next))
+        return Selections(byCriterion + (criterion to next))
     }
 
     /**
@@ -48,17 +47,36 @@ value class Selections(private val byCriterion: Map<String, Set<CriterionValue>>
      * pick starts the next segment.
      */
     fun pick(criterion: Criterion, value: CriterionValue): Selections =
-        Selections(byCriterion + (criterion.id to setOf(value)))
+        Selections(byCriterion + (criterion to setOf(value)))
 
     /** The criteria actually holding a value — everything a segment ending now could be described by. */
-    val filled: Set<String> get() = byCriterion.filterValues(Set<CriterionValue>::isNotEmpty).keys
+    val filled: Set<Criterion> get() = byCriterion.filterValues(Set<CriterionValue>::isNotEmpty).keys
 
     /** Drops criteria the rider deselected back to nothing, so they never reach storage. */
     fun compact(): Selections = Selections(byCriterion.filterValues(Set<CriterionValue>::isNotEmpty))
 
-    /** Narrows to [criterionIds] — used to store only what the rider approved for this segment. */
-    fun retain(criterionIds: Set<String>): Selections =
-        Selections(byCriterion.filterKeys { it in criterionIds })
+    /** Narrows to [criteria] — used to store only what the rider approved for this segment. */
+    fun retain(criteria: Set<Criterion>): Selections =
+        Selections(byCriterion.filterKeys { it in criteria })
 
     fun isEmpty(): Boolean = byCriterion.values.all(Set<CriterionValue>::isEmpty)
+
+    /** How storage holds these, having no use for the kinds. Empty criteria are dropped on the way. */
+    fun stored(): StoredSelections = StoredSelections(
+        byCriterion.filterValues(Set<CriterionValue>::isNotEmpty).mapKeys { it.key.id },
+    )
+}
+
+/**
+ * Selections as the observations table holds them: criterion ids and values, with nothing to say what
+ * kind of question each id was. A stored segment outlives the catalogue that described it, so reading
+ * one back means asking the catalogue what those ids are now — see [Catalogue.resolve].
+ */
+@Serializable
+@JvmInline
+value class StoredSelections(private val byCriterionId: Map<String, Set<CriterionValue>> = emptyMap()) {
+
+    operator fun get(criterionId: String): Set<CriterionValue>? = byCriterionId[criterionId]
+
+    fun isEmpty(): Boolean = byCriterionId.isEmpty()
 }

@@ -80,7 +80,7 @@ internal enum class CriterionState {
 
 internal fun CriteriaUiState.Ready.stateOf(criterion: Criterion): CriterionState = when {
     selections[criterion].isEmpty() -> CriterionState.OPEN
-    criterion.id in approved -> CriterionState.APPROVED
+    criterion in approved -> CriterionState.APPROVED
     else -> CriterionState.CARRIED_OVER
 }
 

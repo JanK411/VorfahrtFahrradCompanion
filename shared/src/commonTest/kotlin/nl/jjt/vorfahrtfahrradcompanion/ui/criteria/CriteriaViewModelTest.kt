@@ -92,7 +92,7 @@ class CriteriaViewModelTest {
         assertEquals((startedAt + stretch).toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
         assertEquals(BoundaryKind.EXACT, stored.endKind)
         assertEquals(
-            Selections(mapOf("ALLOWED_USERS" to setOf(cars))),
+            Selections(mapOf(users to setOf(cars))),
             stored.values,
         )
     }
@@ -167,7 +167,7 @@ class CriteriaViewModelTest {
 
         assertEquals(2, observations.inserted.size)
         assertEquals(
-            Selections(mapOf("WIDTH" to setOf(w1))),
+            Selections(mapOf(width to setOf(w1))),
             observations.inserted.last().values,
         )
     }
@@ -271,7 +271,7 @@ class CriteriaViewModelTest {
         aSubmittedSegmentThenAFreshOne(vm)
 
         assertEquals(
-            Selections(mapOf("WIDTH" to setOf(w1), "ALLOWED_USERS" to setOf(cars))),
+            Selections(mapOf(width to setOf(w1), users to setOf(cars))),
             (vm.state.value as CriteriaUiState.Ready).copyable,
         )
 
@@ -313,12 +313,12 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
         clock += stretch
         vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
-        vm.confirmEnd(approve = setOf(users.id))
+        vm.confirmEnd(approve = setOf(users))
         testScheduler.advanceUntilIdle()
 
         assertEquals(2, observations.inserted.size)
         assertEquals(
-            Selections(mapOf("ALLOWED_USERS" to setOf(cars))),
+            Selections(mapOf(users to setOf(cars))),
             observations.inserted.last().values,
         )
     }
@@ -412,7 +412,7 @@ class CriteriaViewModelTest {
         // survives it.
         assertNotNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
 
-        vm.confirmEnd(approve = setOf(users.id))
+        vm.confirmEnd(approve = setOf(users))
         testScheduler.advanceUntilIdle()
         assertEquals(
             (pressedAt - LATE_END_GRACE).toEpochMilliseconds(),
@@ -458,12 +458,12 @@ class CriteriaViewModelTest {
         bothCarriedOverIntoTheNextSegment(vm)
         clock += stretch
         vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
-        vm.confirmEnd(approve = setOf(users.id))
+        vm.confirmEnd(approve = setOf(users))
         testScheduler.advanceUntilIdle()
 
         assertEquals(2, observations.inserted.size)
         assertEquals(
-            Selections(mapOf("ALLOWED_USERS" to setOf(cars))),
+            Selections(mapOf(users to setOf(cars))),
             observations.inserted.last().values,
         )
         assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
@@ -482,11 +482,11 @@ class CriteriaViewModelTest {
         assertEquals(listOf(width, users), (vm.state.value as CriteriaUiState.Ready).pendingEnd?.asked)
 
         vm.onTap(width, w2)
-        vm.confirmEnd(approve = setOf(width.id))
+        vm.confirmEnd(approve = setOf(width))
         testScheduler.advanceUntilIdle()
 
         assertEquals(
-            Selections(mapOf("WIDTH" to setOf(w2))),
+            Selections(mapOf(width to setOf(w2))),
             observations.inserted.last().values,
         )
     }
@@ -517,7 +517,7 @@ class CriteriaViewModelTest {
         vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         // Standing at a junction thinking about it must not lengthen the stretch.
         clock += stretch
-        vm.confirmEnd(approve = setOf(users.id))
+        vm.confirmEnd(approve = setOf(users))
         testScheduler.advanceUntilIdle()
 
         assertEquals(pressedAt.toEpochMilliseconds(), observations.inserted.last().endedAt.toEpochMilliseconds())
@@ -574,7 +574,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(
-            Selections(mapOf("WIDTH" to setOf(w1), "ALLOWED_USERS" to setOf(cars))),
+            Selections(mapOf(width to setOf(w1), users to setOf(cars))),
             observations.inserted.last().values,
         )
     }
@@ -625,7 +625,7 @@ class CriteriaViewModelTest {
 
         // The stretch just ridden is stored as it was described, ending where the value was picked.
         assertEquals(
-            Selections(mapOf("WIDTH" to setOf(w1), "ALLOWED_USERS" to setOf(cars))),
+            Selections(mapOf(width to setOf(w1), users to setOf(cars))),
             stored.values,
         )
         assertEquals(pickedAt.toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
@@ -654,7 +654,7 @@ class CriteriaViewModelTest {
         // rather than dropped — and the rider is asked nothing on the way out.
         assertEquals(2, observations.inserted.size)
         assertEquals(
-            Selections(mapOf("ALLOWED_USERS" to setOf(cars))),
+            Selections(mapOf(users to setOf(cars))),
             observations.inserted.last().values,
         )
         assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
@@ -712,7 +712,7 @@ class CriteriaViewModelTest {
         val values = listOf(CriterionValue("A"), CriterionValue("B"))
         val state = CriteriaUiState.Ready(
             Catalogue(criteria.associateWith { values }),
-            approved = setOf("C1", "C2", "C4"),
+            approved = setOf(criteria[0], criteria[1], criteria[3]),
         )
 
         // C3 was skipped and C4 dealt with: the way on is C5, not back up to C3.
@@ -722,11 +722,11 @@ class CriteriaViewModelTest {
         assertNull(state.openAfter(criteria[4]))
 
         // With the last one answered there is nothing below to go on to, so the skipped C3 comes round.
-        val bottom = state.copy(approved = state.approved + "C5")
+        val bottom = state.copy(approved = state.approved + criteria[4])
         assertEquals(criteria[2], bottom.leadingAfter(criteria[4]))
 
         // And once that is answered too, there is nowhere left to lead.
-        assertNull(bottom.copy(approved = criteria.map(Criterion::id).toSet()).leadingAfter(criteria[2]))
+        assertNull(bottom.copy(approved = criteria.toSet()).leadingAfter(criteria[2]))
     }
 
     @Test

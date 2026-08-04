@@ -58,7 +58,7 @@ internal class CriteriaActions(
     val cancelTiming: () -> Unit,
     val startRide: () -> Unit,
     val endRide: () -> Unit,
-    val confirmEnd: (Set<String>) -> Unit,
+    val confirmEnd: (Set<Criterion>) -> Unit,
     val cancelEnd: () -> Unit,
     val discardSegment: () -> Unit,
 )
@@ -153,7 +153,7 @@ private fun Catalogue(
 
     // The card the rider is working on. A tap pins it, so it cannot slide away under a thumb mid-answer,
     // and moving on unpins it again.
-    var pinned by remember { mutableStateOf<String?>(null) }
+    var pinned by remember { mutableStateOf<Criterion?>(null) }
 
     // How far down the list the rider has got. The flow leads from below it and only doubles back once
     // there is nothing left below to lead to.
@@ -162,8 +162,7 @@ private fun Catalogue(
     // With nothing pinned the screen leads: it opens up the criterion to answer next — but only while
     // there is nothing left to review. A segment that inherited the last one's answers stays folded, so
     // the rider approves or changes them one line at a time instead of being dropped into the first one.
-    val expanded = state.catalogue.criteria.firstOrNull { it.id == pinned }
-        ?: state.leadingAfter(settled).takeIf { state.carriedOver.isEmpty() }
+    val expanded = pinned ?: state.leadingAfter(settled).takeIf { state.carriedOver.isEmpty() }
 
     // The card the rider's answer is wanted on, opened up or not: the only one lit in daylight.
     val attention = expanded ?: state.leadingAfter(settled)
@@ -210,19 +209,19 @@ private fun Catalogue(
         advances.collectLatest { criterion ->
             if (criterion.kind == CriterionKind.MULTI) delay(MULTI_ADVANCE_MILLIS)
             // Unless the rider has opened something else in the meantime, in which case they lead.
-            if (pinned != criterion.id) return@collectLatest
+            if (pinned != criterion) return@collectLatest
             pinned = null
             settled = criterion
 
             // While anything else is still up for review nothing opens up, so the list has to be moved
             // on from here — the same step approving takes. Otherwise the criterion that opens up next
             // brings itself into view.
-            if (current.carriedOver.any { it.id != criterion.id }) moveOnFrom(criterion)
+            if (current.carriedOver.any { it != criterion }) moveOnFrom(criterion)
         }
     }
 
     // Answer one and the next one comes to you — no scrolling while riding.
-    LaunchedEffect(expanded?.id) { bringUp(expanded) }
+    LaunchedEffect(expanded) { bringUp(expanded) }
 
     // A question in front of the rider is the thing wanting an answer, so it is lit like one.
     var discarding by remember { mutableStateOf(false) }
@@ -306,21 +305,21 @@ private fun Catalogue(
                     items(state.catalogue.criteria, key = Criterion::id) { criterion ->
                         // Lit while it is the one being answered — or, where nothing is opened up
                         // because everything is still up for review, the one leading the list.
-                        Spotlight(lit = criterion.id == attention?.id) {
+                        Spotlight(lit = criterion == attention) {
                             CriterionCard(
                                 criterion = criterion,
                                 values = state.catalogue[criterion],
                                 selected = state.selections[criterion],
                                 state = state.stateOf(criterion),
-                                expanded = criterion.id == expanded?.id,
+                                expanded = criterion == expanded,
                                 onTapValue = { value ->
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    pinned = criterion.id
+                                    pinned = criterion
                                     actions.tap(criterion, value)
                                 },
                                 onOpen = {
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    pinned = criterion.id
+                                    pinned = criterion
                                 },
                                 onApprove = {
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
@@ -444,7 +443,7 @@ private const val APPROVE_ALL_KEY = "approve-all"
 
 /** Where a criterion sits in the list, counting the clear button that leads it while there is one. */
 private fun CriteriaUiState.Ready.rowOf(criterion: Criterion?): Int {
-    val index = catalogue.criteria.indexOfFirst { it.id == criterion?.id }
+    val index = catalogue.criteria.indexOf(criterion)
     return if (index < 0) -1 else index + if (carriedOver.isEmpty()) 0 else 1
 }
 

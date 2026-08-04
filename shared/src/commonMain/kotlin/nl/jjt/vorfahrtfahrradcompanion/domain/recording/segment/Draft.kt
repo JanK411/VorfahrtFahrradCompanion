@@ -1,5 +1,6 @@
 package nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment
 
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 
 /**
@@ -12,5 +13,5 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 data class Draft(
     val segment: Segment = Segment.Idle,
     val selections: Selections = Selections(),
-    val approved: Set<String> = emptySet(),
+    val approved: Set<Criterion> = emptySet(),
 )

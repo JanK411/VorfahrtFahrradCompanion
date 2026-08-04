@@ -8,6 +8,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredSelections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideSummary
@@ -22,31 +23,35 @@ sealed interface CriteriaUiState {
     data class Ready(
         val catalogue: Catalogue,
         val selections: Selections = Selections(),
-        val approved: Set<String> = emptySet(),
+        val approved: Set<Criterion> = emptySet(),
         val segment: Segment = Segment.Idle,
         val ride: Ride = Ride.Idle,
         val saveState: SaveState = SaveState.Idle,
         val pendingTiming: TimingRequest? = null,
         val pendingEnd: EndRequest? = null,
-        val submitted: Selections? = null,
+        val submitted: StoredSelections? = null,
     ) : CriteriaUiState {
 
         /** Approved for this segment and holding values — exactly what ending it would store. */
-        val describing: List<Criterion> get() = catalogue.criteria.filter { it.id in approved && it.hasValues }
+        val describing: List<Criterion> get() = catalogue.criteria.filter { it in approved && it.hasValues }
 
         /**
          * What the last segment submitted was described with, while this one still has nothing filled
          * in — a stretch much like the one before it is worth copying rather than answering again.
          * Gone the moment anything is entered, since there would be answers to overwrite.
+         *
+         * This is where what came out of storage becomes criteria again; one the catalogue has since
+         * dropped falls away here, so it is never offered and never copied forward.
          */
         val copyable: Selections?
-            get() = submitted?.takeIf { segment is Segment.Open && selections.isEmpty() && !it.isEmpty() }
+            get() = submitted?.let(catalogue::resolve)
+                ?.takeIf { segment is Segment.Open && selections.isEmpty() && !it.isEmpty() }
 
         /** Carried over from the previous segment, still unapproved, so it would not be stored. */
-        val carriedOver: List<Criterion> get() = catalogue.criteria.filter { it.id !in approved && it.hasValues }
+        val carriedOver: List<Criterion> get() = catalogue.criteria.filter { it !in approved && it.hasValues }
 
         /** The criterion the rider still has to deal with; null once nothing is left. */
-        val nextOpen: Criterion? get() = catalogue.criteria.firstOrNull { it.id !in approved }
+        val nextOpen: Criterion? get() = catalogue.criteria.firstOrNull { it !in approved }
 
         /**
          * The next criterion still needing attention *after* [criterion], in catalogue order — null past
@@ -55,9 +60,9 @@ sealed interface CriteriaUiState {
          */
         fun openAfter(criterion: Criterion): Criterion? = catalogue.criteria
             .asSequence()
-            .dropWhile { it.id != criterion.id }
+            .dropWhile { it != criterion }
             .drop(1)
-            .firstOrNull { it.id !in approved }
+            .firstOrNull { it !in approved }
 
         /**
          * What to put in front of the rider once [settled] is dealt with: the next criterion below it,
@@ -270,9 +275,9 @@ class CriteriaViewModel(
      * Ends the segment the rider was asked about, standing by the criteria in [approve]. Everything else
      * the question put up loses its values, edits made in the question included.
      */
-    fun confirmEnd(approve: Set<String>) {
+    fun confirmEnd(approve: Set<Criterion>) {
         val request = (_state.value as? CriteriaUiState.Ready)?.pendingEnd ?: return
-        observations.resolveCarriedOver(approve, request.asked.map(Criterion::id).toSet() - approve)
+        observations.resolveCarriedOver(approve, request.asked.toSet() - approve)
         updateReady { copy(pendingEnd = null) }
         store(request)
     }

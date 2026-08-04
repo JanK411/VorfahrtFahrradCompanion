@@ -52,15 +52,15 @@ class SelectionsTest {
     @Test
     fun pickingOffACardSetsTheValueTheCriterionHolds() {
         // Picking what is already there must not leave the next segment with nothing to describe it.
-        assertEquals(setOf(w1), Selections(mapOf("WIDTH" to setOf(w1))).pick(width, w1)[width])
-        assertEquals(setOf(w2), Selections(mapOf("WIDTH" to setOf(w1))).pick(width, w2)[width])
+        assertEquals(setOf(w1), Selections(mapOf(width to setOf(w1))).pick(width, w1)[width])
+        assertEquals(setOf(w2), Selections(mapOf(width to setOf(w1))).pick(width, w2)[width])
     }
 
     @Test
     fun onlyCriteriaHoldingValuesCountAsFilled() {
-        val selections = Selections(mapOf("WIDTH" to setOf(w1), "ALLOWED_USERS" to emptySet()))
+        val selections = Selections(mapOf(width to setOf(w1), users to emptySet()))
 
-        assertEquals(setOf("WIDTH"), selections.filled)
+        assertEquals(setOf(width), selections.filled)
     }
 
     /**
@@ -79,15 +79,15 @@ class SelectionsTest {
 
     @Test
     fun retainNarrowsToTheCriteriaNamed() {
-        val selections = Selections(mapOf("WIDTH" to setOf(w1), "ALLOWED_USERS" to setOf(cars)))
+        val selections = Selections(mapOf(width to setOf(w1), users to setOf(cars)))
 
-        assertEquals(Selections(mapOf("WIDTH" to setOf(w1))), selections.retain(setOf("WIDTH")))
+        assertEquals(Selections(mapOf(width to setOf(w1))), selections.retain(setOf(width)))
         assertEquals(Selections(), selections.retain(emptySet()))
     }
 
     @Test
     fun holdingNothingButEmptySetsCountsAsEmpty() {
-        assertFalse(Selections(mapOf("WIDTH" to setOf(w1))).isEmpty())
-        assertTrue(Selections(mapOf("WIDTH" to emptySet())).isEmpty())
+        assertFalse(Selections(mapOf(width to setOf(w1))).isEmpty())
+        assertTrue(Selections(mapOf(width to emptySet())).isEmpty())
     }
 }

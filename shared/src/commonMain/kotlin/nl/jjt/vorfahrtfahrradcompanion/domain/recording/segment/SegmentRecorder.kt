@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredSelections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
 import kotlin.time.Clock
@@ -29,7 +30,7 @@ class SegmentRecorder(
     private var replaced: Draft? = null
 
     /** What the last segment stored was described with — what [preselect] fills a fresh one in from. */
-    val lastSubmitted: Flow<Selections?> = store.lastValues()
+    val lastSubmitted: Flow<StoredSelections?> = store.lastValues()
 
     /** The clock this recorder stamps boundaries with, for a caller that has to mark one early. */
     val now: Instant get() = clock.now()
@@ -40,10 +41,10 @@ class SegmentRecorder(
      * selects, and either way the criterion counts as approved from then on — so a second tap does toggle.
      */
     fun tap(criterion: Criterion, value: CriterionValue) = _draft.update {
-        val standingBy = criterion.id !in it.approved && value in it.selections[criterion]
+        val standingBy = criterion !in it.approved && value in it.selections[criterion]
         it.copy(
             selections = if (standingBy) it.selections else it.selections.select(criterion, value),
-            approved = it.approved + criterion.id,
+            approved = it.approved + criterion,
         )
     }
 
@@ -61,7 +62,7 @@ class SegmentRecorder(
     }
 
     /** Stands by [criterion] as it is, without touching its values. */
-    fun approve(criterion: Criterion) = _draft.update { it.copy(approved = it.approved + criterion.id) }
+    fun approve(criterion: Criterion) = _draft.update { it.copy(approved = it.approved + criterion) }
 
     /**
      * Settles every criterion still carried over in one go: those in [approve] are stood by, the rest
@@ -71,7 +72,7 @@ class SegmentRecorder(
      * changing a value in the question approves it there and then, and rejecting it afterwards has to
      * undo that.
      */
-    fun resolveCarriedOver(approve: Set<String>, drop: Set<String> = emptySet()) = _draft.update {
+    fun resolveCarriedOver(approve: Set<Criterion>, drop: Set<Criterion> = emptySet()) = _draft.update {
         val approved = it.approved + approve - drop
         it.copy(selections = it.selections.retain(approved), approved = approved)
     }

@@ -2,6 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.domain.recording
 
 import kotlinx.coroutines.flow.Flow
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredSelections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import kotlin.time.Instant
 
@@ -21,8 +22,12 @@ interface ObservationStore {
         values: Selections,
     )
 
-    /** What the segment stored last was described with, or null while nothing has been stored yet. */
-    fun lastValues(): Flow<Selections?>
+    /**
+     * What the segment stored last was described with, or null while nothing has been stored yet.
+     * By id: what came back out of storage predates the catalogue now in hand, so it takes a
+     * [nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue] to say which criteria those are.
+     */
+    fun lastValues(): Flow<StoredSelections?>
 
     /** How many segments a ride holds — what its closing summary tells the rider it amounts to. */
     suspend fun countForRide(rideId: Long): Int
