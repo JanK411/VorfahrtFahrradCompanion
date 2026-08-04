@@ -25,6 +25,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideSummary
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
+import nl.jjt.vorfahrtfahrradcompanion.service.criteria.CriteriaApi
 import kotlin.time.Duration
 import kotlin.time.Instant
 

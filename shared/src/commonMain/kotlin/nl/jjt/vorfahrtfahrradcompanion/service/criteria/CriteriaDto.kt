@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.service.criteria
 
 import kotlinx.serialization.Serializable
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue

@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.service.criteria
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf

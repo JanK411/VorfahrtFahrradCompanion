@@ -27,6 +27,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
 import nl.jjt.vorfahrtfahrradcompanion.FakeClock
+import nl.jjt.vorfahrtfahrradcompanion.service.criteria.CriteriaApi
 import kotlin.test.AfterTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

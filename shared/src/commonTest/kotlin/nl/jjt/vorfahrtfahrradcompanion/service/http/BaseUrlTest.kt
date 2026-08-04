@@ -1,9 +1,10 @@
-package nl.jjt.vorfahrtfahrradcompanion.settings
+package nl.jjt.vorfahrtfahrradcompanion.service.http
 
-import kotlin.test.Test
+import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsUiState
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.Test
 
 class BaseUrlTest {
 

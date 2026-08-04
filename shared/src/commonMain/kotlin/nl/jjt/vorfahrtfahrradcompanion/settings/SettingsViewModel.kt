@@ -10,7 +10,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
-import nl.jjt.vorfahrtfahrradcompanion.net.isAllowedUrl
+import nl.jjt.vorfahrtfahrradcompanion.service.connection.ConnectionTester
+import nl.jjt.vorfahrtfahrradcompanion.service.connection.ConnectionTestResult
+import nl.jjt.vorfahrtfahrradcompanion.service.http.isAllowedUrl
+import nl.jjt.vorfahrtfahrradcompanion.service.http.normalizeBaseUrl
 
 sealed interface ConnectionTestState {
     data object Idle : ConnectionTestState

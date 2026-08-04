@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.service.criteria
 
 import io.ktor.http.appendPathSegments
 import io.ktor.http.takeFrom

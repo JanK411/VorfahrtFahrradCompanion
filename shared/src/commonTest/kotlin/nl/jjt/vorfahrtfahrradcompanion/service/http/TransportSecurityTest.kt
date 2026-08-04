@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.net
+package nl.jjt.vorfahrtfahrradcompanion.service.http
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

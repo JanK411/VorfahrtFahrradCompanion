@@ -1,6 +1,6 @@
-package nl.jjt.vorfahrtfahrradcompanion.settings
+package nl.jjt.vorfahrtfahrradcompanion.service.http
 
-import nl.jjt.vorfahrtfahrradcompanion.net.isLocalNetworkHost
+import nl.jjt.vorfahrtfahrradcompanion.service.http.isLocalNetworkHost
 
 /**
  * Normalizes a user-entered base URL — a full URL (origin plus optional path prefix), not a hostname.

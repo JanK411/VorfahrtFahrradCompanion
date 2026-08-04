@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.service.criteria
 
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
@@ -7,7 +7,7 @@ import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CachedCatalogue
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheStore
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
-import nl.jjt.vorfahrtfahrradcompanion.settings.normalizeBaseUrl
+import nl.jjt.vorfahrtfahrradcompanion.service.http.normalizeBaseUrl
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 

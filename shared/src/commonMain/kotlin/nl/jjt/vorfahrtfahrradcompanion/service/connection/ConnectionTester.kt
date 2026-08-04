@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.settings
+package nl.jjt.vorfahrtfahrradcompanion.service.connection
 
 import io.ktor.client.HttpClient
 import io.ktor.client.request.basicAuth
@@ -8,6 +8,7 @@ import io.ktor.http.appendPathSegments
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.takeFrom
 import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
+import nl.jjt.vorfahrtfahrradcompanion.service.http.normalizeBaseUrl
 import kotlin.coroutines.cancellation.CancellationException
 
 sealed interface ConnectionTestResult {

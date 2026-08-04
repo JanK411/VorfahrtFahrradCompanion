@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.net
+package nl.jjt.vorfahrtfahrradcompanion.service.http
 
 import io.ktor.client.engine.HttpClientEngine
 
