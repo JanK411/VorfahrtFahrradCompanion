@@ -51,9 +51,9 @@ import org.koin.dsl.koinConfiguration
 
 /** Bottom-bar destinations. [PatchNotesRoute] is a sub-page reached from Settings, not a tab. */
 private enum class Tab(val label: String, val icon: ImageVector, val route: Any) {
-    Criteria("Criteria", Icons.AutoMirrored.Filled.List, CriteriaRoute),
-    Location("Ride", BicycleIcon, RideRoute),
-    Settings("Settings", Icons.Filled.Settings, SettingsRoute),
+    CRITERIA("Criteria", Icons.AutoMirrored.Filled.List, CriteriaRoute),
+    RIDE("Ride", BicycleIcon, RideRoute),
+    SETTINGS("Settings", Icons.Filled.Settings, SettingsRoute),
 }
 
 @Composable

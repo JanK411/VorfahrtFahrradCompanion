@@ -85,7 +85,7 @@ internal fun CriteriaUiState.Ready.stateOf(criterion: Criterion): CriterionState
 
 /** Big enough to hit on a bumpy road without looking for long. */
 private val ValueButtonHeight = 72.dp
-internal val CriterionRowHeight = 64.dp
+internal val CRITERION_ROW_HEIGHT = 64.dp
 
 /** The one precise target on a folded card; everything around it opens the criterion instead. */
 private val ApproveButtonSize = 64.dp
@@ -150,16 +150,16 @@ internal fun CriterionCard(
 }
 
 /** Wide enough to be found and held by a thumb that is not looking for it. */
-private val HandleWidth = 56.dp
+private val HANDLE_WIDTH = 56.dp
 
 private val KnobWidth = 34.dp
 private val KnobArrow = 20.dp
 
 /** How far the knob grows under a thumb — enough to notice at a glance, not enough to jump. */
-private const val PressedScale = 1.15f
+private const val PRESSED_SCALE = 1.15f
 
 /** How far the thumb has to travel before the hold counts as having picked anything. */
-private val PickSlack = 24.dp
+private val PICK_SLACK = 24.dp
 
 /**
  * What the strip looks like: a raised capsule in the app's own green, carrying an arrow at each end.
@@ -171,7 +171,7 @@ private val PickSlack = 24.dp
  */
 @Composable
 private fun Knob(pressed: Boolean) {
-    val scale by animateFloatAsState(if (pressed) PressedScale else 1f, label = "knob")
+    val scale by animateFloatAsState(if (pressed) PRESSED_SCALE else 1f, label = "knob")
 
     Surface(
         modifier = Modifier.fillMaxHeight().padding(vertical = 6.dp).width(KnobWidth).scale(scale)
@@ -211,7 +211,7 @@ private fun SplitHandle(
 ) {
     val haptics = LocalHapticFeedback.current
     val window = LocalWindowInfo.current.containerSize
-    val slack = with(LocalDensity.current) { PickSlack.toPx() }
+    val slack = with(LocalDensity.current) { PICK_SLACK.toPx() }
 
     // Where the strip sits in the window, since the menu is laid over the window while the thumb is
     // reported against the strip.
@@ -226,11 +226,11 @@ private fun SplitHandle(
     var pressed by remember { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier.fillMaxHeight().width(HandleWidth)
+        modifier = Modifier.fillMaxHeight().width(HANDLE_WIDTH)
             .onGloballyPositioned { handleTop = it.positionInWindow().y }
             .holdAndSlide(
                 key = criterion,
-                tapSlack = PickSlack,
+                tapSlack = PICK_SLACK,
                 onPressedChange = { pressed = it },
                 onTap = onOpen,
                 onHold = { at ->
@@ -266,7 +266,7 @@ private fun SplitHandle(
 /**
  * Which value the thumb is over: the menu is the whole window, split evenly, so the only aim asked
  * for is roughly how far up or down to go. There is nowhere on the screen that is not a value —
- * [PickSlack] is what keeps a hold the rider thinks better of from picking the one under their thumb.
+ * [PICK_SLACK] is what keeps a hold the rider thinks better of from picking the one under their thumb.
  */
 private fun Criterion.valueUnder(y: Float, windowHeight: Int): String? {
     if (windowHeight <= 0) return null
@@ -311,7 +311,7 @@ private fun CarriedOverCriterion(
     onOpen: () -> Unit,
     onApprove: () -> Unit,
 ) = Row(
-    modifier = Modifier.fillMaxWidth().heightIn(min = CriterionRowHeight)
+    modifier = Modifier.fillMaxWidth().heightIn(min = CRITERION_ROW_HEIGHT)
         .clickable(onClick = onOpen)
         .padding(horizontal = 16.dp, vertical = 8.dp),
     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -342,7 +342,7 @@ private fun FoldedCriterion(
     state: CriterionState,
     onOpen: () -> Unit,
 ) = Row(
-    modifier = Modifier.fillMaxWidth().heightIn(min = CriterionRowHeight)
+    modifier = Modifier.fillMaxWidth().heightIn(min = CRITERION_ROW_HEIGHT)
         .clickable(onClick = onOpen)
         .padding(horizontal = 16.dp, vertical = 8.dp),
     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -434,7 +434,7 @@ internal fun ExpandedCriterion(
         HorizontalDivider(Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
         Button(
             onClick = onDone,
-            modifier = Modifier.fillMaxWidth().heightIn(min = CriterionRowHeight),
+            modifier = Modifier.fillMaxWidth().heightIn(min = CRITERION_ROW_HEIGHT),
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary,

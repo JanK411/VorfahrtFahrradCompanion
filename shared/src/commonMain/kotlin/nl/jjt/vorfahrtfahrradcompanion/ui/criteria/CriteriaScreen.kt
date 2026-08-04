@@ -37,7 +37,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LATE_END_GRACE
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
@@ -54,7 +54,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * How long a pick-any criterion waits after a tap before moving on. Long enough to add a second
  * value, short enough that a rider who is done does not have to reach for the "Done" button.
  */
-private const val MultiAdvanceMillis = 1500L
+private const val MULTI_ADVANCE_MILLIS = 1500L
 
 /**
  * Everything the criteria screen can ask of the ViewModel. Gathered into one object because the
@@ -158,7 +158,7 @@ private fun Catalogue(
                     SegmentOutcome.NOTHING_TO_STORE -> "Nothing approved — segment discarded"
                     SegmentOutcome.DISCARDED -> "Segment discarded"
                     SegmentOutcome.TOO_LATE ->
-                        "More than ${LateEndGrace.inWholeSeconds} s late — segment discarded"
+                        "More than ${LATE_END_GRACE.inWholeSeconds} s late — segment discarded"
                 },
             )
         }
@@ -226,7 +226,7 @@ private fun Catalogue(
     LaunchedEffect(advances) {
         // collectLatest, so every further tap restarts the wait instead of stacking up advances.
         advances.collectLatest { criterion ->
-            if (criterion.kind == CriterionKind.MULTI) delay(MultiAdvanceMillis)
+            if (criterion.kind == CriterionKind.MULTI) delay(MULTI_ADVANCE_MILLIS)
             // Unless the rider has opened something else in the meantime, in which case they lead.
             if (pinned != criterion.id) return@collectLatest
             pinned = null
@@ -307,7 +307,7 @@ private fun Catalogue(
                     // The very first row, so that answering anything below scrolls it out of the way for
                     // good — it is a decision about a fresh segment, not one to keep meeting.
                     if (state.carriedOver.isNotEmpty()) {
-                        item(key = ClearCarriedOverKey) {
+                        item(key = CLEAR_CARRIED_OVER_KEY) {
                             SegmentButton(
                                 text = "Clear ${state.carriedOver.size} carried over",
                                 icon = Icons.Filled.Close,
@@ -357,7 +357,7 @@ private fun Catalogue(
                     // has read down the list and found nothing to change says so here, in one tap,
                     // rather than approving five cards they have just been through one by one.
                     if (state.carriedOver.isNotEmpty()) {
-                        item(key = ApproveAllKey) {
+                        item(key = APPROVE_ALL_KEY) {
                             SegmentButton(
                                 text = "Approve all ${state.carriedOver.size}",
                                 icon = Icons.Filled.Check,
@@ -455,8 +455,8 @@ private fun Catalogue(
     }
 }
 
-private const val ClearCarriedOverKey = "clear-carried-over"
-private const val ApproveAllKey = "approve-all"
+private const val CLEAR_CARRIED_OVER_KEY = "clear-carried-over"
+private const val APPROVE_ALL_KEY = "approve-all"
 
 /** Where a criterion sits in the list, counting the clear button that leads it while there is one. */
 private fun CriteriaUiState.Ready.rowOf(criterion: Criterion?): Int {

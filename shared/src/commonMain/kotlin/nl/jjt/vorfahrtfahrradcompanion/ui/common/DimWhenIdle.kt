@@ -28,23 +28,23 @@ import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.seconds
 
 /** How long the screen goes untouched before it dims. */
-private val DimAfter = 20.seconds
+private val DIM_AFTER = 20.seconds
 
 /**
  * How far down the backlight goes. Not as far as it would have to on its own, because the veil below
  * darkens the screen by as much again: together they land where the backlight alone used to, and the
  * shorter the drop, the shorter the climb back that the platform ramps at its own pace.
  */
-private const val DimmedLevel = 0.25f
+private const val DIMMED_LEVEL = 0.25f
 
 /** How far the screen is veiled on top of that, which is the part of the dimming this app owns. */
-private const val ScrimAlpha = 0.7f
+private const val SCRIM_ALPHA = 0.7f
 
 /** How long the veil takes to draw: slow enough to read as the screen resting, not as a fault. */
-private const val FadeMillis = 2000
+private const val FADE_MILLIS = 2000
 
 /**
- * Turns the display down after [DimAfter] without a touch, and back up on the next one.
+ * Turns the display down after [DIM_AFTER] without a touch, and back up on the next one.
  *
  * A segment can run for minutes with nothing to answer, and the screen is held awake throughout —
  * so it is held awake dim. It is never put out: the rider gets it back with a touch anywhere rather
@@ -78,21 +78,21 @@ fun DimWhenIdle(
         // collectLatest, so every touch throws away the wait that was running and starts another.
         snapshotFlow { touches }.collectLatest {
             dimmed = false
-            delay(DimAfter)
+            delay(DIM_AFTER)
             dimmed = true
         }
     }
 
     DisposableEffect(brightness, dimmed) {
-        brightness.set(if (dimmed) DimmedLevel else null)
+        brightness.set(if (dimmed) DIMMED_LEVEL else null)
         onDispose { brightness.set(null) }
     }
 
     // Down over a couple of seconds, up in a single frame: a screen fading out is the app resting,
     // a screen taking two seconds to come back is the app in the way.
     val veil by animateFloatAsState(
-        targetValue = if (dimmed) ScrimAlpha else 0f,
-        animationSpec = if (dimmed) tween(FadeMillis, easing = LinearEasing) else snap(),
+        targetValue = if (dimmed) SCRIM_ALPHA else 0f,
+        animationSpec = if (dimmed) tween(FADE_MILLIS, easing = LinearEasing) else snap(),
         label = "dim",
     )
 

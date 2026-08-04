@@ -5,7 +5,7 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * How well the press hit the end the rider meant — asked on every end, because an end is worth keeping
  * only if they can still say where it was. [PRECISE] takes the press for the boundary, [SLIGHTLY_LATE]
- * puts it [LateEndGrace] back, and [TOO_LATE] means the stretch ended somewhere between there and here,
+ * puts it [LATE_END_GRACE] back, and [TOO_LATE] means the stretch ended somewhere between there and here,
  * which is no place to record.
  */
 enum class EndTiming {
@@ -18,4 +18,4 @@ enum class EndTiming {
 }
 
 /** How far back an end marked [EndTiming.SLIGHTLY_LATE] is taken to be. */
-val LateEndGrace = 10.seconds
+val LATE_END_GRACE = 10.seconds

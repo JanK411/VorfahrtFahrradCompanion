@@ -38,25 +38,25 @@ fun isNightAt(at: Instant, latitude: Double, longitude: Double): Boolean =
 fun solarDay(around: Instant, latitude: Double, longitude: Double): SolarDay {
     // The cycle whose noon lies nearest the moment asked about, so the rise and set it yields are
     // the pair that brackets it rather than yesterday's or tomorrow's.
-    val cycle = round(julianDay(around) - Epoch2000 - MeanNoonOffset + longitude / 360.0)
+    val cycle = round(julianDay(around) - EPOCH_2000 - MEAN_NOON_OFFSET + longitude / 360.0)
 
     // Mean solar noon at this longitude, in days since J2000: east of Greenwich the sun is overhead
     // before it is over Greenwich, four minutes to the degree.
-    val meanTime = cycle + MeanNoonOffset - longitude / 360.0
+    val meanTime = cycle + MEAN_NOON_OFFSET - longitude / 360.0
 
     val anomaly = (357.5291 + 0.98560028 * meanTime).mod(360.0)
     val centre = 1.9148 * sinDeg(anomaly) + 0.0200 * sinDeg(2 * anomaly) + 0.0003 * sinDeg(3 * anomaly)
 
     // Where the sun is along the ecliptic, and from that how far it stands off the equator.
     val eclipticLongitude = (anomaly + centre + 180.0 + 102.9372).mod(360.0)
-    val declination = asin(sinDeg(eclipticLongitude) * sinDeg(EarthTilt))
+    val declination = asin(sinDeg(eclipticLongitude) * sinDeg(EARTH_TILT))
 
-    val transit = Epoch2000 + meanTime + 0.0053 * sinDeg(anomaly) - 0.0069 * sinDeg(2 * eclipticLongitude)
+    val transit = EPOCH_2000 + meanTime + 0.0053 * sinDeg(anomaly) - 0.0069 * sinDeg(2 * eclipticLongitude)
 
     // How far either side of noon the sun crosses the horizon. Beyond the polar circles the horizon
     // is not crossed at all and this runs past ±1, where clamping gives the degenerate day: no width
     // at all when the sun stays down, the full turn when it stays up.
-    val hourAngle = (sinDeg(HorizonDip) - sinDeg(latitude) * sin(declination)) /
+    val hourAngle = (sinDeg(HORIZON_DIP) - sinDeg(latitude) * sin(declination)) /
         (cosDeg(latitude) * cos(declination))
 
     val half = toDegrees(acos(hourAngle.coerceIn(-1.0, 1.0))) / 360.0
@@ -64,31 +64,31 @@ fun solarDay(around: Instant, latitude: Double, longitude: Double): SolarDay {
 }
 
 /** J2000: noon on 2000-01-01, the epoch the whole calculation counts days from. */
-private const val Epoch2000 = 2451545.0
+private const val EPOCH_2000 = 2451545.0
 
 /** The fractional-day correction that puts mean solar noon where the equation expects it. */
-private const val MeanNoonOffset = 0.0009
+private const val MEAN_NOON_OFFSET = 0.0009
 
-private const val EarthTilt = 23.4397
+private const val EARTH_TILT = 23.4397
 
 /** Where the sun's centre stands at the moment it counts as risen or set. */
-private const val HorizonDip = -0.833
+private const val HORIZON_DIP = -0.833
 
-private const val SecondsPerDay = 86_400.0
+private const val SECONDS_PER_DAY = 86_400.0
 
 /** Julian dates count from noon on 1 January 4713 BC; the unix epoch falls this far along. */
-private const val UnixEpochJulianDay = 2440587.5
+private const val UNIX_EPOCH_JULIAN_DAY = 2440587.5
 
 private fun julianDay(at: Instant): Double =
-    at.toEpochMilliseconds() / (SecondsPerDay * 1000.0) + UnixEpochJulianDay
+    at.toEpochMilliseconds() / (SECONDS_PER_DAY * 1000.0) + UNIX_EPOCH_JULIAN_DAY
 
 private fun instantOf(julianDay: Double): Instant =
-    Instant.fromEpochMilliseconds(((julianDay - UnixEpochJulianDay) * SecondsPerDay * 1000.0).toLong())
+    Instant.fromEpochMilliseconds(((julianDay - UNIX_EPOCH_JULIAN_DAY) * SECONDS_PER_DAY * 1000.0).toLong())
 
-private fun sinDeg(degrees: Double) = sin(degrees * DegreesToRadians)
+private fun sinDeg(degrees: Double) = sin(degrees * DEGREES_TO_RADIANS)
 
-private fun cosDeg(degrees: Double) = cos(degrees * DegreesToRadians)
+private fun cosDeg(degrees: Double) = cos(degrees * DEGREES_TO_RADIANS)
 
-private fun toDegrees(radians: Double) = radians / DegreesToRadians
+private fun toDegrees(radians: Double) = radians / DEGREES_TO_RADIANS
 
-private const val DegreesToRadians = PI / 180.0
+private const val DEGREES_TO_RADIANS = PI / 180.0

@@ -47,7 +47,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 
 /** The one precise target on a row; everything else about it opens the criterion up. */
-private val ApproveButtonSize = 56.dp
+private val APPROVE_BUTTON_SIZE = 56.dp
 
 /**
  * What is asked of the rider on their way out of a segment that still carries the previous one's
@@ -202,13 +202,13 @@ private fun CarriedOverRow(
             if (approve) MaterialTheme.colorScheme.secondaryContainer
             else MaterialTheme.colorScheme.surfaceVariant,
         )
-        .heightIn(min = CriterionRowHeight),
+        .heightIn(min = CRITERION_ROW_HEIGHT),
     horizontalArrangement = Arrangement.spacedBy(4.dp),
     verticalAlignment = Alignment.CenterVertically,
 ) {
     Row(
         modifier = Modifier.weight(1f).clickable(onClick = onEdit)
-            .heightIn(min = CriterionRowHeight)
+            .heightIn(min = CRITERION_ROW_HEIGHT)
             .padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -237,7 +237,7 @@ private fun CarriedOverRow(
     // Filled once the row is approved, flat while it is still nobody's answer.
     FilledIconButton(
         onClick = onApprove,
-        modifier = Modifier.padding(end = 8.dp).size(ApproveButtonSize),
+        modifier = Modifier.padding(end = 8.dp).size(APPROVE_BUTTON_SIZE),
         colors = IconButtonDefaults.filledIconButtonColors(
             containerColor = if (approve) MaterialTheme.colorScheme.primary else Color.Transparent,
             contentColor = if (approve) MaterialTheme.colorScheme.onPrimary

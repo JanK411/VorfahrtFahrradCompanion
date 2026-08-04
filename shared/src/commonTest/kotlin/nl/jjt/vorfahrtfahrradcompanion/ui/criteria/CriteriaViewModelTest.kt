@@ -17,7 +17,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LATE_END_GRACE
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
@@ -193,7 +193,7 @@ class CriteriaViewModelTest {
         // The end of one stretch is the start of the next — including how late it was marked, and the
         // step back that being late is worth.
         val segment = (vm.state.value as CriteriaUiState.Ready).segment
-        assertEquals(Segment.Open(startedAt + stretch - LateEndGrace, BoundaryKind.EARLIER), segment)
+        assertEquals(Segment.Open(startedAt + stretch - LATE_END_GRACE, BoundaryKind.EARLIER), segment)
         assertEquals(BoundaryKind.EARLIER, stored.endKind)
     }
 
@@ -403,7 +403,7 @@ class CriteriaViewModelTest {
         vm.answerTiming(EndTiming.SLIGHTLY_LATE)
         testScheduler.advanceUntilIdle()
 
-        assertEquals((pressedAt - LateEndGrace).toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
+        assertEquals((pressedAt - LATE_END_GRACE).toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
         assertEquals(BoundaryKind.EARLIER, stored.endKind)
     }
 
@@ -458,7 +458,7 @@ class CriteriaViewModelTest {
 
         vm.confirmEnd(approve = setOf(users.id))
         testScheduler.advanceUntilIdle()
-        assertEquals((pressedAt - LateEndGrace).toEpochMilliseconds(), observations.inserted.last().endedAt.toEpochMilliseconds())
+        assertEquals((pressedAt - LATE_END_GRACE).toEpochMilliseconds(), observations.inserted.last().endedAt.toEpochMilliseconds())
     }
 
     @Test

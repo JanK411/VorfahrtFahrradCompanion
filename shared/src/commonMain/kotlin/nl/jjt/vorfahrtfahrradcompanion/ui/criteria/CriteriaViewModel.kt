@@ -17,7 +17,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LATE_END_GRACE
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRecorder
@@ -268,7 +268,7 @@ class CriteriaViewModel(
             return
         }
 
-        val at = request.at - if (timing == EndTiming.SLIGHTLY_LATE) LateEndGrace else Duration.ZERO
+        val at = request.at - if (timing == EndTiming.SLIGHTLY_LATE) LATE_END_GRACE else Duration.ZERO
         ask(EndRequest(timing.boundary, request.action, at))
     }
 

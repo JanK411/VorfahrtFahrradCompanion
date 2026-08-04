@@ -10,7 +10,7 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 
 /** How often the sun is asked about. Sunset takes minutes to happen; the screen can wait one. */
-private val Tick = 1.minutes
+private val TICK = 1.minutes
 
 /**
  * Whether it is dark out, which is the only thing this app dims its screen for. The device's own
@@ -31,7 +31,7 @@ class Daylight(
     val isNight: Flow<Boolean> = flow {
         while (true) {
             emit(night())
-            delay(Tick)
+            delay(TICK)
         }
     }.distinctUntilChanged()
 

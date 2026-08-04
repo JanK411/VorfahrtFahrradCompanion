@@ -33,13 +33,13 @@ internal fun ButtonRow(content: @Composable RowScope.() -> Unit) = Row(
     content = content,
 )
 
-private val ActionButtonHeight = 72.dp
+private val ACTION_BUTTON_HEIGHT = 72.dp
 
 /** How far above the button the stack of answers starts, and how far in from the sides it sits. */
-private val MenuGap = 12.dp
+private val MENU_GAP = 12.dp
 
 /** Bottom to top, so the further the thumb travels, the later the press was. */
-private val TimingCards = EndTiming.entries.reversed()
+private val TIMING_CARDS = EndTiming.entries.reversed()
 
 /**
  * A boundary marker. A tap marks the boundary here and now; where there is an [onPick], holding it says
@@ -63,7 +63,7 @@ internal fun RowScope.RecorderButton(
 ) {
     val haptics = LocalHapticFeedback.current
     val scheme = MaterialTheme.colorScheme
-    val gapPx = with(LocalDensity.current) { MenuGap.toPx() }
+    val gapPx = with(LocalDensity.current) { MENU_GAP.toPx() }
 
     // Where the button's top edge sits in the window — the stack fills everything above it, and the
     // slide is measured against exactly that, so the card that lights up is the one under the thumb.
@@ -74,7 +74,7 @@ internal fun RowScope.RecorderButton(
     var choice by remember { mutableStateOf<EndTiming?>(null) }
 
     Surface(
-        modifier = Modifier.weight(1f).heightIn(min = ActionButtonHeight).fillMaxHeight()
+        modifier = Modifier.weight(1f).heightIn(min = ACTION_BUTTON_HEIGHT).fillMaxHeight()
             .onGloballyPositioned { buttonTop = it.positionInWindow().y }
             .holdAndSlide(
                 key = label,
@@ -140,8 +140,8 @@ internal fun RowScope.RecorderButton(
  */
 private fun cardUnder(aboveButton: Float, stack: Float, gap: Float): EndTiming? {
     if (stack <= 0f || aboveButton < gap) return null
-    val index = ((aboveButton - gap) / (stack / TimingCards.size)).toInt()
-    return TimingCards.getOrElse(index) { TimingCards.last() }
+    val index = ((aboveButton - gap) / (stack / TIMING_CARDS.size)).toInt()
+    return TIMING_CARDS.getOrElse(index) { TIMING_CARDS.last() }
 }
 
 /**
@@ -150,10 +150,10 @@ private fun cardUnder(aboveButton: Float, stack: Float, gap: Float): EndTiming? 
  */
 @Composable
 private fun HowLatePicker(choice: EndTiming?, height: Dp) = Column(
-    modifier = Modifier.fillMaxWidth().height(height).padding(horizontal = MenuGap),
+    modifier = Modifier.fillMaxWidth().height(height).padding(horizontal = MENU_GAP),
     verticalArrangement = Arrangement.spacedBy(8.dp),
 ) {
-    TimingCards.forEach { timing ->
+    TIMING_CARDS.forEach { timing ->
         HoldMenuOption(
             title = timing.title,
             icon = timing.icon,

@@ -10,15 +10,15 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /** Amsterdam, where the difference between midsummer and midwinter is over nine hours of daylight. */
-private const val AmsterdamLatitude = 52.37
-private const val AmsterdamLongitude = 4.90
+private const val AMSTERDAM_LATITUDE = 52.37
+private const val AMSTERDAM_LONGITUDE = 4.90
 
 /** Tromsø, north of the Arctic Circle: no sunset in June, no sunrise in December. */
-private const val TromsoLatitude = 69.65
-private const val TromsoLongitude = 18.96
+private const val TROMSO_LATITUDE = 69.65
+private const val TROMSO_LONGITUDE = 18.96
 
 /** Published rise and set times are quoted to the minute; a few either way is neither here nor there. */
-private val Tolerance = 4.minutes
+private val TOLERANCE = 4.minutes
 
 class SunTest {
 
@@ -73,15 +73,15 @@ class SunTest {
 
         // A sun that never sets is a day the full turn wide; one that never rises is a day of no
         // width at all, sitting at noon.
-        val up = solarDay(midsummer, TromsoLatitude, TromsoLongitude)
+        val up = solarDay(midsummer, TROMSO_LATITUDE, TROMSO_LONGITUDE)
         assertEquals(24.hours, up.sunset - up.sunrise)
 
-        val down = solarDay(midwinter, TromsoLatitude, TromsoLongitude)
+        val down = solarDay(midwinter, TROMSO_LATITUDE, TROMSO_LONGITUDE)
         assertEquals(down.sunrise, down.sunset)
 
         // Midnight in Tromsø in June is daylight, and noon in December is not.
-        assertFalse(isNightAt(midsummer, TromsoLatitude, TromsoLongitude))
-        assertTrue(isNightAt(midwinter, TromsoLatitude, TromsoLongitude))
+        assertFalse(isNightAt(midsummer, TROMSO_LATITUDE, TROMSO_LONGITUDE))
+        assertTrue(isNightAt(midwinter, TROMSO_LATITUDE, TROMSO_LONGITUDE))
     }
 
     @Test
@@ -93,14 +93,14 @@ class SunTest {
     }
 
     private fun risesAndSets(at: String) =
-        solarDay(Instant.parse(at), AmsterdamLatitude, AmsterdamLongitude)
+        solarDay(Instant.parse(at), AMSTERDAM_LATITUDE, AMSTERDAM_LONGITUDE)
 
     private fun night(at: String) =
-        isNightAt(Instant.parse(at), AmsterdamLatitude, AmsterdamLongitude)
+        isNightAt(Instant.parse(at), AMSTERDAM_LATITUDE, AMSTERDAM_LONGITUDE)
 
     private fun assertCloseTo(expected: Instant, actual: Instant) =
-        assertTrue((expected - actual).absoluteValue < Tolerance, "$actual, expected $expected")
+        assertTrue((expected - actual).absoluteValue < TOLERANCE, "$actual, expected $expected")
 
     private fun assertCloseTo(expected: Duration, actual: Duration) =
-        assertTrue((expected - actual).absoluteValue < Tolerance, "$actual, expected $expected")
+        assertTrue((expected - actual).absoluteValue < TOLERANCE, "$actual, expected $expected")
 }

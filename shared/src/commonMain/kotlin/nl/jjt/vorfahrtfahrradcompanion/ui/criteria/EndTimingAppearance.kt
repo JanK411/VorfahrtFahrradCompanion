@@ -10,7 +10,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LATE_END_GRACE
 
 /**
  * How the three answers to "how well did you catch the moment?" look.
@@ -22,7 +22,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
 internal val EndTiming.title: String
     get() = when (this) {
         EndTiming.PRECISE -> "Precisely"
-        EndTiming.SLIGHTLY_LATE -> "~${LateEndGrace.inWholeSeconds} s late"
+        EndTiming.SLIGHTLY_LATE -> "~${LATE_END_GRACE.inWholeSeconds} s late"
         EndTiming.TOO_LATE -> "Too late"
     }
 
@@ -54,7 +54,7 @@ internal val EndTiming.effect: String
     get() = when (this) {
         EndTiming.PRECISE -> "the end is stored where you pressed"
         EndTiming.SLIGHTLY_LATE ->
-            "the end is stored ${LateEndGrace.inWholeSeconds} seconds before the press"
+            "the end is stored ${LATE_END_GRACE.inWholeSeconds} seconds before the press"
 
         EndTiming.TOO_LATE -> "the segment is thrown away"
     }
