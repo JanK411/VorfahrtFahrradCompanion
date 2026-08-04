@@ -288,6 +288,30 @@ class CriteriaViewModelTest {
         assertNull(ready.copyable)
     }
 
+    /**
+     * The catalogue is fetched fresh each time; what was stored under a criterion it no longer asks
+     * about falls away when the stored ids are resolved, rather than being offered and copied into a
+     * segment that cannot be described by it.
+     */
+    @Test
+    fun whatWasStoredUnderACriterionTheCatalogueDroppedIsNotOfferedForCopying() = runTest {
+        val retired = Criterion("RETIRED", CriterionKind.SINGLE)
+        observations.insert(
+            rideId = 1,
+            startedAt = startedAt,
+            startKind = BoundaryKind.EXACT,
+            endedAt = startedAt + stretch,
+            endKind = BoundaryKind.EXACT,
+            values = Selections(mapOf(retired to setOf(CriterionValue("GONE")))),
+        )
+
+        val vm = riding()
+        vm.start(BoundaryKind.EXACT)
+        testScheduler.advanceUntilIdle()
+
+        assertNull((vm.state.value as CriteriaUiState.Ready).copyable)
+    }
+
     @Test
     fun copyingIsNotOfferedOverAnswersTheRiderHasAlreadyGiven() = runTest {
         val vm = riding()
