@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Checks the package structure and naming rules described in SKILL.md.
+# Checks the package structure and naming rules described in .claude/conventions.md.
 # Prints "path:line  rule  detail" per violation; exits 1 if any fired.
 set -uo pipefail
 
-cd "$(dirname "$0")/../../.." || exit 2
-SKILL=".claude/skills/conventions/SKILL.md"
+cd "$(dirname "$0")/.." || exit 2
+DOC=".claude/conventions.md"
 PKG="nl.jjt.vorfahrtfahrradcompanion"
 PKGPATH="nl/jjt/vorfahrtfahrradcompanion"
 # Violations are tallied in a file, not a variable: most checks run inside a pipeline, whose subshell
@@ -18,13 +18,13 @@ sources() { find shared/src androidApp/src -name '*.kt' 2>/dev/null | sort; }
 pkgdir() { local p="${1#*/kotlin/$PKGPATH}"; p="${p%/*.kt}"; p="${p#/}"; [[ "$p" == *.kt ]] && p=""; echo "$p"; }
 
 # The manifest: the fenced block under "## Folder structure", first column of each line.
-manifest=$(awk '/^## Folder structure/{f=1} f&&/^```$/{c++; if(c==2) exit} f&&c==1' "$SKILL" \
+manifest=$(awk '/^## Folder structure/{f=1} f&&/^```$/{c++; if(c==2) exit} f&&c==1' "$DOC" \
   | grep -oE '^[a-z(][a-zA-Z/()]*' | sed 's|^(root)$||' | sort -u)
 
 for f in $(sources); do
   d=$(pkgdir "$f")
   # 1. package is in the manifest
-  grep -qxF "$d" <<<"$manifest" || say "$f:1" "structure" "package '${d:-(root)}' is not in SKILL.md#folder-structure"
+  grep -qxF "$d" <<<"$manifest" || say "$f:1" "structure" "package '${d:-(root)}' is not in $DOC#folder-structure"
 
   # 1b. util is a namespace for the supporting packages, so it holds packages and never files
   [[ "$d" == "util" ]] && say "$f:1" "util-namespace" "util holds packages, not files; give this one a sub-package that names what it is"

@@ -36,7 +36,7 @@
       "mcp__idea__get_symbol_info",
       "mcp__idea__list_directory_tree",
       "mcp__ide__getDiagnostics",
-      "Bash(.claude/skills/conventions/check.sh)"
+      "Bash(.claude/conventions-check.sh)"
     ]
   }
 }

@@ -9,9 +9,9 @@ records it as a sequence of **segments**; each segment is described by answering
 from the server (cached in Room for offline use). Answers carry over from one segment to the next as suggestions that
 have to be approved. Observations are stored locally — there is no upload yet.
 
-Three bottom-bar tabs — criteria, ride, settings — over `commonMain` packages: `criteria/` (catalogue, recording, the
-criteria screen), `location/` (GPS), `daylight/` (sunset where the rider is, driving screen dimming), `settings/`
-(server connection, Room `AppDatabase` and migrations), `patchnotes/`, `navigation/`, `net/`, `ui/`, `di/`.
+Three bottom-bar tabs — criteria, ride, settings. The `commonMain` package tree, the layering rules and the naming
+vocabulary are in `.claude/conventions.md`, enforced by `.claude/conventions-check.sh`; read it before adding or
+moving a file.
 
 **Android is the only target being developed.** iOS exists to keep a future port cheap.
 
