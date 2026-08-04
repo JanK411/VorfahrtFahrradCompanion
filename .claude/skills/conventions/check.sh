@@ -26,6 +26,9 @@ for f in $(sources); do
   # 1. package is in the manifest
   grep -qxF "$d" <<<"$manifest" || say "$f:1" "structure" "package '${d:-(root)}' is not in SKILL.md#folder-structure"
 
+  # 1b. util is a namespace for the supporting packages, so it holds packages and never files
+  [[ "$d" == "util" ]] && say "$f:1" "util-namespace" "util holds packages, not files; give this one a sub-package that names what it is"
+
   # 2. package declaration matches the directory
   want="$PKG${d:+.${d//\//.}}"
   got=$(sed -n '1s/^package //p' "$f")
@@ -65,14 +68,14 @@ for f in $(sources); do
   esac
 
   if [[ "$d" == domain/* ]]; then
-    grep -nE "^import ($PKG\.(db|service|ui|di)\.|androidx\.(room|compose|lifecycle)\.|io\.ktor\.)" "$f" \
+    grep -nE "^import ($PKG\.(db|service|ui|util\.di)\.|androidx\.(room|compose|lifecycle)\.|io\.ktor\.)" "$f" \
       | while IFS=: read -r n line; do say "$f:$n" "domain-purity" "domain must not import ${line#import }"; done
   fi
 
   case "$d" in
-    ui|ui/*|location|"") ;;
+    ui|ui/*|util/location|"") ;;
     *) grep -n '@Composable' "$f" | head -1 \
-         | while IFS=: read -r n _; do say "$f:$n" "composable-in-ui" "@Composable outside ui/, location/"; done ;;
+         | while IFS=: read -r n _; do say "$f:$n" "composable-in-ui" "@Composable outside ui/, util/location/"; done ;;
   esac
 
   # 7. entity/dao annotations match the file name
@@ -178,7 +181,7 @@ if [ -f "$routes" ]; then
 fi
 
 # 18. Koin modules bind their own layer
-mods="shared/src/commonMain/kotlin/$PKGPATH/di/AppModules.kt"
+mods="shared/src/commonMain/kotlin/$PKGPATH/util/di/AppModules.kt"
 if [ -f "$mods" ]; then
   grep -nE '^val [a-z][A-Za-z]*Module' "$mods" >/dev/null || say "$mods:1" "di" "modules are named <layer>Module"
 fi

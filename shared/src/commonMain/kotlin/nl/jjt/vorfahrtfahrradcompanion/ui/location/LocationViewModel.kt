@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import nl.jjt.vorfahrtfahrradcompanion.location.Location
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationSettings
+import nl.jjt.vorfahrtfahrradcompanion.util.location.Location
+import nl.jjt.vorfahrtfahrradcompanion.util.location.LocationProvider
+import nl.jjt.vorfahrtfahrradcompanion.util.location.LocationSettings
 
 sealed interface LocationUiState {
     data object Disabled : LocationUiState

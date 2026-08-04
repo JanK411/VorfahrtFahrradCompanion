@@ -73,7 +73,7 @@ private val AppColors = darkColorScheme(
     outline = Color(0xFF8A938A),
 )
 
-/** Whether the sun is down where the rider is — see [nl.jjt.vorfahrtfahrradcompanion.daylight.Daylight]. */
+/** Whether the sun is down where the rider is — see [nl.jjt.vorfahrtfahrradcompanion.util.daylight.Daylight]. */
 val LocalNight = staticCompositionLocalOf { false }
 
 /**

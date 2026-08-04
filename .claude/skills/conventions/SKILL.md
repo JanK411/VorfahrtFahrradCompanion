@@ -47,14 +47,21 @@ ui/criteria         CriteriaScreen and its cards, buttons, dialogs, CriteriaView
 ui/location         LocationScreen, LocationViewModel
 ui/patchnotes       PatchNotesScreen, PatchNotesViewModel
 ui/settings         SettingsScreen, ServerConnectionScreen, ServerConnectionViewModel
-location            Location, LocationProvider, LocationPermissions, LocationSettings + Android*/Ios*
-platform            ScreenAwake, ScreenBrightness, SystemBars, SystemCacheMarker + Android*/Ios*
-daylight            Sun, Daylight
-di                  AppModules, AndroidModule
+util/location       Location, LocationProvider, LocationPermissions, LocationSettings + Android*/Ios*
+util/platform       ScreenAwake, ScreenBrightness, SystemBars, SystemCacheMarker + Android*/Ios*
+util/daylight       Sun, Daylight
+util/di             AppModules, AndroidModule
 testing             (commonTest only) the fakes
 ```
 
 `commonTest` mirrors the package of whatever it tests, plus `testing`.
+
+**`util` itself holds no files, only packages.** It is a namespace for the supporting packages that are
+neither a layer nor a feature, and nothing more. A name that says only "not one of the others" attracts
+whatever has no obvious home, which is how a junk drawer starts; the rule that every file must sit in a
+named sub-package is what stops it. A file that belongs directly in `util` belongs somewhere else — give
+it a sub-package that answers a question, or put it in the layer it actually serves. `check.sh` enforces
+this.
 
 ### What may depend on what
 
@@ -64,7 +71,7 @@ testing             (commonTest only) the fakes
 - Everything else may depend on `db`. Only `domain` is held to purity.
 - `androidx.room` appears only under `db`.
 - A `<X>Dao` is used only inside its own `db/<feature>` package. Everything outside talks to a Store.
-- `@Composable` only under `ui`, `location` (the permission state) and `App.kt`.
+- `@Composable` only under `ui`, `util/location` (the permission state) and `App.kt`.
 - No `java.*`, `android.*` or `javax.*` in `commonMain`.
 
 ## Naming
@@ -146,6 +153,7 @@ entries; the singleton-versus-scalar call is yours.
 
 ### Dependency injection
 
-Modules follow the top-level packages, so a binding's package says which module declares it:
-`dbModule`, `domainModule` (which also holds `daylight`, being domain logic in its own package),
-`serviceModule`, `uiModule`, and `androidModule` in `androidMain`.
+Modules follow the layers, so a binding's package says which module declares it: `dbModule`,
+`domainModule` (which also holds `util/daylight`, being domain logic in its own package),
+`serviceModule`, `uiModule`, and `androidModule` in `androidMain`. The `util` packages have no module
+of their own — each binding joins the module of the layer it serves.

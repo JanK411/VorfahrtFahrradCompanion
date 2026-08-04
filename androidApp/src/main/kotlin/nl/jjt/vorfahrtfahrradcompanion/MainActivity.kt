@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import nl.jjt.vorfahrtfahrradcompanion.di.androidModule
+import nl.jjt.vorfahrtfahrradcompanion.util.di.androidModule
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -23,11 +23,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import kotlinx.coroutines.launch
-import nl.jjt.vorfahrtfahrradcompanion.daylight.Daylight
-import nl.jjt.vorfahrtfahrradcompanion.di.appModules
+import nl.jjt.vorfahrtfahrradcompanion.util.daylight.Daylight
+import nl.jjt.vorfahrtfahrradcompanion.util.di.appModules
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
-import nl.jjt.vorfahrtfahrradcompanion.location.Location
+import nl.jjt.vorfahrtfahrradcompanion.util.location.Location
 import nl.jjt.vorfahrtfahrradcompanion.ui.navigation.CriteriaRoute
 import nl.jjt.vorfahrtfahrradcompanion.ui.navigation.LocalNavigationGate
 import nl.jjt.vorfahrtfahrradcompanion.ui.navigation.NavigationGate

@@ -13,7 +13,7 @@ import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
-import nl.jjt.vorfahrtfahrradcompanion.platform.SystemCacheMarker
+import nl.jjt.vorfahrtfahrradcompanion.util.platform.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeCatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeClock
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeCriteriaApi

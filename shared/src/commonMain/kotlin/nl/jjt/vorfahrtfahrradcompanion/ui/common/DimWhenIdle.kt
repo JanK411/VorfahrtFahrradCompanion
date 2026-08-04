@@ -23,7 +23,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import nl.jjt.vorfahrtfahrradcompanion.platform.ScreenBrightness
+import nl.jjt.vorfahrtfahrradcompanion.util.platform.ScreenBrightness
 import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.seconds
 

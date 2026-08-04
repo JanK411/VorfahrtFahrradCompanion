@@ -2,7 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.ui.common
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import nl.jjt.vorfahrtfahrradcompanion.platform.SystemBars
+import nl.jjt.vorfahrtfahrradcompanion.util.platform.SystemBars
 import org.koin.compose.koinInject
 
 /** Keeps the bar icons readable against whichever colour scheme is up. */

@@ -15,9 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import nl.jjt.vorfahrtfahrradcompanion.location.Location
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationPermissions
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationSettings
+import nl.jjt.vorfahrtfahrradcompanion.util.location.Location
+import nl.jjt.vorfahrtfahrradcompanion.util.location.LocationPermissions
+import nl.jjt.vorfahrtfahrradcompanion.util.location.LocationSettings
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.secondsSince
 import nl.jjt.vorfahrtfahrradcompanion.ui.theme.BicycleIcon
 import org.koin.compose.koinInject
