@@ -3,7 +3,21 @@ package nl.jjt.vorfahrtfahrradcompanion.domain.criteria
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
-/** The values chosen per criterion id. A criterion the rider has not touched is simply absent. */
+/**
+ * The values chosen per criterion id. A criterion the rider has not touched is simply absent.
+ *
+ * ```
+ * val width = Criterion("WIDTH", CriterionKind.SINGLE, listOf("W_1", "W_2"))
+ * val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI, listOf("CARS", "CYCLISTS"))
+ *
+ * Selections()
+ *     .select(width, "W_1")      // WIDTH  -> [W_1]
+ *     .select(width, "W_2")      // WIDTH  -> [W_2]        pick-one replaces
+ *     .select(users, "CARS")     // USERS  -> [CARS]
+ *     .select(users, "CYCLISTS") // USERS  -> [CARS, CYCLISTS]  pick-any adds
+ *     .select(users, "CARS")     // USERS  -> [CYCLISTS]        tapping again removes
+ * ```
+ */
 @Serializable
 @JvmInline
 value class Selections(private val byCriterion: Map<String, Set<String>> = emptyMap()) {
