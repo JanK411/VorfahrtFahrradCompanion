@@ -10,11 +10,11 @@ import io.ktor.http.takeFrom
 import kotlinx.coroutines.flow.first
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.settings.normalizeBaseUrl
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 
 class KtorCriteriaApi(
     private val client: HttpClient,
-    private val settings: SettingsRepository
+    private val settings: SettingsStore
 ) : CriteriaApi {
 
     override suspend fun catalogue(): Catalogue {

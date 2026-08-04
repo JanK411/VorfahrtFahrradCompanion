@@ -1,31 +1,22 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.domain.recording
 
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.serialization.json.Json
-import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationDao
-import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationEntity
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Draft
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
 import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
- * Persists observations locally and owns the segment currently being recorded.
+ * Owns the segment currently being recorded and hands the finished ones to [store].
  * The draft lives here rather than in the ViewModel because a ViewModel does not survive
  * a bottom-bar tab switch; it is still memory only and does not outlive the process.
  */
 class ObservationRepository(
-    private val dao: ObservationDao,
+    private val store: ObservationStore,
     private val rides: RideRepository,
     private val clock: Clock = Clock.System,
 ) {
@@ -39,8 +30,7 @@ class ObservationRepository(
     private var replaced: Draft? = null
 
     /** What the last segment stored was described with — what [preselect] fills a fresh one in from. */
-    val lastSubmitted: Flow<Selections?> =
-        dao.lastValuesJson().map { json -> json?.let { Json.decodeFromString<Selections>(it) } }
+    val lastSubmitted: Flow<Selections?> = store.lastValues()
 
     /** The clock this repository stamps boundaries with, for a caller that has to mark one early. */
     val now: Instant get() = clock.now()
@@ -173,15 +163,13 @@ class ObservationRepository(
         val boundary = maxOf(endedAt, open.startedAt)
 
         if (!values.isEmpty()) {
-            dao.insert(
-                ObservationEntity(
-                    rideId = rideId,
-                    startedAtEpochMs = open.startedAt.toEpochMilliseconds(),
-                    startKind = open.startKind,
-                    endedAtEpochMs = boundary.toEpochMilliseconds(),
-                    endKind = kind,
-                    valuesJson = Json.encodeToString(values),
-                ),
+            store.insert(
+                rideId = rideId,
+                startedAt = open.startedAt,
+                startKind = open.startKind,
+                endedAt = boundary,
+                endKind = kind,
+                values = values,
             )
         }
 

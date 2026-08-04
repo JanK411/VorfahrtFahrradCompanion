@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
 import nl.jjt.vorfahrtfahrradcompanion.net.isAllowedUrl
 
@@ -40,7 +41,7 @@ data class SettingsUiState(
 }
 
 class SettingsViewModel(
-    private val repository: SettingsRepository,
+    private val repository: SettingsStore,
     private val tester: ConnectionTester,
 ) : ViewModel() {
 

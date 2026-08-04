@@ -18,7 +18,9 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRepository
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideSummary
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction

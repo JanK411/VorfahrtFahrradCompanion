@@ -1,12 +1,10 @@
-package nl.jjt.vorfahrtfahrradcompanion.settings
+package nl.jjt.vorfahrtfahrradcompanion.db.settings
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsDao
-import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsEntity
 import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
 
-class SettingsRepository(private val dao: SettingsDao) {
+class SettingsStore(private val dao: SettingsDao) {
 
     /** Emits [EMPTY] while no row has been saved yet. */
     val settings: Flow<Settings> = dao.observe().map { entity ->

@@ -11,11 +11,6 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.serialization.json.Json
-import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationDao
-import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationEntity
-import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideDao
-import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideEntity
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
@@ -23,7 +18,11 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
@@ -49,33 +48,56 @@ private class FakeApi : CriteriaApi {
     override suspend fun catalogue() = catalogue
 }
 
-private class FakeObservationDao : ObservationDao {
-    val inserted = mutableListOf<ObservationEntity>()
-    private val last = MutableStateFlow<String?>(null)
+private class FakeObservationStore : ObservationStore {
+    data class Stored(
+        val rideId: Long,
+        val startedAt: Instant,
+        val startKind: BoundaryKind,
+        val endedAt: Instant,
+        val endKind: BoundaryKind,
+        val values: Selections,
+    )
 
-    override suspend fun insert(entity: ObservationEntity) {
-        inserted += entity
-        last.value = entity.valuesJson
+    val inserted = mutableListOf<Stored>()
+    private val last = MutableStateFlow<Selections?>(null)
+
+    override suspend fun insert(
+        rideId: Long,
+        startedAt: Instant,
+        startKind: BoundaryKind,
+        endedAt: Instant,
+        endKind: BoundaryKind,
+        values: Selections,
+    ) {
+        inserted += Stored(rideId, startedAt, startKind, endedAt, endKind, values)
+        last.value = values
     }
 
     override suspend fun countForRide(rideId: Long) = inserted.count { it.rideId == rideId }
 
-    override fun lastValuesJson(): Flow<String?> = last
+    override fun lastValues(): Flow<Selections?> = last
 }
 
-private class FakeRideDao : RideDao {
-    val rows = mutableListOf<RideEntity>()
+private class FakeRideStore : RideStore {
+    data class Row(
+        val id: Long,
+        val startedAt: Instant,
+        val endedAt: Instant? = null,
+        val name: String? = null,
+    )
+
+    val rows = mutableListOf<Row>()
     private var nextId = 1L
 
-    override suspend fun insert(entity: RideEntity): Long {
+    override suspend fun open(startedAt: Instant): Long {
         val id = nextId++
-        rows += entity.copy(id = id)
+        rows += Row(id, startedAt)
         return id
     }
 
-    override suspend fun close(id: Long, endedAtEpochMs: Long, name: String?) {
+    override suspend fun close(id: Long, endedAt: Instant, name: String?) {
         val at = rows.indexOfFirst { it.id == id }
-        if (at >= 0) rows[at] = rows[at].copy(endedAtEpochMs = endedAtEpochMs, name = name)
+        if (at >= 0) rows[at] = rows[at].copy(endedAt = endedAt, name = name)
     }
 
     override suspend fun delete(id: Long) {
@@ -86,8 +108,8 @@ private class FakeRideDao : RideDao {
 @OptIn(ExperimentalCoroutinesApi::class)
 class CriteriaViewModelTest {
 
-    private val dao = FakeObservationDao()
-    private val rideDao = FakeRideDao()
+    private val observations = FakeObservationStore()
+    private val rideStore = FakeRideStore()
     private val clock = FakeClock(startedAt)
 
     @BeforeTest
@@ -97,8 +119,8 @@ class CriteriaViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun vm(): CriteriaViewModel {
-        val rides = RideRepository(rideDao, dao, clock)
-        return CriteriaViewModel(FakeApi(), ObservationRepository(dao, rides, clock), rides)
+        val rides = RideRepository(rideStore, observations, clock)
+        return CriteriaViewModel(FakeApi(), ObservationRepository(observations, rides, clock), rides)
     }
 
     /** A view model with a ride already running — the only state in which segments can be recorded. */
@@ -109,9 +131,9 @@ class CriteriaViewModelTest {
         return vm
     }
 
-    private val stored get() = dao.inserted.single()
+    private val stored get() = observations.inserted.single()
 
-    private val storedRide get() = rideDao.rows.single()
+    private val storedRide get() = rideStore.rows.single()
 
     /** Everything [flow] emits from here on, as a list that fills up as the test runs. */
     private fun <T> TestScope.record(flow: Flow<T>): List<T> {
@@ -163,13 +185,13 @@ class CriteriaViewModelTest {
         vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
-        assertEquals(startedAt.toEpochMilliseconds(), stored.startedAtEpochMs)
+        assertEquals(startedAt.toEpochMilliseconds(), stored.startedAt.toEpochMilliseconds())
         assertEquals(BoundaryKind.EXACT, stored.startKind)
-        assertEquals((startedAt + stretch).toEpochMilliseconds(), stored.endedAtEpochMs)
+        assertEquals((startedAt + stretch).toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
         assertEquals(BoundaryKind.EXACT, stored.endKind)
         assertEquals(
             Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
-            Json.decodeFromString<Selections>(stored.valuesJson),
+            stored.values,
         )
     }
 
@@ -195,7 +217,7 @@ class CriteriaViewModelTest {
         vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
-        assertEquals(emptyList(), dao.inserted)
+        assertEquals(emptyList(), observations.inserted)
         assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
     }
 
@@ -241,10 +263,10 @@ class CriteriaViewModelTest {
         vm.confirmEnd(approve = emptySet())
         testScheduler.advanceUntilIdle()
 
-        assertEquals(2, dao.inserted.size)
+        assertEquals(2, observations.inserted.size)
         assertEquals(
             Selections(mapOf("WIDTH" to setOf("W_1"))),
-            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+            observations.inserted.last().values,
         )
     }
 
@@ -325,7 +347,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // Only the first segment reached the database; the second said nothing at all.
-        assertEquals(1, dao.inserted.size)
+        assertEquals(1, observations.inserted.size)
         assertEquals(listOf(SegmentOutcome.SAVED, SegmentOutcome.NOTHING_TO_STORE), outcomes)
     }
 
@@ -392,10 +414,10 @@ class CriteriaViewModelTest {
         vm.confirmEnd(approve = setOf(users.id))
         testScheduler.advanceUntilIdle()
 
-        assertEquals(2, dao.inserted.size)
+        assertEquals(2, observations.inserted.size)
         assertEquals(
             Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
-            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+            observations.inserted.last().values,
         )
     }
 
@@ -410,7 +432,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // Nothing is stored on the press alone — the segment waits on the timing.
-        assertEquals(emptyList(), dao.inserted)
+        assertEquals(emptyList(), observations.inserted)
         assertEquals(SegmentAction.STOP, (vm.state.value as CriteriaUiState.Ready).pendingTiming?.action)
 
         vm.answerTiming(EndTiming.PRECISE)
@@ -435,7 +457,7 @@ class CriteriaViewModelTest {
         vm.answerTiming(EndTiming.SLIGHTLY_LATE)
         testScheduler.advanceUntilIdle()
 
-        assertEquals((pressedAt - LateEndGrace).toEpochMilliseconds(), stored.endedAtEpochMs)
+        assertEquals((pressedAt - LateEndGrace).toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
         assertEquals(BoundaryKind.EARLIER, stored.endKind)
     }
 
@@ -453,7 +475,7 @@ class CriteriaViewModelTest {
 
         val ready = vm.state.value as CriteriaUiState.Ready
         assertNull(ready.pendingTiming)
-        assertEquals(emptyList(), dao.inserted)
+        assertEquals(emptyList(), observations.inserted)
         assertEquals(Segment.Open(startedAt, BoundaryKind.EXACT), ready.segment)
     }
 
@@ -469,7 +491,7 @@ class CriteriaViewModelTest {
         vm.endAs(SegmentAction.STOP, EndTiming.TOO_LATE)
         testScheduler.advanceUntilIdle()
 
-        assertEquals(emptyList(), dao.inserted)
+        assertEquals(emptyList(), observations.inserted)
         assertEquals(listOf(SegmentOutcome.TOO_LATE), outcomes)
         assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
     }
@@ -490,7 +512,7 @@ class CriteriaViewModelTest {
 
         vm.confirmEnd(approve = setOf(users.id))
         testScheduler.advanceUntilIdle()
-        assertEquals((pressedAt - LateEndGrace).toEpochMilliseconds(), dao.inserted.last().endedAtEpochMs)
+        assertEquals((pressedAt - LateEndGrace).toEpochMilliseconds(), observations.inserted.last().endedAt.toEpochMilliseconds())
     }
 
     @Test
@@ -503,8 +525,8 @@ class CriteriaViewModelTest {
         vm.endAs(SegmentAction.STOP, EndTiming.SLIGHTLY_LATE)
         testScheduler.advanceUntilIdle()
 
-        assertEquals(startedAt.toEpochMilliseconds(), stored.endedAtEpochMs)
-        assertEquals(stored.startedAtEpochMs, stored.endedAtEpochMs)
+        assertEquals(startedAt.toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
+        assertEquals(stored.startedAt.toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
     }
 
     @Test
@@ -517,7 +539,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // Only the first segment is stored; the second waits on an answer.
-        assertEquals(1, dao.inserted.size)
+        assertEquals(1, observations.inserted.size)
         val ready = vm.state.value as CriteriaUiState.Ready
         assertEquals(listOf(users), ready.carriedOver)
         assertEquals(BoundaryKind.EXACT, ready.pendingEnd?.kind)
@@ -534,10 +556,10 @@ class CriteriaViewModelTest {
         vm.confirmEnd(approve = setOf(users.id))
         testScheduler.advanceUntilIdle()
 
-        assertEquals(2, dao.inserted.size)
+        assertEquals(2, observations.inserted.size)
         assertEquals(
             Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
-            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+            observations.inserted.last().values,
         )
         assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
     }
@@ -560,7 +582,7 @@ class CriteriaViewModelTest {
 
         assertEquals(
             Selections(mapOf("WIDTH" to setOf("W_2"))),
-            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+            observations.inserted.last().values,
         )
     }
 
@@ -576,7 +598,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // Changing a value stands by it there and then; crossing it out afterwards takes that back.
-        assertEquals(1, dao.inserted.size)
+        assertEquals(1, observations.inserted.size)
     }
 
     @Test
@@ -593,7 +615,7 @@ class CriteriaViewModelTest {
         vm.confirmEnd(approve = setOf(users.id))
         testScheduler.advanceUntilIdle()
 
-        assertEquals(pressedAt.toEpochMilliseconds(), dao.inserted.last().endedAtEpochMs)
+        assertEquals(pressedAt.toEpochMilliseconds(), observations.inserted.last().endedAt.toEpochMilliseconds())
     }
 
     @Test
@@ -610,7 +632,7 @@ class CriteriaViewModelTest {
         assertNull(ready.pendingEnd)
         assertEquals(Segment.Open(startedAt + stretch, BoundaryKind.EXACT), ready.segment)
         assertEquals(listOf(users), ready.carriedOver)
-        assertEquals(1, dao.inserted.size)
+        assertEquals(1, observations.inserted.size)
     }
 
     @Test
@@ -648,7 +670,7 @@ class CriteriaViewModelTest {
 
         assertEquals(
             Selections(mapOf("WIDTH" to setOf("W_1"), "ALLOWED_USERS" to setOf("CARS"))),
-            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+            observations.inserted.last().values,
         )
     }
 
@@ -699,9 +721,9 @@ class CriteriaViewModelTest {
         // The stretch just ridden is stored as it was described, ending where the value was picked.
         assertEquals(
             Selections(mapOf("WIDTH" to setOf("W_1"), "ALLOWED_USERS" to setOf("CARS"))),
-            Json.decodeFromString<Selections>(stored.valuesJson),
+            stored.values,
         )
-        assertEquals(pickedAt.toEpochMilliseconds(), stored.endedAtEpochMs)
+        assertEquals(pickedAt.toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
 
         // And the next one is already described: the same, but for the one thing that changed — and
         // stood by, so it can be ended without being asked about any of it.
@@ -725,10 +747,10 @@ class CriteriaViewModelTest {
 
         // Picking a value says the description held up to here, so the inherited value is stored
         // rather than dropped — and the rider is asked nothing on the way out.
-        assertEquals(2, dao.inserted.size)
+        assertEquals(2, observations.inserted.size)
         assertEquals(
             Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))),
-            Json.decodeFromString<Selections>(dao.inserted.last().valuesJson),
+            observations.inserted.last().values,
         )
         assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
     }
@@ -742,7 +764,7 @@ class CriteriaViewModelTest {
         vm.splitSegment(width, "W_2")
         testScheduler.advanceUntilIdle()
 
-        assertEquals(emptyList(), dao.inserted)
+        assertEquals(emptyList(), observations.inserted)
         assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
     }
 
@@ -774,7 +796,7 @@ class CriteriaViewModelTest {
         vm.discardSegment()
         testScheduler.advanceUntilIdle()
 
-        assertEquals(emptyList(), dao.inserted)
+        assertEquals(emptyList(), observations.inserted)
         assertEquals(listOf(SegmentOutcome.DISCARDED), outcomes)
 
         val ready = vm.state.value as CriteriaUiState.Ready
@@ -849,7 +871,7 @@ class CriteriaViewModelTest {
         vm.endAs(SegmentAction.STOP, EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
-        assertEquals(emptyList(), dao.inserted)
+        assertEquals(emptyList(), observations.inserted)
     }
 
     @Test
@@ -863,8 +885,8 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(storedRide.id, stored.rideId)
-        assertEquals(startedAt.toEpochMilliseconds(), storedRide.startedAtEpochMs)
-        assertNull(storedRide.endedAtEpochMs)
+        assertEquals(startedAt, storedRide.startedAt)
+        assertNull(storedRide.endedAt)
     }
 
     @Test
@@ -875,7 +897,7 @@ class CriteriaViewModelTest {
         vm.startRide()
         testScheduler.advanceUntilIdle()
 
-        assertEquals(startedAt.toEpochMilliseconds(), storedRide.startedAtEpochMs)
+        assertEquals(startedAt, storedRide.startedAt)
     }
 
     @Test
@@ -919,7 +941,7 @@ class CriteriaViewModelTest {
         vm.saveRide("Kanaaldijk")
         testScheduler.advanceUntilIdle()
 
-        assertEquals((startedAt + stretch).toEpochMilliseconds(), storedRide.endedAtEpochMs)
+        assertEquals(startedAt + stretch, storedRide.endedAt)
         assertEquals("Kanaaldijk", storedRide.name)
         assertNull(vm.endingRide.value)
     }
@@ -946,7 +968,7 @@ class CriteriaViewModelTest {
         vm.saveRide(null)
         testScheduler.advanceUntilIdle()
 
-        assertEquals(emptyList(), rideDao.rows)
+        assertEquals(emptyList(), rideStore.rows)
         assertEquals(Ride.Idle, (vm.state.value as CriteriaUiState.Ready).ride)
     }
 
@@ -961,7 +983,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertNull(vm.endingRide.value)
-        assertNull(storedRide.endedAtEpochMs)
+        assertNull(storedRide.endedAt)
         assertTrue((vm.state.value as CriteriaUiState.Ready).ride is Ride.Open)
     }
 

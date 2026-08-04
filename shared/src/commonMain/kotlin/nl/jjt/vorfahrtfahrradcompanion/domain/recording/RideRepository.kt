@@ -1,13 +1,8 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.domain.recording
 
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import nl.jjt.vorfahrtfahrradcompanion.db.observation.ObservationDao
-import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideDao
-import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideEntity
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideSummary
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -22,8 +17,8 @@ import kotlin.time.Instant
  *  opens and so is still there, sitting open — but nothing goes looking for it yet.
  */
 class RideRepository(
-    private val dao: RideDao,
-    private val observations: ObservationDao,
+    private val store: RideStore,
+    private val observations: ObservationStore,
     private val clock: Clock = Clock.System,
 ) {
     private val _ride = MutableStateFlow<Ride>(Ride.Idle)
@@ -44,7 +39,7 @@ class RideRepository(
     suspend fun start() {
         if (_ride.value is Ride.Open) return
         val startedAt = clock.now()
-        _ride.value = Ride.Open(dao.insert(RideEntity(startedAtEpochMs = startedAt.toEpochMilliseconds())), startedAt)
+        _ride.value = Ride.Open(store.open(startedAt), startedAt)
     }
 
     /** What the open ride amounts to if it ends at [endedAt], or null while no ride is running. */
@@ -62,9 +57,9 @@ class RideRepository(
     suspend fun end(endedAt: Instant, name: String?) {
         val open = _ride.value as? Ride.Open ?: return
         if (observations.countForRide(open.id) == 0) {
-            dao.delete(open.id)
+            store.delete(open.id)
         } else {
-            dao.close(open.id, endedAt.toEpochMilliseconds(), name?.trim()?.ifBlank { null })
+            store.close(open.id, endedAt, name?.trim()?.ifBlank { null })
         }
         _ride.value = Ride.Idle
     }

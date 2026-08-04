@@ -3,11 +3,11 @@ package nl.jjt.vorfahrtfahrradcompanion.criteria
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
-import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheDao
-import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CachedCatalogue
+import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheStore
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.settings.normalizeBaseUrl
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 
@@ -23,8 +23,8 @@ import kotlin.time.Duration.Companion.hours
  */
 class CachingCriteriaApi(
     private val delegate: CriteriaApi,
-    private val dao: CatalogueCacheDao,
-    private val settings: SettingsRepository,
+    private val cache: CatalogueCacheStore,
+    private val settings: SettingsStore,
     private val systemCache: SystemCacheMarker,
     private val clock: Clock = Clock.System,
 ) : CriteriaApi {
@@ -33,10 +33,10 @@ class CachingCriteriaApi(
     }
 
     override suspend fun catalogue(): Catalogue {
-        if (systemCache.consumeCacheCleared()) dao.clear()
+        if (systemCache.consumeCacheCleared()) cache.clear()
 
         val baseUrl = currentBaseUrl()
-        val cached = dao.get()?.takeIf { it.baseUrl == baseUrl }
+        val cached = cache.cached()?.takeIf { it.baseUrl == baseUrl }
 
         if (cached != null && !cached.isStale()) return cached.decode()
 
@@ -53,17 +53,14 @@ class CachingCriteriaApi(
         return normalizeBaseUrl(raw) ?: raw
     }
 
-    private suspend fun store(baseUrl: String, catalogue: Catalogue) = dao.upsert(
-        CatalogueCacheEntity(
-            baseUrl = baseUrl,
-            catalogueJson = Json.encodeToString(CatalogueDto.serializer(), catalogue.toDto()),
-            fetchedAtEpochMs = clock.now().toEpochMilliseconds(),
-        ),
+    private suspend fun store(baseUrl: String, catalogue: Catalogue) = cache.put(
+        baseUrl = baseUrl,
+        json = Json.encodeToString(CatalogueDto.serializer(), catalogue.toDto()),
+        fetchedAt = clock.now(),
     )
 
-    private fun CatalogueCacheEntity.isStale() =
-        clock.now().toEpochMilliseconds() - fetchedAtEpochMs > CACHE_INVALIDATION_TIME.inWholeMilliseconds
+    private fun CachedCatalogue.isStale() = clock.now() - fetchedAt > CACHE_INVALIDATION_TIME
 
-    private fun CatalogueCacheEntity.decode() =
-        Json.decodeFromString(CatalogueDto.serializer(), catalogueJson).toDomain()
+    private fun CachedCatalogue.decode() =
+        Json.decodeFromString(CatalogueDto.serializer(), json).toDomain()
 }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import nl.jjt.vorfahrtfahrradcompanion.db.patchnotes.PatchNotesStateStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.PatchNote
 import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.patchNotes
 import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.splitPatchNotes
@@ -25,7 +26,7 @@ data class PatchNotesUiState(
  * background. Opening the page is what marks it seen.
  */
 class PatchNotesViewModel(
-    private val repository: PatchNotesRepository,
+    private val repository: PatchNotesStateStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PatchNotesUiState())

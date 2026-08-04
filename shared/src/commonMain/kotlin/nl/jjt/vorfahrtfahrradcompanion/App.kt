@@ -25,7 +25,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaScreen
-import nl.jjt.vorfahrtfahrradcompanion.criteria.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
 import nl.jjt.vorfahrtfahrradcompanion.daylight.Daylight
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride

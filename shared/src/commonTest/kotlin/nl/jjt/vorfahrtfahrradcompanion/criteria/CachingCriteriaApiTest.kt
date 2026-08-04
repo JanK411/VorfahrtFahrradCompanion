@@ -7,13 +7,14 @@ import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.cache.SystemCacheMarker
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheDao
 import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.catalogue.CatalogueCacheStore
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsDao
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsEntity
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
 import nl.jjt.vorfahrtfahrradcompanion.FakeClock
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsRepository
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
@@ -69,7 +70,7 @@ class CachingCriteriaApiTest {
         delegate: CriteriaApi,
         dao: CatalogueCacheDao,
         systemCache: SystemCacheMarker = FakeSystemCacheMarker(),
-    ) = CachingCriteriaApi(delegate, dao, SettingsRepository(FakeSettingsDao()), systemCache, FakeClock(now))
+    ) = CachingCriteriaApi(delegate, CatalogueCacheStore(dao), SettingsStore(FakeSettingsDao()), systemCache, FakeClock(now))
 
     private fun cachedRow(baseUrl: String = BASE_URL, fetchedAt: Instant = now) = CatalogueCacheEntity(
         baseUrl = baseUrl,
