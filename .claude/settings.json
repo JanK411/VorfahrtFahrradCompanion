@@ -15,7 +15,11 @@
       "Bash(git stash:*)",
       "Bash(adb devices:*)",
       "Bash(adb logcat:*)",
-      "Bash(sed -i:*)"
+      "Bash(sed -i:*)",
+      "mcp__idea__rename_refactoring",
+      "mcp__idea__build_project",
+      "mcp__idea__get_file_problems",
+      "mcp__idea__read_file"
     ]
   }
 }
