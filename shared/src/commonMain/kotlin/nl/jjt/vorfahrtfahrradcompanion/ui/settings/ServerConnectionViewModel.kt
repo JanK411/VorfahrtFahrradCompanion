@@ -25,7 +25,7 @@ sealed interface ConnectionTestState {
 /**
  * [baseUrl] is the raw text as typed; [normalizedBaseUrl] is what gets stored.
  */
-data class SettingsUiState(
+data class ServerConnectionUiState(
     val baseUrl: String = "",
     val username: String = "",
     val password: String = "",
@@ -43,13 +43,13 @@ data class SettingsUiState(
         normalizedBaseUrl != null && Settings(normalizedBaseUrl, username, password) != savedSettings
 }
 
-class SettingsViewModel(
+class ServerConnectionViewModel(
     private val repository: SettingsStore,
     private val tester: ConnectionTester,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SettingsUiState())
-    val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(ServerConnectionUiState())
+    val state: StateFlow<ServerConnectionUiState> = _state.asStateFlow()
 
     init {
         // One-shot seed: the raw text is owned by this ViewModel from here on, so later repository
@@ -117,7 +117,7 @@ class SettingsViewModel(
     }
 
     /** Any edit invalidates a previous test result. */
-    private fun update(edit: SettingsUiState.() -> SettingsUiState) {
+    private fun update(edit: ServerConnectionUiState.() -> ServerConnectionUiState) {
         _state.update { it.edit().copy(connectionTest = ConnectionTestState.Idle) }
     }
 }

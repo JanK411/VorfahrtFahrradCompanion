@@ -25,7 +25,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.daylight.Daylight
 import nl.jjt.vorfahrtfahrradcompanion.di.appModules
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.location.Location
 import nl.jjt.vorfahrtfahrradcompanion.navigation.CriteriaRoute
@@ -79,7 +79,7 @@ fun App(additionalModules: List<Module> = emptyList()) {
 
                 // A running segment claims the whole screen: room for the criteria, and no tab to hit
                 // by accident. Tied to the Criteria route so no other screen can ever end up tab-less.
-                val draft by koinInject<ObservationRepository>().draft.collectAsStateWithLifecycle()
+                val draft by koinInject<SegmentRecorder>().draft.collectAsStateWithLifecycle()
                 val recording =
                     destination?.hasRoute(CriteriaRoute::class) == true && draft.segment is Segment.Open
 

@@ -18,10 +18,10 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
@@ -65,8 +65,8 @@ class CriteriaViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun vm(): CriteriaViewModel {
-        val rides = RideRepository(rideStore, observations, clock)
-        return CriteriaViewModel(FakeCriteriaApi(catalogue), ObservationRepository(observations, rides, clock), rides)
+        val rides = RideRecorder(rideStore, observations, clock)
+        return CriteriaViewModel(FakeCriteriaApi(catalogue), SegmentRecorder(observations, rides, clock), rides)
     }
 
     /** A view model with a ride already running — the only state in which segments can be recorded. */

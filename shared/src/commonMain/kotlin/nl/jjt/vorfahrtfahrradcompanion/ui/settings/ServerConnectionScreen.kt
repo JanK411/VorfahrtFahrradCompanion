@@ -20,14 +20,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.navigation.LeaveGuard
 import nl.jjt.vorfahrtfahrradcompanion.navigation.rememberConfirmPrompt
-import nl.jjt.vorfahrtfahrradcompanion.service.connection.ConnectionTester
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ServerConnectionScreen(
     modifier: Modifier = Modifier,
     onNavigateUp: () -> Unit = {},
-    viewModel: SettingsViewModel = koinViewModel(),
+    viewModel: ServerConnectionViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -106,7 +105,7 @@ fun ServerConnectionScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        ConnectionTester(
+        ConnectionCheck(
             state = state.connectionTest,
             enabled = state.canSubmit,
             onTest = viewModel::testConnection,
@@ -153,7 +152,7 @@ private fun UnsavedChangesDialog(
  * failure, while the label keeps it obvious what the button does. Stays tappable so the test can be rerun.
  */
 @Composable
-private fun ConnectionTester(
+private fun ConnectionCheck(
     state: ConnectionTestState,
     enabled: Boolean,
     onTest: () -> Unit,

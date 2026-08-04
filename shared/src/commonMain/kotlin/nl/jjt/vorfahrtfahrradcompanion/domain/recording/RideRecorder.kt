@@ -16,7 +16,7 @@ import kotlin.time.Instant
  * TODO: pick a ride back up that the app was killed in the middle of. Its row is written when the ride
  *  opens and so is still there, sitting open — but nothing goes looking for it yet.
  */
-class RideRepository(
+class RideRecorder(
     private val store: RideStore,
     private val observations: ObservationStore,
     private val clock: Clock = Clock.System,

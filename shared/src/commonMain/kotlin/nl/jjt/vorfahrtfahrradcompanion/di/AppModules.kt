@@ -11,16 +11,16 @@ import nl.jjt.vorfahrtfahrradcompanion.db.observation.RoomObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.db.patchnotes.PatchNotesStateStore
 import nl.jjt.vorfahrtfahrradcompanion.db.ride.RoomRideStore
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideStore
 import nl.jjt.vorfahrtfahrradcompanion.ui.location.LocationViewModel
 import nl.jjt.vorfahrtfahrradcompanion.service.http.createHttpClient
 import nl.jjt.vorfahrtfahrradcompanion.service.http.platformHttpClientEngine
 import nl.jjt.vorfahrtfahrradcompanion.ui.patchnotes.PatchNotesViewModel
 import nl.jjt.vorfahrtfahrradcompanion.service.connection.ConnectionTester
-import nl.jjt.vorfahrtfahrradcompanion.ui.settings.SettingsViewModel
+import nl.jjt.vorfahrtfahrradcompanion.ui.settings.ServerConnectionViewModel
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -44,8 +44,8 @@ val dbModule = module {
 
 /** Daylight sits in its own top-level package but is domain logic, so it is bound here. */
 val domainModule = module {
-    single { RideRepository(get(), get()) }
-    single { ObservationRepository(get(), get()) }
+    single { RideRecorder(get(), get()) }
+    single { SegmentRecorder(get(), get()) }
     single { Daylight(get()) }
 }
 
@@ -58,7 +58,7 @@ val serviceModule = module {
 val uiModule = module {
     viewModel { CriteriaViewModel(get(), get(), get()) }
     viewModel { LocationViewModel(get(), get()) }
-    viewModel { SettingsViewModel(get(), get()) }
+    viewModel { ServerConnectionViewModel(get(), get()) }
     viewModel { PatchNotesViewModel(get()) }
 }
 

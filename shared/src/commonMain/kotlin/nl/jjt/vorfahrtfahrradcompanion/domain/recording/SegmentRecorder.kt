@@ -15,9 +15,9 @@ import kotlin.time.Instant
  * The draft lives here rather than in the ViewModel because a ViewModel does not survive
  * a bottom-bar tab switch; it is still memory only and does not outlive the process.
  */
-class ObservationRepository(
+class SegmentRecorder(
     private val store: ObservationStore,
-    private val rides: RideRepository,
+    private val rides: RideRecorder,
     private val clock: Clock = Clock.System,
 ) {
     private val _draft = MutableStateFlow(Draft())
@@ -32,7 +32,7 @@ class ObservationRepository(
     /** What the last segment stored was described with — what [preselect] fills a fresh one in from. */
     val lastSubmitted: Flow<Selections?> = store.lastValues()
 
-    /** The clock this repository stamps boundaries with, for a caller that has to mark one early. */
+    /** The clock this recorder stamps boundaries with, for a caller that has to mark one early. */
     val now: Instant get() = clock.now()
 
     /**

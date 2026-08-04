@@ -1,6 +1,6 @@
 package nl.jjt.vorfahrtfahrradcompanion.service.http
 
-import nl.jjt.vorfahrtfahrradcompanion.ui.settings.SettingsUiState
+import nl.jjt.vorfahrtfahrradcompanion.ui.settings.ServerConnectionUiState
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -30,11 +30,11 @@ class BaseUrlTest {
 
     @Test
     fun rejectsPlainHttpOutsideTheLocalNetwork() {
-        assertNull(SettingsUiState(baseUrl = "http://vorfahrt.example.com").normalizedBaseUrl)
-        assertTrue(SettingsUiState(baseUrl = "http://vorfahrt.example.com").isBaseUrlInsecure)
+        assertNull(ServerConnectionUiState(baseUrl = "http://vorfahrt.example.com").normalizedBaseUrl)
+        assertTrue(ServerConnectionUiState(baseUrl = "http://vorfahrt.example.com").isBaseUrlInsecure)
         assertEquals(
             "http://192.168.178.42:8080",
-            SettingsUiState(baseUrl = "192.168.178.42:8080").normalizedBaseUrl,
+            ServerConnectionUiState(baseUrl = "192.168.178.42:8080").normalizedBaseUrl,
         )
     }
 }

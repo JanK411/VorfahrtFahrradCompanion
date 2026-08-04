@@ -18,9 +18,9 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LateEndGrace
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRepository
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideSummary
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
@@ -114,8 +114,8 @@ sealed interface SaveState {
 
 class CriteriaViewModel(
     private val api: CriteriaApi,
-    private val observations: ObservationRepository,
-    private val rides: RideRepository,
+    private val observations: SegmentRecorder,
+    private val rides: RideRecorder,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<CriteriaUiState>(CriteriaUiState.Loading)
@@ -213,7 +213,7 @@ class CriteriaViewModel(
         _endingRide.value = null
     }
 
-    /** Closes the ride being signed off under [name]; see [RideRepository.end]. */
+    /** Closes the ride being signed off under [name]; see [RideRecorder.end]. */
     fun saveRide(name: String?) {
         val summary = _endingRide.value ?: return
         _endingRide.value = null
@@ -226,7 +226,7 @@ class CriteriaViewModel(
      * The rider pressing End or Start next. How well the press hit the boundary decides whether the
      * stretch is worth keeping at all, so it is asked as a [CriteriaUiState.Ready.pendingTiming] before
      * anything else happens — see [answerTiming]. The boundary is stamped here, at the press.
-     * See [ObservationRepository.end] for what [action] does.
+     * See [SegmentRecorder.end] for what [action] does.
      */
     fun end(action: SegmentAction) {
         if (!canEnd()) return

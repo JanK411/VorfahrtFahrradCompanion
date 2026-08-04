@@ -7,7 +7,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
  *
  * [approved] holds the criteria the rider has stood by *for the current segment*. Selections outlive a
  * segment, this set does not: after an end every carried-over value is a suggestion again, and only what
- * the rider approves is stored. See `ObservationRepository.tap`.
+ * the rider approves is stored. See `SegmentRecorder.tap`.
  */
 data class Draft(
     val segment: Segment = Segment.Idle,
