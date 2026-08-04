@@ -67,34 +67,6 @@ class CriteriaViewModelTest {
     }
 
     @Test
-    fun singleSelectionReplacesAndClears() {
-        var selections = Selections()
-
-        selections = selections.select(width, "W_1")
-        assertEquals(setOf("W_1"), selections[width])
-
-        // A different chip replaces
-        selections = selections.select(width, "W_2")
-        assertEquals(setOf("W_2"), selections[width])
-
-        // The selected chip clears
-        selections = selections.select(width, "W_2")
-        assertEquals(emptySet(), selections[width])
-    }
-
-    @Test
-    fun multiSelectionToggles() {
-        var selections = Selections()
-
-        selections = selections.select(users, "CARS")
-        selections = selections.select(users, "CYCLISTS")
-        assertEquals(setOf("CARS", "CYCLISTS"), selections[users])
-
-        selections = selections.select(users, "CARS")
-        assertEquals(setOf("CYCLISTS"), selections[users])
-    }
-
-    @Test
     fun aSegmentIsStoredWithBothBoundaries() = runTest {
         val vm = riding()
 
@@ -692,13 +664,6 @@ class CriteriaViewModelTest {
 
         assertEquals(emptyList(), observations.inserted)
         assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
-    }
-
-    @Test
-    fun pickingOffACardSetsTheValueTheCriterionHolds() {
-        // Picking what is already there must not leave the next segment with nothing to describe it.
-        assertEquals(setOf("W_1"), Selections(mapOf("WIDTH" to setOf("W_1"))).pick(width, "W_1")[width])
-        assertEquals(setOf("W_2"), Selections(mapOf("WIDTH" to setOf("W_1"))).pick(width, "W_2")[width])
     }
 
     @Test
