@@ -1,29 +1,25 @@
 package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.ui.common.holdAndSlide
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.EndTiming
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.HoldMenuOption
-import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.WindowOrigin
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.holdAndSlide
+import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
 
 /** Keeps both buttons the same height when one of them wraps onto a second line. */
 @Composable

@@ -1,16 +1,16 @@
 package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.Icons
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LATE_END_GRACE
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.EndTiming
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.LATE_END_GRACE
 
 /**
  * How the three answers to "how well did you catch the moment?" look.

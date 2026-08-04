@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.domain.recording
+package nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment
 
 import kotlin.time.Instant
 

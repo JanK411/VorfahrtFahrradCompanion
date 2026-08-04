@@ -1,53 +1,34 @@
 package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.window.Popup
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LATE_END_GRACE
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
-import nl.jjt.vorfahrtfahrradcompanion.ui.common.holdAndSlide
-import nl.jjt.vorfahrtfahrradcompanion.ui.common.HoldMenuOption
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.*
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.KeepScreenAwake
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.secondsSince
 import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
-import nl.jjt.vorfahrtfahrradcompanion.ui.common.WindowOrigin
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -552,7 +533,7 @@ private fun DiscardSegmentDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) =
     text = {
         Text(
             "Nothing about the stretch you are recording is stored, and whatever you described it " +
-                "with is cleared. The next segment starts from scratch.",
+                    "with is cleared. The next segment starts from scratch.",
             style = MaterialTheme.typography.bodyMedium,
         )
     },

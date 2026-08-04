@@ -1,6 +1,6 @@
 package nl.jjt.vorfahrtfahrradcompanion.db.ride
 
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideStore
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideStore
 import kotlin.time.Instant
 
 /** Keeps rides in the rides table. */

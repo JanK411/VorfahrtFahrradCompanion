@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.domain.recording
+package nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment
 
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
 

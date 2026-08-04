@@ -25,36 +25,44 @@ All under `nl.jjt.vorfahrtfahrradcompanion`, in `shared/src/{commonMain,androidM
 noted.
 
 ```
-(root)              App.kt, the composition root — and in androidApp, MainActivity
-db                  AppDatabase, AppDatabaseConstructor, Migrations, AndroidAppDatabase
-db/catalogue        CatalogueCacheEntity, CatalogueCacheDao, CatalogueCacheStore
-db/observation      ObservationEntity, ObservationDao, RoomObservationStore
-db/patchnotes       PatchNotesStateEntity, PatchNotesStateDao, PatchNotesStateStore
-db/ride             RideEntity, RideDao, RoomRideStore
-db/settings         SettingsEntity, SettingsDao, SettingsStore
-domain/criteria     Criterion, CriterionKind, Catalogue, Selections
-domain/patchnotes   PatchNote, the patch note list, splitPatchNotes
-domain/recording    Segment, Draft, SegmentOutcome, SegmentRecorder, ObservationStore,
-                    Ride, RideSummary, RideRecorder, RideStore, BoundaryKind, EndTiming, SegmentAction
-domain/settings     Settings
-service/http        HttpClient, HttpClientEngine (expect/actual), TransportSecurity, BaseUrl
-service/criteria    CriteriaApi, KtorCriteriaApi, CachingCriteriaApi, CatalogueDto
-service/connection  ConnectionTester
-ui/navigation       Routes, NavigationGate/LeaveGuard, ConfirmPrompt
-ui/theme            AppTheme, Spotlight, LocalNight, BicycleIcon
-ui/common           HoldMenu, ElapsedSeconds, TimeOfDay, DimWhenIdle, KeepScreenAwake, SystemBarIcons
-ui/criteria         CriteriaScreen and its cards, buttons, dialogs, CriteriaViewModel
-ui/location         LocationScreen, LocationViewModel
-ui/patchnotes       PatchNotesScreen, PatchNotesViewModel
-ui/settings         SettingsScreen, ServerConnectionScreen, ServerConnectionViewModel
-util/location       Location, LocationProvider, LocationPermissions, LocationSettings + Android*/Ios*
-util/platform       ScreenAwake, ScreenBrightness, SystemBars, SystemCacheMarker + Android*/Ios*
-util/daylight       Sun, Daylight
-util/di             AppModules, AndroidModule
-testing             (commonTest only) the fakes
+(root)                    App.kt, the composition root — and in androidApp, MainActivity
+db                        AppDatabase, AppDatabaseConstructor, Migrations, AndroidAppDatabase
+db/catalogue              CatalogueCacheEntity, CatalogueCacheDao, CatalogueCacheStore
+db/observation            ObservationEntity, ObservationDao, RoomObservationStore
+db/patchnotes             PatchNotesStateEntity, PatchNotesStateDao, PatchNotesStateStore
+db/ride                   RideEntity, RideDao, RoomRideStore
+db/settings               SettingsEntity, SettingsDao, SettingsStore
+domain/criteria           Criterion, CriterionKind, Catalogue, Selections
+domain/patchnotes         PatchNote, the patch note list, splitPatchNotes
+domain/recording          ObservationStore — the port both halves store through
+domain/recording/ride     Ride, RideSummary, RideRecorder, RideStore
+domain/recording/segment  Segment, Draft, SegmentOutcome, SegmentAction, SegmentRecorder,
+                          BoundaryKind, EndTiming
+domain/settings           Settings
+service/http              HttpClient, HttpClientEngine (expect/actual), TransportSecurity, BaseUrl
+service/criteria          CriteriaApi, KtorCriteriaApi, CachingCriteriaApi, CatalogueDto
+service/connection        ConnectionTester
+ui/navigation             Routes, NavigationGate/LeaveGuard, ConfirmPrompt
+ui/theme                  AppTheme, Spotlight, LocalNight, BicycleIcon
+ui/common                 HoldMenu, ElapsedSeconds, TimeOfDay, DimWhenIdle, KeepScreenAwake, SystemBarIcons
+ui/criteria               CriteriaScreen and its cards, buttons, dialogs, CriteriaViewModel
+ui/location               LocationScreen, LocationViewModel
+ui/patchnotes             PatchNotesScreen, PatchNotesViewModel
+ui/settings               SettingsScreen, ServerConnectionScreen, ServerConnectionViewModel
+util/location             Location, LocationProvider, LocationPermissions, LocationSettings + Android*/Ios*
+util/platform             ScreenAwake, ScreenBrightness, SystemBars, SystemCacheMarker + Android*/Ios*
+util/daylight             Sun, Daylight
+util/di                   AppModules, AndroidModule
+testing                   (commonTest only) the fakes
 ```
 
 `commonTest` mirrors the package of whatever it tests, plus `testing`.
+
+**`domain/recording` is split by what owns the state.** A ride is one thing the rider starts and ends; a
+segment is the many stretches recorded inside it, each with its own boundaries, draft and outcome. They
+have separate lifetimes and separate recorders, so they get separate packages. `domain/recording` itself
+keeps only what neither half owns alone — `ObservationStore`, which stores a segment against its ride.
+A new file there has to earn that spot the same way; otherwise it belongs in `ride/` or `segment/`.
 
 **`util` itself holds no files, only packages.** It is a namespace for the supporting packages that are
 neither a layer nor a feature, and nothing more. A name that says only "not one of the others" attracts
@@ -105,7 +113,7 @@ Each suffix means one thing, everywhere:
 
 - **`Store`** — persistence gateway. Speaks domain types; hides entities, DAOs and column formats.
   Only in `db`.
-- **`Recorder`** — owns in-memory recording state that has to outlive a tab switch. Only in
+- **`Recorder`** — owns in-memory recording state that has to outlive a tab switch. Only under
   `domain/recording`.
 - **`Api`** — talks HTTP. Only in `service`. **`Tester`** — performs a one-shot check.
 - **`ViewModel`**, **`Screen`**, **`Dialog`** — only in `ui`.

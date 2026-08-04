@@ -1,37 +1,14 @@
 package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedIconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.Icons
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.EndTiming
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.SegmentAction
 
 /**
  * What is asked of the rider the moment they press End: how well that press hit the boundary they
@@ -70,7 +47,7 @@ internal fun EndTimingDialog(
         text = {
             Text(
                 "How well did you catch the moment? Next time you can answer without this dialog: " +
-                    "hold the button instead of tapping it, then slide onto one of the three.",
+                        "hold the button instead of tapping it, then slide onto one of the three.",
                 style = MaterialTheme.typography.bodyMedium,
             )
         },
@@ -128,30 +105,30 @@ private fun BoundaryHelpDialog(onDismiss: () -> Unit) = AlertDialog(
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 "Every end asks how well you caught the moment, because how late you were decides " +
-                    "whether the stretch is worth keeping. Tapping End or Start next raises the " +
-                    "question; holding one of them answers it in the same movement.",
+                        "whether the stretch is worth keeping. Tapping End or Start next raises the " +
+                        "question; holding one of them answers it in the same movement.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
                 "Hold the button until it buzzes and the three answers fill the screen above your " +
-                    "thumb, a third of it each. Without letting go, slide up: " +
-                    "\"${EndTiming.PRECISE.title}\" just above the button, " +
-                    "\"${EndTiming.SLIGHTLY_LATE.title}\" in the middle, " +
-                    "\"${EndTiming.TOO_LATE.title}\" on top — which throws the segment away, since a " +
-                    "stretch that ended somewhere unknown is worse than none. Let go on the one you " +
-                    "want; let go without having slid anywhere and nothing happens.",
+                        "thumb, a third of it each. Without letting go, slide up: " +
+                        "\"${EndTiming.PRECISE.title}\" just above the button, " +
+                        "\"${EndTiming.SLIGHTLY_LATE.title}\" in the middle, " +
+                        "\"${EndTiming.TOO_LATE.title}\" on top — which throws the segment away, since a " +
+                        "stretch that ended somewhere unknown is worse than none. Let go on the one you " +
+                        "want; let go without having slid anywhere and nothing happens.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
                 "Either way the boundary is stamped when you press, not when you answer, so taking your " +
-                    "time over it costs the recording nothing.",
+                        "time over it costs the recording nothing.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
                 "A start is the same question asked in advance: \"Start precise\" marks the segment as " +
-                    "beginning where you pressed, \"Start earlier\" as having begun some way before it, " +
-                    "for a change of path you notice only after riding onto it. The recording line then " +
-                    "says \"started earlier\".",
+                        "beginning where you pressed, \"Start earlier\" as having begun some way before it, " +
+                        "for a change of path you notice only after riding onto it. The recording line then " +
+                        "says \"started earlier\".",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

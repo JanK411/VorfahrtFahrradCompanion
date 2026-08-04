@@ -3,8 +3,8 @@ package nl.jjt.vorfahrtfahrradcompanion.testing
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import kotlin.time.Instant
 
 /** Keeps stored segments in a list, so a test can say what was written rather than what was called. */

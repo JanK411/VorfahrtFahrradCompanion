@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import nl.jjt.vorfahrtfahrradcompanion.db.ride.RideEntity
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 
 /**
  * A recorded segment: the values the user selected, serialized to JSON, bounded by the two moments the

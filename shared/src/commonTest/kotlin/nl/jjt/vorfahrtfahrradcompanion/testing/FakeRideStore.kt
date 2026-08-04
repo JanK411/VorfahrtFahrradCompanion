@@ -1,6 +1,6 @@
 package nl.jjt.vorfahrtfahrradcompanion.testing
 
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideStore
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideStore
 import kotlin.time.Instant
 
 /** Keeps rides in a list, handing out ids the way the real table's autoincrement does. */

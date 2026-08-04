@@ -2,29 +2,15 @@ package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LATE_END_GRACE
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRecorder
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideSummary
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideSummary
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.*
 import nl.jjt.vorfahrtfahrradcompanion.service.criteria.CriteriaApi
 import kotlin.time.Duration
 import kotlin.time.Instant
@@ -254,9 +240,9 @@ class CriteriaViewModel(
         val ready = _state.value as? CriteriaUiState.Ready ?: return false
         // Asked of the repository rather than the state, which only catches up with it a dispatch later.
         return observations.draft.value.segment is Segment.Open &&
-            ready.saveState !is SaveState.InFlight &&
-            ready.pendingTiming == null &&
-            ready.pendingEnd == null
+                ready.saveState !is SaveState.InFlight &&
+                ready.pendingTiming == null &&
+                ready.pendingEnd == null
     }
 
     /** Turns a timed press into the end it stands for: a boundary, a step back, or nothing at all. */

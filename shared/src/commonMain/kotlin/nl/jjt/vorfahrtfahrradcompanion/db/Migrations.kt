@@ -1,9 +1,9 @@
 package nl.jjt.vorfahrtfahrradcompanion.db
 
 import androidx.room.migration.Migration
-import androidx.sqlite.execSQL
 import androidx.sqlite.SQLiteConnection
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
+import androidx.sqlite.execSQL
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 
 /**
  * v1 → v2: adds the single-row `patch_notes_state` table backing the What's New "already seen" tracking.
@@ -13,7 +13,7 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(connection: SQLiteConnection) {
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `patch_notes_state` " +
-                "(`id` INTEGER NOT NULL, `lastSeenVersion` TEXT NOT NULL, PRIMARY KEY(`id`))",
+                    "(`id` INTEGER NOT NULL, `lastSeenVersion` TEXT NOT NULL, PRIMARY KEY(`id`))",
         )
     }
 }
@@ -26,8 +26,8 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     override fun migrate(connection: SQLiteConnection) {
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `catalogue_cache` " +
-                "(`id` INTEGER NOT NULL, `baseUrl` TEXT NOT NULL, `catalogueJson` TEXT NOT NULL, " +
-                "`fetchedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+                    "(`id` INTEGER NOT NULL, `baseUrl` TEXT NOT NULL, `catalogueJson` TEXT NOT NULL, " +
+                    "`fetchedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         )
     }
 }
@@ -40,8 +40,8 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(connection: SQLiteConnection) {
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `observations` " +
-                "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `recordedAtEpochMs` INTEGER NOT NULL, " +
-                "`valuesJson` TEXT NOT NULL)",
+                    "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `recordedAtEpochMs` INTEGER NOT NULL, " +
+                    "`valuesJson` TEXT NOT NULL)",
         )
     }
 }
@@ -57,9 +57,9 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         connection.execSQL("DROP TABLE IF EXISTS `observations`")
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `observations` " +
-                "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startedAtEpochMs` INTEGER NOT NULL, " +
-                "`startKind` TEXT NOT NULL, `endedAtEpochMs` INTEGER NOT NULL, `endKind` TEXT NOT NULL, " +
-                "`valuesJson` TEXT NOT NULL)",
+                    "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startedAtEpochMs` INTEGER NOT NULL, " +
+                    "`startKind` TEXT NOT NULL, `endedAtEpochMs` INTEGER NOT NULL, `endKind` TEXT NOT NULL, " +
+                    "`valuesJson` TEXT NOT NULL)",
         )
     }
 }
@@ -74,15 +74,15 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         connection.execSQL("DROP TABLE IF EXISTS `observations`")
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `rides` " +
-                "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startedAtEpochMs` INTEGER NOT NULL, " +
-                "`endedAtEpochMs` INTEGER, `name` TEXT)",
+                    "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startedAtEpochMs` INTEGER NOT NULL, " +
+                    "`endedAtEpochMs` INTEGER, `name` TEXT)",
         )
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `observations` " +
-                "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `rideId` INTEGER NOT NULL, " +
-                "`startedAtEpochMs` INTEGER NOT NULL, `startKind` TEXT NOT NULL, " +
-                "`endedAtEpochMs` INTEGER NOT NULL, `endKind` TEXT NOT NULL, `valuesJson` TEXT NOT NULL, " +
-                "FOREIGN KEY(`rideId`) REFERENCES `rides`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                    "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `rideId` INTEGER NOT NULL, " +
+                    "`startedAtEpochMs` INTEGER NOT NULL, `startKind` TEXT NOT NULL, " +
+                    "`endedAtEpochMs` INTEGER NOT NULL, `endKind` TEXT NOT NULL, `valuesJson` TEXT NOT NULL, " +
+                    "FOREIGN KEY(`rideId`) REFERENCES `rides`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         )
         connection.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_observations_rideId` ON `observations` (`rideId`)",

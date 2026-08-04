@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.domain.recording
+package nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment
 
 /**
  * Where the boundary of a segment really lies. A rider cannot always press the button at the exact

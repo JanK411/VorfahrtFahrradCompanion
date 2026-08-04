@@ -2,6 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.domain.recording
 
 import kotlinx.coroutines.flow.Flow
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import kotlin.time.Instant
 
 /**

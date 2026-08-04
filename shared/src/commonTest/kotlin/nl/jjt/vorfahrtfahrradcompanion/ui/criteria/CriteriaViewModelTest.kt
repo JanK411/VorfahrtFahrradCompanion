@@ -3,41 +3,20 @@ package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.LATE_END_GRACE
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentRecorder
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRecorder
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideStore
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
-import nl.jjt.vorfahrtfahrradcompanion.service.criteria.CriteriaApi
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.*
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeClock
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeCriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeRideStore
-import kotlin.test.AfterTest
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
-import kotlin.test.BeforeTest
-import kotlin.test.Test
+import kotlin.test.*
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -47,8 +26,6 @@ private val catalogue = Catalogue(listOf(width, users))
 
 private val startedAt = Instant.parse("2026-07-20T12:43:37Z")
 private val stretch = 3.minutes
-
-
 
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -458,7 +435,10 @@ class CriteriaViewModelTest {
 
         vm.confirmEnd(approve = setOf(users.id))
         testScheduler.advanceUntilIdle()
-        assertEquals((pressedAt - LATE_END_GRACE).toEpochMilliseconds(), observations.inserted.last().endedAt.toEpochMilliseconds())
+        assertEquals(
+            (pressedAt - LATE_END_GRACE).toEpochMilliseconds(),
+            observations.inserted.last().endedAt.toEpochMilliseconds()
+        )
     }
 
     @Test

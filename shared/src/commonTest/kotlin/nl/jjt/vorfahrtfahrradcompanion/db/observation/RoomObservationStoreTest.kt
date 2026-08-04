@@ -3,7 +3,7 @@ package nl.jjt.vorfahrtfahrradcompanion.db.observation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.BoundaryKind
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeObservationDao
 import kotlin.test.Test
 import kotlin.test.assertEquals

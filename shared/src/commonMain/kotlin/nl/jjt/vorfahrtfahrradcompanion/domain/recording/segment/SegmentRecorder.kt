@@ -1,12 +1,10 @@
-package nl.jjt.vorfahrtfahrradcompanion.domain.recording
+package nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
 import kotlin.time.Clock
 import kotlin.time.Instant
 
