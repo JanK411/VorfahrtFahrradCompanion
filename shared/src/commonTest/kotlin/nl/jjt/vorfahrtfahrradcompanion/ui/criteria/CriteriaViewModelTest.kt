@@ -695,19 +695,10 @@ class CriteriaViewModelTest {
     }
 
     @Test
-    fun pickingOffACardSetsAPickOneAndTogglesAPickAny() {
+    fun pickingOffACardSetsTheValueTheCriterionHolds() {
         // Picking what is already there must not leave the next segment with nothing to describe it.
         assertEquals(setOf("W_1"), Selections(mapOf("WIDTH" to setOf("W_1"))).pick(width, "W_1")[width])
         assertEquals(setOf("W_2"), Selections(mapOf("WIDTH" to setOf("W_1"))).pick(width, "W_2")[width])
-
-        // A criterion that holds several values is a different question: there, picking one it
-        // already holds is how a rider says that one no longer applies.
-        val both = Selections(mapOf("ALLOWED_USERS" to setOf("CARS", "CYCLISTS")))
-        assertEquals(setOf("CYCLISTS"), both.pick(users, "CARS")[users])
-        assertEquals(
-            setOf("CARS", "CYCLISTS"),
-            Selections(mapOf("ALLOWED_USERS" to setOf("CARS"))).pick(users, "CYCLISTS")[users],
-        )
     }
 
     @Test

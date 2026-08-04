@@ -38,16 +38,15 @@ value class Selections(private val byCriterion: Map<String, Set<String>> = empty
     }
 
     /**
-     * Takes a pick from the menu a folded card opens: for a pick-one criterion the value picked
-     * becomes the one it holds, for a pick-any one it goes on or comes off the set.
+     * Takes a pick from the menu a folded card opens: the value picked becomes the one the
+     * criterion holds.
      *
-     * Unlike [select], picking what is already there is no way to end up with nothing: that menu
-     * starts the next segment, and a criterion left empty is one that segment cannot be described by.
+     * Only a pick-one criterion offers that menu — a pick-any one has no single answer to slide
+     * onto — so unlike [select] this never leaves a criterion empty, which matters because the
+     * pick starts the next segment.
      */
-    fun pick(criterion: Criterion, value: String): Selections = when (criterion.kind) {
-        CriterionKind.SINGLE -> Selections(byCriterion + (criterion.id to setOf(value)))
-        CriterionKind.MULTI -> select(criterion, value)
-    }
+    fun pick(criterion: Criterion, value: String): Selections =
+        Selections(byCriterion + (criterion.id to setOf(value)))
 
     /** The criteria actually holding a value — everything a segment ending now could be described by. */
     val filled: Set<String> get() = byCriterion.filterValues(Set<String>::isNotEmpty).keys

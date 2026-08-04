@@ -94,8 +94,9 @@ private val ApproveButtonSize = 64.dp
  * One criterion. Folded it is a single line — label, values, and whether they still need approving —
  * so a filled-in catalogue stays scannable; expanded it is a column of buttons sized for a mounted phone.
  *
- * Renders any criterion: [CriterionKind] only reaches the tap reducer and the "Done" button, never the
- * layout, which is what lets this screen render a catalogue it has never seen.
+ * Renders any criterion: [CriterionKind] reaches the tap reducer, the "Done" button and whether the
+ * card carries a split handle at all — never how it is laid out, which is what lets this screen
+ * render a catalogue it has never seen.
  */
 @Composable
 internal fun CriterionCard(
@@ -144,7 +145,11 @@ internal fun CriterionCard(
                 }
             }
 
-            SplitHandle(criterion, selected, onOpen = onOpen, onSplit = onSplit)
+            // Only on a pick-one card. Sliding onto a value says "this is what it is from here on",
+            // which a pick-any criterion has no single value to answer with.
+            if (criterion.kind == CriterionKind.SINGLE) {
+                SplitHandle(criterion, selected, onOpen = onOpen, onSplit = onSplit)
+            }
         }
     }
 }

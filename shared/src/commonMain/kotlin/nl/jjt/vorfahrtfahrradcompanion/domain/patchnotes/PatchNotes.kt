@@ -3,6 +3,15 @@ package nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.8",
+        date = "2026-08-04",
+        changes = listOf(
+            "The hold-and-slide menu is for pick-one criteria only now. A pick-any one has no single " +
+                "value that is true from here on — it is answered by tapping values on and off — so " +
+                "its cards no longer carry the green knob.",
+        ),
+    ),
+    PatchNote(
         version = "1.7",
         date = "2026-08-04",
         changes = listOf(
