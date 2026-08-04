@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.patchnotes
+package nl.jjt.vorfahrtfahrradcompanion.ui.patchnotes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

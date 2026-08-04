@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

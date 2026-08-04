@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui
+package nl.jjt.vorfahrtfahrradcompanion.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor

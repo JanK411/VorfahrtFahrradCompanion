@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.patchnotes
+package nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes
 
 import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.PatchNote
 import nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes.patchNotes

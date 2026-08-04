@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,7 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideSummary
-import nl.jjt.vorfahrtfahrradcompanion.ui.timeOfDay
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.timeOfDay
 
 /**
  * What the rider signs a ride off with: what it came to, and a name for it if they want one. The ride is

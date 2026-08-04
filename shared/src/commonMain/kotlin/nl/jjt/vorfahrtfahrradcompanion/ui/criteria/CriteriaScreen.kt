@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
@@ -42,12 +42,12 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentAction
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.SegmentOutcome
-import nl.jjt.vorfahrtfahrradcompanion.ui.holdAndSlide
-import nl.jjt.vorfahrtfahrradcompanion.ui.HoldMenuOption
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.holdAndSlide
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.HoldMenuOption
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.KeepScreenAwake
-import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
-import nl.jjt.vorfahrtfahrradcompanion.ui.Spotlight
-import nl.jjt.vorfahrtfahrradcompanion.ui.WindowOrigin
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.secondsSince
+import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.WindowOrigin
 import org.koin.compose.viewmodel.koinViewModel
 
 /**

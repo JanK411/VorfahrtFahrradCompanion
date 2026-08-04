@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.location
+package nl.jjt.vorfahrtfahrradcompanion.ui.location
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,9 +14,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import nl.jjt.vorfahrtfahrradcompanion.ui.BicycleIcon
-import nl.jjt.vorfahrtfahrradcompanion.ui.secondsSince
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import nl.jjt.vorfahrtfahrradcompanion.location.Location
+import nl.jjt.vorfahrtfahrradcompanion.location.LocationPermissions
+import nl.jjt.vorfahrtfahrradcompanion.location.LocationSettings
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.secondsSince
+import nl.jjt.vorfahrtfahrradcompanion.ui.theme.BicycleIcon
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

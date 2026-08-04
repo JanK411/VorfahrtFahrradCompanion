@@ -2,7 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.di
 
 import nl.jjt.vorfahrtfahrradcompanion.service.criteria.CachingCriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.service.criteria.CriteriaApi
-import nl.jjt.vorfahrtfahrradcompanion.criteria.CriteriaViewModel
+import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.CriteriaViewModel
 import nl.jjt.vorfahrtfahrradcompanion.service.criteria.KtorCriteriaApi
 import nl.jjt.vorfahrtfahrradcompanion.daylight.Daylight
 import nl.jjt.vorfahrtfahrradcompanion.db.AppDatabase
@@ -15,12 +15,12 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationRepository
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideRepository
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.RideStore
-import nl.jjt.vorfahrtfahrradcompanion.location.LocationViewModel
+import nl.jjt.vorfahrtfahrradcompanion.ui.location.LocationViewModel
 import nl.jjt.vorfahrtfahrradcompanion.service.http.createHttpClient
 import nl.jjt.vorfahrtfahrradcompanion.service.http.platformHttpClientEngine
-import nl.jjt.vorfahrtfahrradcompanion.patchnotes.PatchNotesViewModel
+import nl.jjt.vorfahrtfahrradcompanion.ui.patchnotes.PatchNotesViewModel
 import nl.jjt.vorfahrtfahrradcompanion.service.connection.ConnectionTester
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsViewModel
+import nl.jjt.vorfahrtfahrradcompanion.ui.settings.SettingsViewModel
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module

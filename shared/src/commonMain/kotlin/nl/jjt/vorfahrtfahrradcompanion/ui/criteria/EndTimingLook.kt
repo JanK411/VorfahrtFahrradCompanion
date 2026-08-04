@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.automirrored.filled.ArrowBack

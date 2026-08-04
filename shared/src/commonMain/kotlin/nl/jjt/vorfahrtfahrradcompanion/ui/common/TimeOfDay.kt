@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui
+package nl.jjt.vorfahrtfahrradcompanion.ui.common
 
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

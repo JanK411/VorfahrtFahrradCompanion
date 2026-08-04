@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui
+package nl.jjt.vorfahrtfahrradcompanion.ui.common
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown

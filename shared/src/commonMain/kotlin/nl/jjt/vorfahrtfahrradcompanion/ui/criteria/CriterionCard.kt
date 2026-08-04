@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -59,10 +59,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
-import nl.jjt.vorfahrtfahrradcompanion.ui.holdAndSlide
-import nl.jjt.vorfahrtfahrradcompanion.ui.HoldMenuOption
-import nl.jjt.vorfahrtfahrradcompanion.ui.Spotlight
-import nl.jjt.vorfahrtfahrradcompanion.ui.WindowOrigin
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.holdAndSlide
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.HoldMenuOption
+import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.WindowOrigin
 import kotlin.math.abs
 
 /** How far along a criterion is in the current segment. This drives the whole look of its card. */

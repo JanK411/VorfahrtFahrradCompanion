@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.ButtonDefaults
@@ -20,10 +20,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Popup
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.EndTiming
-import nl.jjt.vorfahrtfahrradcompanion.ui.holdAndSlide
-import nl.jjt.vorfahrtfahrradcompanion.ui.HoldMenuOption
-import nl.jjt.vorfahrtfahrradcompanion.ui.Spotlight
-import nl.jjt.vorfahrtfahrradcompanion.ui.WindowOrigin
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.holdAndSlide
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.HoldMenuOption
+import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
+import nl.jjt.vorfahrtfahrradcompanion.ui.common.WindowOrigin
 
 /** Keeps both buttons the same height when one of them wraps onto a second line. */
 @Composable

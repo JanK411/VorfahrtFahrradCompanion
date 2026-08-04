@@ -1,6 +1,6 @@
 package nl.jjt.vorfahrtfahrradcompanion.service.http
 
-import nl.jjt.vorfahrtfahrradcompanion.settings.SettingsUiState
+import nl.jjt.vorfahrtfahrradcompanion.ui.settings.SettingsUiState
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue

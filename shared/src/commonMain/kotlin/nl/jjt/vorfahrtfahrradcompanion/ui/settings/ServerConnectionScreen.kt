@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.settings
+package nl.jjt.vorfahrtfahrradcompanion.ui.settings
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween

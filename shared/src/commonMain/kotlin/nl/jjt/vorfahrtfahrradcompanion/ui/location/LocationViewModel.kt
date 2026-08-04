@@ -1,16 +1,19 @@
-package nl.jjt.vorfahrtfahrradcompanion.location
+package nl.jjt.vorfahrtfahrradcompanion.ui.location
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import nl.jjt.vorfahrtfahrradcompanion.location.Location
+import nl.jjt.vorfahrtfahrradcompanion.location.LocationProvider
+import nl.jjt.vorfahrtfahrradcompanion.location.LocationSettings
 
 sealed interface LocationUiState {
     data object Disabled : LocationUiState
