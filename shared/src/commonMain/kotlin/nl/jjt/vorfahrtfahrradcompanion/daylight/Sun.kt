@@ -8,16 +8,15 @@ import kotlin.math.round
 import kotlin.math.sin
 import kotlin.time.Instant
 
-/** What the sun does on one day at one place. */
-sealed interface SolarDay {
-    data class RisesAndSets(val sunrise: Instant, val sunset: Instant) : SolarDay
-
-    /** Far enough north or south, in summer, that the sun never sets. */
-    data object PolarDay : SolarDay
-
-    /** The same place in winter: the sun never rises. */
-    data object PolarNight : SolarDay
-}
+/**
+ * What the sun does on one day at one place: it comes up, and it goes down.
+ *
+ * Beyond the polar circles it does neither, and the pair degenerates rather than branching. In the
+ * polar night [sunrise] and [sunset] are both solar noon, so the day is an instant long; in the polar
+ * day they are noon either side, so the day is the whole twenty-four hours and the night is the
+ * instant between them.
+ */
+data class SolarDay(val sunrise: Instant, val sunset: Instant)
 
 /**
  * Whether the sun is down at [at], at the given place — the whole point of which is that "after
@@ -25,11 +24,7 @@ sealed interface SolarDay {
  * Maastricht. A fixed hour would put the screen in night colours while it is still broad daylight.
  */
 fun isNightAt(at: Instant, latitude: Double, longitude: Double): Boolean =
-    when (val day = solarDay(at, latitude, longitude)) {
-        SolarDay.PolarDay -> false
-        SolarDay.PolarNight -> true
-        is SolarDay.RisesAndSets -> at < day.sunrise || at > day.sunset
-    }
+    with(solarDay(at, latitude, longitude)) { at < sunrise || at > sunset }
 
 /**
  * Sunrise and sunset around the solar noon nearest [around], for [latitude] and [longitude] in
@@ -58,18 +53,14 @@ fun solarDay(around: Instant, latitude: Double, longitude: Double): SolarDay {
 
     val transit = Epoch2000 + meanTime + 0.0053 * sinDeg(anomaly) - 0.0069 * sinDeg(2 * eclipticLongitude)
 
-    // How far either side of noon the sun crosses the horizon. Beyond the polar circles the
-    // horizon is not crossed at all, and the cosine says which side of it the whole day falls on.
+    // How far either side of noon the sun crosses the horizon. Beyond the polar circles the horizon
+    // is not crossed at all and this runs past ±1, where clamping gives the degenerate day: no width
+    // at all when the sun stays down, the full turn when it stays up.
     val hourAngle = (sinDeg(HorizonDip) - sinDeg(latitude) * sin(declination)) /
         (cosDeg(latitude) * cos(declination))
-    if (hourAngle > 1.0) return SolarDay.PolarNight
-    if (hourAngle < -1.0) return SolarDay.PolarDay
 
-    val half = toDegrees(acos(hourAngle)) / 360.0
-    return SolarDay.RisesAndSets(
-        sunrise = instantOf(transit - half),
-        sunset = instantOf(transit + half),
-    )
+    val half = toDegrees(acos(hourAngle.coerceIn(-1.0, 1.0))) / 360.0
+    return SolarDay(sunrise = instantOf(transit - half), sunset = instantOf(transit + half))
 }
 
 /** J2000: noon on 2000-01-01, the epoch the whole calculation counts days from. */

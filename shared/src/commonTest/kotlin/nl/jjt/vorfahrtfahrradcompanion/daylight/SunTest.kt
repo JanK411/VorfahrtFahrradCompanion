@@ -3,7 +3,6 @@ package nl.jjt.vorfahrtfahrradcompanion.daylight
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -72,8 +71,13 @@ class SunTest {
         val midsummer = Instant.parse("2026-06-21T12:00:00Z")
         val midwinter = Instant.parse("2026-12-21T12:00:00Z")
 
-        assertEquals(SolarDay.PolarDay, solarDay(midsummer, TromsoLatitude, TromsoLongitude))
-        assertEquals(SolarDay.PolarNight, solarDay(midwinter, TromsoLatitude, TromsoLongitude))
+        // A sun that never sets is a day the full turn wide; one that never rises is a day of no
+        // width at all, sitting at noon.
+        val up = solarDay(midsummer, TromsoLatitude, TromsoLongitude)
+        assertEquals(24.hours, up.sunset - up.sunrise)
+
+        val down = solarDay(midwinter, TromsoLatitude, TromsoLongitude)
+        assertEquals(down.sunrise, down.sunset)
 
         // Midnight in Tromsø in June is daylight, and noon in December is not.
         assertFalse(isNightAt(midsummer, TromsoLatitude, TromsoLongitude))
@@ -84,16 +88,12 @@ class SunTest {
     fun theEquatorGetsRoughlyTwelveHoursOfDaylightWhateverTheDate() {
         listOf("2026-03-21T12:00:00Z", "2026-06-21T12:00:00Z", "2026-12-21T12:00:00Z").forEach { date ->
             val day = solarDay(Instant.parse(date), latitude = 0.0, longitude = 0.0)
-            assertIs<SolarDay.RisesAndSets>(day)
             assertCloseTo(12.hours + 7.minutes, day.sunset - day.sunrise)
         }
     }
 
-    private fun risesAndSets(at: String): SolarDay.RisesAndSets {
-        val day = solarDay(Instant.parse(at), AmsterdamLatitude, AmsterdamLongitude)
-        assertIs<SolarDay.RisesAndSets>(day)
-        return day
-    }
+    private fun risesAndSets(at: String) =
+        solarDay(Instant.parse(at), AmsterdamLatitude, AmsterdamLongitude)
 
     private fun night(at: String) =
         isNightAt(Instant.parse(at), AmsterdamLatitude, AmsterdamLongitude)
