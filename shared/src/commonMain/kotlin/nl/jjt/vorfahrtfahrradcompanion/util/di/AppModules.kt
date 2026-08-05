@@ -18,7 +18,7 @@ import nl.jjt.vorfahrtfahrradcompanion.service.http.createHttpClient
 import nl.jjt.vorfahrtfahrradcompanion.service.ride.KtorRideApi
 import nl.jjt.vorfahrtfahrradcompanion.service.ride.RideApi
 import nl.jjt.vorfahrtfahrradcompanion.service.ride.RideUploader
-import nl.jjt.vorfahrtfahrradcompanion.service.ride.UnsentRideUploader
+import nl.jjt.vorfahrtfahrradcompanion.service.ride.SendingRideUploader
 import nl.jjt.vorfahrtfahrradcompanion.service.http.platformHttpClientEngine
 import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.CriteriaViewModel
 import nl.jjt.vorfahrtfahrradcompanion.ui.location.LocationViewModel
@@ -59,7 +59,7 @@ val serviceModule = module {
     single<CriteriaApi> { CachingCriteriaApi(KtorCriteriaApi(get(), get()), get(), get(), get()) }
     single { ConnectionTester(get()) }
     single<RideApi> { KtorRideApi(get(), get()) }
-    single<RideUploader> { UnsentRideUploader() }
+    single<RideUploader> { SendingRideUploader(get(), get(), get()) }
 }
 
 val uiModule = module {

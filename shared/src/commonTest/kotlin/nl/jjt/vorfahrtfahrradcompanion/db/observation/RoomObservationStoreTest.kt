@@ -9,6 +9,7 @@ import nl.jjt.vorfahrtfahrradcompanion.testing.FakeObservationDao
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 private val startedAt = Instant.parse("2026-07-20T12:43:37Z")
@@ -78,5 +79,34 @@ class RoomObservationStoreTest {
         assertEquals(2, store.countForRide("ride-1"))
         assertEquals(1, store.countForRide("ride-2"))
         assertEquals(0, store.countForRide("ride-3"))
+    }
+
+    @Test
+    fun onlyTheSegmentsOfTheAskedForRideComeBack() = runTest {
+        store.insert(observation(rideId = "ride-1"))
+        store.insert(observation(rideId = "ride-2"))
+        store.insert(observation(rideId = "ride-1"))
+
+        assertEquals(2, store.forRide("ride-1").size)
+        assertEquals(1, store.forRide("ride-2").size)
+        assertTrue(store.forRide("ride-3").isEmpty())
+    }
+
+    /**
+     * Both boundaries and the JSON column come back out as what went in. Unresolved on purpose: what
+     * is sent to a server has to be what was recorded, not what today's catalogue still asks about.
+     */
+    @Test
+    fun aSegmentIsReadBackWholeAndStillIdKeyed() = runTest {
+        store.insert(observation(rideId = "ride-1", startKind = BoundaryKind.EARLIER))
+
+        val read = store.forRide("ride-1").single()
+
+        assertEquals(startedAt, read.startedAt)
+        assertEquals(BoundaryKind.EARLIER, read.startKind)
+        assertEquals(endedAt, read.endedAt)
+        assertEquals(BoundaryKind.EXACT, read.endKind)
+        assertEquals(values.stored(), read.answers)
+        assertEquals(setOf(CriterionValue("CARS")), read.answers["ALLOWED_USERS"])
     }
 }
