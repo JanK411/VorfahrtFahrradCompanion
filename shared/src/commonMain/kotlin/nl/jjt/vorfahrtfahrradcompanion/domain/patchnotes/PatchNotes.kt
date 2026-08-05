@@ -3,6 +3,22 @@ package nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.9",
+        date = "2026-08-05",
+        changes = listOf(
+            "A Rides tab, where every ride you have recorded is listed newest first — what you called " +
+                "it or the day it happened, when it started, how long it ran, how many segments it " +
+                "describes, and whether it is still running, waiting to be sent, or already sent.",
+            "Tap a ride to send it to the server. It always asks first, so nothing leaves on a stray " +
+                "thumb, and a ride the server already has asks a second time before going again. A " +
+                "ride is only marked as sent once the server has actually confirmed it — if the send " +
+                "fails you are told, and the ride stays exactly where it was, ready to try again.",
+            "A ride you have not ended yet cannot be sent, and says so when you tap it.",
+            "The GPS screen has moved from its own tab into Settings → Location, which is where the " +
+                "rest of the diagnostics already live.",
+        ),
+    ),
+    PatchNote(
         version = "1.8",
         date = "2026-08-04",
         changes = listOf(
