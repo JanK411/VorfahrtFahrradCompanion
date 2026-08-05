@@ -23,10 +23,12 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onOpenServerConnection: () -> Unit = {},
+    onOpenLocation: () -> Unit = {},
     onOpenPatchNotes: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().padding(vertical = 8.dp)) {
         SettingsRow("Server connection", onOpenServerConnection)
+        SettingsRow("Location", onOpenLocation)
         SettingsRow("What's New", onOpenPatchNotes)
     }
 }

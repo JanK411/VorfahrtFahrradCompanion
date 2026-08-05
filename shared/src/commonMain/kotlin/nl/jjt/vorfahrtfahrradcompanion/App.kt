@@ -44,7 +44,6 @@ import org.koin.dsl.koinConfiguration
 /** Bottom-bar destinations. [PatchNotesRoute] is a sub-page reached from Settings, not a tab. */
 private enum class Tab(val label: String, val icon: ImageVector, val route: Any) {
     CRITERIA("Criteria", Icons.AutoMirrored.Filled.List, CriteriaRoute),
-    RIDE("Ride", BicycleIcon, RideRoute),
     SETTINGS("Settings", Icons.Filled.Settings, SettingsRoute),
 }
 
@@ -156,15 +155,16 @@ fun App(additionalModules: List<Module> = emptyList()) {
                             ) {
                                 composable<CriteriaRoute> { CriteriaScreen(Modifier.fillMaxSize()) }
 
-                                composable<RideRoute> { LocationScreen(Modifier.fillMaxSize()) }
-
                                 composable<SettingsRoute> {
                                     SettingsScreen(
                                         modifier = Modifier.fillMaxSize(),
                                         onOpenServerConnection = { navController.navigate(ServerConnectionRoute) },
+                                        onOpenLocation = { navController.navigate(LocationRoute) },
                                         onOpenPatchNotes = { navController.navigate(PatchNotesRoute) },
                                     )
                                 }
+
+                                composable<LocationRoute> { LocationScreen(Modifier.fillMaxSize()) }
 
                                 composable<ServerConnectionRoute> {
                                     ServerConnectionScreen(
