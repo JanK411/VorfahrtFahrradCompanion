@@ -25,15 +25,16 @@ db/ride                   RideEntity, RideDao, RoomRideStore
 db/settings               SettingsEntity, SettingsDao, SettingsStore
 domain/criteria           Criterion, CriterionKind, CriterionValue, Catalogue, Answers, StoredAnswers
 domain/patchnotes         PatchNote, the patch note list, splitPatchNotes
-domain/recording          Observation and ObservationStore — what both halves store, and the port
-                          they store it through, and nothing else
-domain/recording/ride     Ride, RideSummary, RideRecorder, RideStore
+domain/recording          Observation, StoredObservation and ObservationStore — what both halves store,
+                          and the port they store it through, and nothing else
+domain/recording/ride     Ride, RecordedRide, RideState, RideSummary, RideRecorder, RideStore
 domain/recording/segment  Segment, Draft, SegmentOutcome, SegmentAction, SegmentRecorder,
                           BoundaryKind, EndTiming
 domain/settings           Settings
 service/http              HttpClient, HttpClientEngine (expect/actual), TransportSecurity, BaseUrl
 service/criteria          CriteriaApi, KtorCriteriaApi, CachingCriteriaApi, CatalogueDto
 service/connection        ConnectionTester
+service/ride              RideApi, KtorRideApi, RideUploader, RideUploadDto
 ui/navigation             Routes, NavigationGate/LeaveGuard, ConfirmPrompt
 ui/theme                  AppTheme, Spotlight, LocalNight, BicycleIcon
 ui/common                 HoldMenu, ElapsedSeconds, TimeOfDay, DimWhenIdle, KeepScreenAwake,
@@ -41,6 +42,7 @@ ui/common                 HoldMenu, ElapsedSeconds, TimeOfDay, DimWhenIdle, Keep
 ui/criteria               CriteriaScreen and its cards, buttons, dialogs, CriteriaViewModel
 ui/location               LocationScreen, LocationViewModel
 ui/patchnotes             PatchNotesScreen, PatchNotesViewModel
+ui/rides                  RidesScreen, RidesViewModel
 ui/settings               SettingsScreen, ServerConnectionScreen, ServerConnectionViewModel
 util/location             Location, LocationProvider, LocationPermissions, LocationSettings
                           + Android*/Ios*

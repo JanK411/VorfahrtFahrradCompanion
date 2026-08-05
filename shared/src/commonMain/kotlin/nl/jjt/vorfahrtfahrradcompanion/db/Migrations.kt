@@ -117,3 +117,13 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         )
     }
 }
+
+/**
+ * v7 → v8: records when a ride was accepted by the server, which is what tells a finished ride apart
+ * from one already sent. Additive — a ride recorded before this column existed simply has not been sent.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `rides` ADD COLUMN `uploadedAtEpochMs` INTEGER")
+    }
+}

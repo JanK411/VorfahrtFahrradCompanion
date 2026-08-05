@@ -12,6 +12,10 @@ import androidx.room.PrimaryKey
  *
  * [id] is a UUID minted on the device rather than a row number: a ride is eventually handed to a server
  * that sees rides from every device, and an autoincrement means the same id there twice.
+ *
+ * [uploadedAtEpochMs] is set only once the server has confirmed it holds the ride, never on the way out —
+ * so a send that failed halfway is indistinguishable from one never attempted, which is what makes
+ * pressing send again safe.
  */
 @Entity(tableName = "rides")
 data class RideEntity(
@@ -19,4 +23,5 @@ data class RideEntity(
     val startedAtEpochMs: Long,
     val endedAtEpochMs: Long? = null,
     val name: String? = null,
+    val uploadedAtEpochMs: Long? = null,
 )

@@ -1,5 +1,9 @@
 package nl.jjt.vorfahrtfahrradcompanion.testing
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RecordedRide
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideStore
 import kotlin.time.Instant
 
@@ -10,23 +14,46 @@ class FakeRideStore : RideStore {
         val startedAt: Instant,
         val endedAt: Instant? = null,
         val name: String? = null,
+        val uploadedAt: Instant? = null,
     )
 
-    val rows = mutableListOf<Row>()
+    private val state = MutableStateFlow<List<Row>>(emptyList())
     private var minted = 0
+
+    /** How many segments each ride is to report — the real store counts them, this one is told. */
+    var segmentsPerRide: Map<String, Int> = emptyMap()
+
+    val rows: List<Row> get() = state.value
 
     override suspend fun open(startedAt: Instant): String {
         val id = "ride-${++minted}"
-        rows += Row(id, startedAt)
+        state.value += Row(id, startedAt)
         return id
     }
 
-    override suspend fun close(id: String, endedAt: Instant, name: String?) {
-        val at = rows.indexOfFirst { it.id == id }
-        if (at >= 0) rows[at] = rows[at].copy(endedAt = endedAt, name = name)
-    }
+    override suspend fun close(id: String, endedAt: Instant, name: String?) =
+        update(id) { it.copy(endedAt = endedAt, name = name) }
 
     override suspend fun delete(id: String) {
-        rows.removeAll { it.id == id }
+        state.value = state.value.filterNot { it.id == id }
+    }
+
+    override fun recorded(): Flow<List<RecordedRide>> = state.map { rows ->
+        rows.sortedByDescending(Row::startedAt).map {
+            RecordedRide(
+                id = it.id,
+                startedAt = it.startedAt,
+                endedAt = it.endedAt,
+                name = it.name,
+                segments = segmentsPerRide[it.id] ?: 0,
+                uploadedAt = it.uploadedAt,
+            )
+        }
+    }
+
+    override suspend fun markUploaded(id: String, at: Instant) = update(id) { it.copy(uploadedAt = at) }
+
+    private fun update(id: String, change: (Row) -> Row) {
+        state.value = state.value.map { if (it.id == id) change(it) else it }
     }
 }
