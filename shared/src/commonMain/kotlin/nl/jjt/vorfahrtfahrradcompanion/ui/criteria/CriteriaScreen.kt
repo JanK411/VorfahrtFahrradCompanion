@@ -31,6 +31,7 @@ import nl.jjt.vorfahrtfahrradcompanion.ui.common.KeepScreenAwake
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.secondsSince
 import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * How long a pick-any criterion waits after a tap before moving on. Long enough to add a second
@@ -207,7 +208,7 @@ private fun Catalogue(
     LaunchedEffect(advances) {
         // collectLatest, so every further tap restarts the wait instead of stacking up advances.
         advances.collectLatest { criterion ->
-            if (criterion.kind == CriterionKind.MULTI) delay(MULTI_ADVANCE_MILLIS)
+            if (criterion.kind == CriterionKind.MULTI) delay(MULTI_ADVANCE_MILLIS.milliseconds)
             // Unless the rider has opened something else in the meantime, in which case they lead.
             if (pinned != criterion) return@collectLatest
             pinned = null
@@ -254,7 +255,7 @@ private fun Catalogue(
                 // which would take it out of a list read off the state mid-answer.
                 carriedOver = pending.asked,
                 catalogue = state.catalogue,
-                selections = state.selections,
+                answers = state.answers,
                 approved = state.approved,
                 onEdit = actions.tap,
                 onConfirm = actions.confirmEnd,
@@ -309,7 +310,7 @@ private fun Catalogue(
                             CriterionCard(
                                 criterion = criterion,
                                 values = state.catalogue[criterion],
-                                selected = state.selections[criterion],
+                                selected = state.answers[criterion],
                                 state = state.stateOf(criterion),
                                 expanded = criterion == expanded,
                                 onTapValue = { value ->

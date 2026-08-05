@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 /**
  * One question the catalogue asks about a stretch of path: what it is called, and whether it takes
  * one answer or several. Which answers it offers is the [Catalogue]'s business, not this one's —
- * a criterion is what a selection is *about*, and stays the same however the values move.
+ * a criterion is what an answer is *about*, and stays the same however the values move.
  */
 data class Criterion(val id: String, val kind: CriterionKind)
 

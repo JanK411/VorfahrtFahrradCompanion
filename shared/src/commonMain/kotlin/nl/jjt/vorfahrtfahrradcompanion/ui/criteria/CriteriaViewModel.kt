@@ -4,11 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredSelections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideSummary
@@ -22,14 +18,14 @@ sealed interface CriteriaUiState {
     data class Failed(val message: String) : CriteriaUiState
     data class Ready(
         val catalogue: Catalogue,
-        val selections: Selections = Selections(),
+        val answers: Answers = Answers(),
         val approved: Set<Criterion> = emptySet(),
         val segment: Segment = Segment.Idle,
         val ride: Ride = Ride.Idle,
         val saveState: SaveState = SaveState.Idle,
         val pendingTiming: TimingRequest? = null,
         val pendingEnd: EndRequest? = null,
-        val submitted: StoredSelections? = null,
+        val submitted: StoredAnswers? = null,
     ) : CriteriaUiState {
 
         /** Approved for this segment and holding values — exactly what ending it would store. */
@@ -43,9 +39,9 @@ sealed interface CriteriaUiState {
          * This is where what came out of storage becomes criteria again; one the catalogue has since
          * dropped falls away here, so it is never offered and never copied forward.
          */
-        val copyable: Selections?
+        val copyable: Answers?
             get() = submitted?.let(catalogue::resolve)
-                ?.takeIf { segment is Segment.Open && selections.isEmpty() && !it.isEmpty() }
+                ?.takeIf { segment is Segment.Open && answers.isEmpty() && !it.isEmpty() }
 
         /** Carried over from the previous segment, still unapproved, so it would not be stored. */
         val carriedOver: List<Criterion> get() = catalogue.criteria.filter { it !in approved && it.hasValues }
@@ -72,7 +68,7 @@ sealed interface CriteriaUiState {
         fun leadingAfter(settled: Criterion?): Criterion? =
             if (settled == null) nextOpen else openAfter(settled) ?: nextOpen
 
-        private val Criterion.hasValues: Boolean get() = selections[this].isNotEmpty()
+        private val Criterion.hasValues: Boolean get() = answers[this].isNotEmpty()
     }
 }
 
@@ -145,7 +141,7 @@ class CriteriaViewModel(
         viewModelScope.launch {
             observations.draft.collect { draft ->
                 updateReady {
-                    copy(selections = draft.selections, approved = draft.approved, segment = draft.segment)
+                    copy(answers = draft.answers, approved = draft.approved, segment = draft.segment)
                 }
             }
         }
@@ -162,7 +158,7 @@ class CriteriaViewModel(
         updateReady { copy(saveState = SaveState.Idle) }
 
         // A tap that cleared the last value leaves nothing to move on from, so the rider stays put.
-        if (observations.draft.value.selections[criterion].isNotEmpty()) _advances.tryEmit(criterion)
+        if (observations.draft.value.answers[criterion].isNotEmpty()) _advances.tryEmit(criterion)
     }
 
     /** Stands by [criterion] unchanged — the rider approving a whole criterion instead of a value. */
@@ -330,7 +326,7 @@ class CriteriaViewModel(
                 val draft = observations.draft.value
                 CriteriaUiState.Ready(
                     catalogue = api.catalogue(),
-                    selections = draft.selections,
+                    answers = draft.answers,
                     approved = draft.approved,
                     segment = draft.segment,
                     ride = rides.ride.value,

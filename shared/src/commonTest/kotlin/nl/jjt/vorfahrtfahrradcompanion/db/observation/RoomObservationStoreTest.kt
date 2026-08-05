@@ -2,11 +2,7 @@ package nl.jjt.vorfahrtfahrradcompanion.db.observation
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeObservationDao
 import kotlin.test.Test
@@ -17,7 +13,7 @@ import kotlin.time.Instant
 private val startedAt = Instant.parse("2026-07-20T12:43:37Z")
 private val endedAt = Instant.parse("2026-07-20T12:46:37Z")
 private val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI)
-private val values = Selections(mapOf(users to setOf(CriterionValue("CARS"))))
+private val values = Answers(mapOf(users to setOf(CriterionValue("CARS"))))
 
 class RoomObservationStoreTest {
 
@@ -41,7 +37,7 @@ class RoomObservationStoreTest {
      * implementation detail of this class: changing it needs a migration, so it is pinned here.
      */
     @Test
-    fun theSelectionsAreStoredAsJsonKeyedByCriterionId() = runTest {
+    fun theAnswersAreStoredAsJsonKeyedByCriterionId() = runTest {
         store.insert(1, startedAt, BoundaryKind.EXACT, endedAt, BoundaryKind.EXACT, values)
 
         assertEquals("""{"ALLOWED_USERS":["CARS"]}""", dao.rows.single().valuesJson)
@@ -49,10 +45,10 @@ class RoomObservationStoreTest {
 
     /**
      * What comes back is keyed by id — the table has no record of what kind of question each was —
-     * so it takes a catalogue to become [Selections] again.
+     * so it takes a catalogue to become [Answers] again.
      */
     @Test
-    fun theLastStoredSelectionsAreReadBackWhole() = runTest {
+    fun theLastStoredAnswersAreReadBackWhole() = runTest {
         store.insert(1, startedAt, BoundaryKind.EXACT, endedAt, BoundaryKind.EXACT, values)
 
         val read = store.lastValues().first()

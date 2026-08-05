@@ -15,11 +15,11 @@ data class Catalogue(private val byCriterion: Map<Criterion, List<CriterionValue
     operator fun get(criterion: Criterion): List<CriterionValue> = byCriterion[criterion].orEmpty()
 
     /**
-     * Stored selections read back as the criteria this catalogue asks about today. An id it no longer
+     * Stored answers read back as the criteria this catalogue asks about today. An id it no longer
      * offers is dropped rather than carried along blind: a segment cannot be described by a question
      * that is no longer put.
      */
-    fun resolve(stored: StoredSelections): Selections = Selections(
+    fun resolve(stored: StoredAnswers): Answers = Answers(
         byCriterion.keys.mapNotNull { criterion -> stored[criterion.id]?.let { criterion to it } }.toMap(),
     )
 }

@@ -5,11 +5,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.*
@@ -92,7 +88,7 @@ class CriteriaViewModelTest {
         assertEquals((startedAt + stretch).toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
         assertEquals(BoundaryKind.EXACT, stored.endKind)
         assertEquals(
-            Selections(mapOf(users to setOf(cars))),
+            Answers(mapOf(users to setOf(cars))),
             stored.values,
         )
     }
@@ -167,7 +163,7 @@ class CriteriaViewModelTest {
 
         assertEquals(2, observations.inserted.size)
         assertEquals(
-            Selections(mapOf(width to setOf(w1))),
+            Answers(mapOf(width to setOf(w1))),
             observations.inserted.last().values,
         )
     }
@@ -182,13 +178,13 @@ class CriteriaViewModelTest {
 
         // Tapping what is already there says "yes, this one too" — it must not toggle CARS off.
         val ready = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf(cars), ready.selections[users])
+        assertEquals(setOf(cars), ready.answers[users])
         assertEquals(listOf(users), ready.describing)
 
         // Approved now, so a second tap is an ordinary one and does toggle.
         vm.onTap(users, cars)
         testScheduler.advanceUntilIdle()
-        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).selections[users])
+        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).answers[users])
     }
 
     @Test
@@ -200,19 +196,19 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         val ready = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf(cars), ready.selections[users])
+        assertEquals(setOf(cars), ready.answers[users])
         assertEquals(listOf(users), ready.describing)
         assertEquals(emptyList(), ready.carriedOver)
     }
 
     @Test
-    fun selectionsCarryOverIntoTheSegmentThatContinuesFromTheSameBoundary() = runTest {
+    fun answersCarryOverIntoTheSegmentThatContinuesFromTheSameBoundary() = runTest {
         val vm = riding()
 
         aSegmentThenTheNext(vm)
 
         val state = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf(cars), state.selections[users])
+        assertEquals(setOf(cars), state.answers[users])
         assertEquals(SaveState.Idle, state.saveState)
         // Carried over, but no longer approved: the previous segment's answer is only a suggestion now.
         assertEquals(emptySet(), state.approved)
@@ -234,7 +230,7 @@ class CriteriaViewModelTest {
         val state = vm.state.value as CriteriaUiState.Ready
         assertEquals(Segment.Idle, state.segment)
         assertEquals(emptyList(), state.carriedOver)
-        assertEquals(emptySet(), state.selections[users])
+        assertEquals(emptySet(), state.answers[users])
     }
 
     @Test
@@ -271,7 +267,7 @@ class CriteriaViewModelTest {
         aSubmittedSegmentThenAFreshOne(vm)
 
         assertEquals(
-            Selections(mapOf(width to setOf(w1), users to setOf(cars))),
+            Answers(mapOf(width to setOf(w1), users to setOf(cars))),
             (vm.state.value as CriteriaUiState.Ready).copyable,
         )
 
@@ -280,8 +276,8 @@ class CriteriaViewModelTest {
 
         // Copied in as suggestions, exactly where carried-over values land: up for review, not stored.
         val ready = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf(cars), ready.selections[users])
-        assertEquals(setOf(w1), ready.selections[width])
+        assertEquals(setOf(cars), ready.answers[users])
+        assertEquals(setOf(w1), ready.answers[width])
         assertEquals(emptySet(), ready.approved)
         assertEquals(listOf(width, users), ready.carriedOver)
         // With something filled in there is nothing fresh left to fill in, so the offer is gone.
@@ -302,7 +298,7 @@ class CriteriaViewModelTest {
             startKind = BoundaryKind.EXACT,
             endedAt = startedAt + stretch,
             endKind = BoundaryKind.EXACT,
-            values = Selections(mapOf(retired to setOf(CriterionValue("GONE")))),
+            values = Answers(mapOf(retired to setOf(CriterionValue("GONE")))),
         )
 
         val vm = riding()
@@ -325,7 +321,7 @@ class CriteriaViewModelTest {
         // And the action itself holds to that, whatever put it in front of the rider.
         vm.copyPrevious()
         testScheduler.advanceUntilIdle()
-        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).selections[users])
+        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).answers[users])
     }
 
     @Test
@@ -342,7 +338,7 @@ class CriteriaViewModelTest {
 
         assertEquals(2, observations.inserted.size)
         assertEquals(
-            Selections(mapOf(users to setOf(cars))),
+            Answers(mapOf(users to setOf(cars))),
             observations.inserted.last().values,
         )
     }
@@ -487,7 +483,7 @@ class CriteriaViewModelTest {
 
         assertEquals(2, observations.inserted.size)
         assertEquals(
-            Selections(mapOf(users to setOf(cars))),
+            Answers(mapOf(users to setOf(cars))),
             observations.inserted.last().values,
         )
         assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
@@ -510,7 +506,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(
-            Selections(mapOf(width to setOf(w2))),
+            Answers(mapOf(width to setOf(w2))),
             observations.inserted.last().values,
         )
     }
@@ -574,8 +570,8 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         val ready = vm.state.value as CriteriaUiState.Ready
-        assertEquals(emptySet(), ready.selections[users])
-        assertEquals(setOf(w2), ready.selections[width])
+        assertEquals(emptySet(), ready.answers[users])
+        assertEquals(setOf(w2), ready.answers[width])
         assertEquals(emptyList(), ready.carriedOver)
         // Still recording; only what described the last stretch is gone.
         assertEquals(Segment.Open(startedAt + stretch, BoundaryKind.EXACT), ready.segment)
@@ -598,7 +594,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(
-            Selections(mapOf(width to setOf(w1), users to setOf(cars))),
+            Answers(mapOf(width to setOf(w1), users to setOf(cars))),
             observations.inserted.last().values,
         )
     }
@@ -630,7 +626,7 @@ class CriteriaViewModelTest {
 
         // Back to carried over and waiting for a nod, exactly as before the clear.
         val ready = vm.state.value as CriteriaUiState.Ready
-        assertEquals(setOf(cars), ready.selections[users])
+        assertEquals(setOf(cars), ready.answers[users])
         assertEquals(listOf(users), ready.carriedOver)
     }
 
@@ -649,7 +645,7 @@ class CriteriaViewModelTest {
 
         // The stretch just ridden is stored as it was described, ending where the value was picked.
         assertEquals(
-            Selections(mapOf(width to setOf(w1), users to setOf(cars))),
+            Answers(mapOf(width to setOf(w1), users to setOf(cars))),
             stored.values,
         )
         assertEquals(pickedAt.toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
@@ -658,8 +654,8 @@ class CriteriaViewModelTest {
         // stood by, so it can be ended without being asked about any of it.
         val ready = vm.state.value as CriteriaUiState.Ready
         assertEquals(Segment.Open(pickedAt, BoundaryKind.EXACT), ready.segment)
-        assertEquals(setOf(w2), ready.selections[width])
-        assertEquals(setOf(cars), ready.selections[users])
+        assertEquals(setOf(w2), ready.answers[width])
+        assertEquals(setOf(cars), ready.answers[users])
         assertEquals(emptyList(), ready.carriedOver)
         assertEquals(listOf(width, users), ready.describing)
     }
@@ -678,7 +674,7 @@ class CriteriaViewModelTest {
         // rather than dropped — and the rider is asked nothing on the way out.
         assertEquals(2, observations.inserted.size)
         assertEquals(
-            Selections(mapOf(users to setOf(cars))),
+            Answers(mapOf(users to setOf(cars))),
             observations.inserted.last().values,
         )
         assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
@@ -714,7 +710,7 @@ class CriteriaViewModelTest {
 
         val ready = vm.state.value as CriteriaUiState.Ready
         assertEquals(Segment.Idle, ready.segment)
-        assertEquals(emptySet(), ready.selections[users])
+        assertEquals(emptySet(), ready.answers[users])
         assertNull(ready.pendingEnd)
     }
 
@@ -770,7 +766,7 @@ class CriteriaViewModelTest {
     }
 
     /** Rides one segment with [users] = CARS and leaves the next one open, inheriting it unapproved. */
-    private suspend fun TestScope.aSegmentThenTheNext(vm: CriteriaViewModel) {
+    private fun TestScope.aSegmentThenTheNext(vm: CriteriaViewModel) {
         vm.onTap(users, cars)
         vm.start(BoundaryKind.EXACT)
         clock += stretch
@@ -916,7 +912,7 @@ class CriteriaViewModelTest {
      * Stores one segment describing both criteria, ends the survey, and opens a fresh segment — one
      * with nothing carried over, which is where copying the previous one is offered.
      */
-    private suspend fun TestScope.aSubmittedSegmentThenAFreshOne(vm: CriteriaViewModel) {
+    private fun TestScope.aSubmittedSegmentThenAFreshOne(vm: CriteriaViewModel) {
         vm.onTap(width, w1)
         vm.onTap(users, cars)
         vm.start(BoundaryKind.EXACT)
@@ -928,7 +924,7 @@ class CriteriaViewModelTest {
     }
 
     /** Rides one segment with both criteria filled, so both carry over into the next one. */
-    private suspend fun TestScope.bothCarriedOverIntoTheNextSegment(vm: CriteriaViewModel) {
+    private fun TestScope.bothCarriedOverIntoTheNextSegment(vm: CriteriaViewModel) {
         vm.onTap(width, w1)
         vm.onTap(users, cars)
         vm.start(BoundaryKind.EXACT)

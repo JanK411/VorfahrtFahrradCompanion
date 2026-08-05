@@ -1,10 +1,10 @@
 package nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment
 
 import kotlinx.coroutines.flow.*
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Answers
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredSelections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredAnswers
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
 import kotlin.time.Clock
@@ -30,7 +30,7 @@ class SegmentRecorder(
     private var replaced: Draft? = null
 
     /** What the last segment stored was described with — what [preselect] fills a fresh one in from. */
-    val lastSubmitted: Flow<StoredSelections?> = store.lastValues()
+    val lastSubmitted: Flow<StoredAnswers?> = store.lastValues()
 
     /** The clock this recorder stamps boundaries with, for a caller that has to mark one early. */
     val now: Instant get() = clock.now()
@@ -41,9 +41,9 @@ class SegmentRecorder(
      * selects, and either way the criterion counts as approved from then on — so a second tap does toggle.
      */
     fun tap(criterion: Criterion, value: CriterionValue) = _draft.update {
-        val standingBy = criterion !in it.approved && value in it.selections[criterion]
+        val standingBy = criterion !in it.approved && value in it.answers[criterion]
         it.copy(
-            selections = if (standingBy) it.selections else it.selections.select(criterion, value),
+            answers = if (standingBy) it.answers else it.answers.select(criterion, value),
             approved = it.approved + criterion,
         )
     }
@@ -54,10 +54,10 @@ class SegmentRecorder(
      * segment with nothing filled in yet: it replaces whatever is there, and drops any undo left
      * behind, which describes a draft that no longer exists.
      */
-    fun preselect(values: Selections) {
+    fun preselect(values: Answers) {
         replaced = null
         _draft.update {
-            if (it.segment !is Segment.Open) it else it.copy(selections = values, approved = emptySet())
+            if (it.segment !is Segment.Open) it else it.copy(answers = values, approved = emptySet())
         }
     }
 
@@ -74,7 +74,7 @@ class SegmentRecorder(
      */
     fun resolveCarriedOver(approve: Set<Criterion>, drop: Set<Criterion> = emptySet()) = _draft.update {
         val approved = it.approved + approve - drop
-        it.copy(selections = it.selections.retain(approved), approved = approved)
+        it.copy(answers = it.answers.retain(approved), approved = approved)
     }
 
     /**
@@ -84,7 +84,7 @@ class SegmentRecorder(
      */
     fun clearCarriedOver() {
         replaced = _draft.value
-        _draft.update { it.copy(selections = it.selections.retain(it.approved)) }
+        _draft.update { it.copy(answers = it.answers.retain(it.approved)) }
     }
 
     /**
@@ -94,7 +94,7 @@ class SegmentRecorder(
      */
     fun approveAll() {
         replaced = _draft.value
-        _draft.update { it.copy(approved = it.approved + it.selections.filled) }
+        _draft.update { it.copy(approved = it.approved + it.answers.filled) }
     }
 
     /**
@@ -103,15 +103,15 @@ class SegmentRecorder(
      * one thing is different now, the rest still holds.
      */
     fun carryOnWith(criterion: Criterion, value: CriterionValue) = _draft.update {
-        val selections = it.selections.pick(criterion, value)
-        it.copy(selections = selections, approved = it.approved + selections.filled)
+        val answers = it.answers.carryOnWith(criterion, value)
+        it.copy(answers = answers, approved = it.approved + answers.filled)
     }
 
     /** Puts back what the last of those two replaced. Does nothing if there is nothing to take back. */
     fun undo() {
         val previous = replaced ?: return
         replaced = null
-        _draft.update { it.copy(selections = previous.selections, approved = previous.approved) }
+        _draft.update { it.copy(answers = previous.answers, approved = previous.approved) }
     }
 
     /**
@@ -141,7 +141,7 @@ class SegmentRecorder(
      * opens the next segment either way.
      *
      * With [action] = [SegmentAction.START_NEXT] the next segment opens on the same instant and inherits
-     * [kind] — it is the same boundary, so a late end means a late start too — and keeps the selections,
+     * [kind] — it is the same boundary, so a late end means a late start too — and keeps the answers,
      * unapproved again, because consecutive stretches of path usually differ in only one criterion.
      * [SegmentAction.STOP] instead ends the survey: it leaves nothing behind for whatever the rider
      * describes next.
@@ -157,7 +157,7 @@ class SegmentRecorder(
         val draft = _draft.value
         val open = draft.segment as? Segment.Open ?: return null
         val rideId = rides.openId ?: return null
-        val values = draft.selections.retain(draft.approved).compact()
+        val values = draft.answers.retain(draft.approved).compact()
 
         // A boundary moved back for a missed moment must not land before the segment began.
         val boundary = maxOf(endedAt, open.startedAt)

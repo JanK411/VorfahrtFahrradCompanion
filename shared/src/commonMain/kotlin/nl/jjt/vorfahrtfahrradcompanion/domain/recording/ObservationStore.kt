@@ -1,14 +1,14 @@
 package nl.jjt.vorfahrtfahrradcompanion.domain.recording
 
 import kotlinx.coroutines.flow.Flow
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredSelections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Answers
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredAnswers
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import kotlin.time.Instant
 
 /**
  * Where recorded segments are kept. The recorder hands over what the rider described and is told
- * nothing about rows, columns or encodings — a segment is a set of selections between two boundaries,
+ * nothing about rows, columns or encodings — a segment is a set of answers between two boundaries,
  * and how that becomes storage is not its business.
  */
 interface ObservationStore {
@@ -19,7 +19,7 @@ interface ObservationStore {
         startKind: BoundaryKind,
         endedAt: Instant,
         endKind: BoundaryKind,
-        values: Selections,
+        values: Answers,
     )
 
     /**
@@ -27,7 +27,7 @@ interface ObservationStore {
      * By id: what came back out of storage predates the catalogue now in hand, so it takes a
      * [nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue] to say which criteria those are.
      */
-    fun lastValues(): Flow<StoredSelections?>
+    fun lastValues(): Flow<StoredAnswers?>
 
     /** How many segments a ride holds — what its closing summary tells the rider it amounts to. */
     suspend fun countForRide(rideId: Long): Int

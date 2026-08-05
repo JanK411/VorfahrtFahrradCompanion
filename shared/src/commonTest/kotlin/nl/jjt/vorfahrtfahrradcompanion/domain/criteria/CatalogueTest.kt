@@ -1,7 +1,7 @@
 package nl.jjt.vorfahrtfahrradcompanion.domain.criteria
 
-import kotlin.test.assertEquals
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 private val width = Criterion("WIDTH", CriterionKind.SINGLE)
 private val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI)
@@ -24,21 +24,21 @@ class CatalogueTest {
     }
 
     @Test
-    fun storedSelectionsComeBackAsTheCriteriaTheyWereStoredUnder() {
-        val selections = Selections(mapOf(width to setOf(w1), users to setOf(cars)))
+    fun storedAnswersComeBackAsTheCriteriaTheyWereStoredUnder() {
+        val answers = Answers(mapOf(width to setOf(w1), users to setOf(cars)))
 
-        assertEquals(selections, catalogue.resolve(selections.stored()))
+        assertEquals(answers, catalogue.resolve(answers.stored()))
     }
 
     /** The catalogue is fetched fresh; a question no longer put cannot describe the next segment. */
     @Test
     fun aStoredCriterionTheCatalogueNoLongerOffersIsDropped() {
         val retired = Criterion("RETIRED", CriterionKind.SINGLE)
-        val stored = Selections(
+        val stored = Answers(
             mapOf(width to setOf(w1), retired to setOf(CriterionValue("GONE"))),
         ).stored()
 
-        assertEquals(Selections(mapOf(width to setOf(w1))), catalogue.resolve(stored))
+        assertEquals(Answers(mapOf(width to setOf(w1))), catalogue.resolve(stored))
     }
 
     /**
@@ -49,8 +49,8 @@ class CatalogueTest {
     @Test
     fun aStoredCriterionWhoseKindChangedComesBackAsTheCatalogueHasItNow() {
         val whenItWasPickOne = Criterion("ALLOWED_USERS", CriterionKind.SINGLE)
-        val stored = Selections(mapOf(whenItWasPickOne to setOf(cars))).stored()
+        val stored = Answers(mapOf(whenItWasPickOne to setOf(cars))).stored()
 
-        assertEquals(Selections(mapOf(users to setOf(cars))), catalogue.resolve(stored))
+        assertEquals(Answers(mapOf(users to setOf(cars))), catalogue.resolve(stored))
     }
 }

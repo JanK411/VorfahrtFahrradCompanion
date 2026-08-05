@@ -2,51 +2,25 @@ package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.Icons
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Catalogue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionKind
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Selections
+import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.*
 
 /** The one precise target on a row; everything else about it opens the criterion up. */
 private val APPROVE_BUTTON_SIZE = 56.dp
@@ -68,7 +42,7 @@ private val APPROVE_BUTTON_SIZE = 56.dp
 internal fun EndSegmentDialog(
     carriedOver: List<Criterion>,
     catalogue: Catalogue,
-    selections: Selections,
+    answers: Answers,
     approved: Set<Criterion>,
     onEdit: (Criterion, CriterionValue) -> Unit,
     onConfirm: (approve: Set<Criterion>) -> Unit,
@@ -89,7 +63,7 @@ internal fun EndSegmentDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     "These still describe the last stretch. Approve the ones that describe this one " +
-                        "too — or tap an answer to change what it says.",
+                            "too — or tap an answer to change what it says.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
 
@@ -102,7 +76,7 @@ internal fun EndSegmentDialog(
                             EditingRow(
                                 criterion = criterion,
                                 values = catalogue[criterion],
-                                selected = selections[criterion],
+                                selected = answers[criterion],
                                 state = if (criterion in approved) CriterionState.APPROVED
                                 else CriterionState.CARRIED_OVER,
                                 onTapValue = { value ->
@@ -118,7 +92,7 @@ internal fun EndSegmentDialog(
                         } else {
                             CarriedOverRow(
                                 criterion = criterion,
-                                selected = selections[criterion],
+                                selected = answers[criterion],
                                 approve = criterion in keep,
                                 onEdit = {
                                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
