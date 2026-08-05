@@ -5,6 +5,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Answers
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Criterion
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredAnswers
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Observation
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
 import kotlin.time.Clock
@@ -164,12 +165,14 @@ class SegmentRecorder(
 
         if (!values.isEmpty()) {
             store.insert(
-                rideId = rideId,
-                startedAt = open.startedAt,
-                startKind = open.startKind,
-                endedAt = boundary,
-                endKind = kind,
-                values = values,
+                Observation(
+                    rideId = rideId,
+                    startedAt = open.startedAt,
+                    startKind = open.startKind,
+                    endedAt = boundary,
+                    endKind = kind,
+                    answers = values,
+                ),
             )
         }
 

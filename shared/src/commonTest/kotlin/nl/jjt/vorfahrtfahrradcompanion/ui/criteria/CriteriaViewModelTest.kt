@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.*
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Observation
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.Ride
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RideRecorder
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.*
@@ -89,7 +90,7 @@ class CriteriaViewModelTest {
         assertEquals(BoundaryKind.EXACT, stored.endKind)
         assertEquals(
             Answers(mapOf(users to setOf(cars))),
-            stored.values,
+            stored.answers,
         )
     }
 
@@ -164,7 +165,7 @@ class CriteriaViewModelTest {
         assertEquals(2, observations.inserted.size)
         assertEquals(
             Answers(mapOf(width to setOf(w1))),
-            observations.inserted.last().values,
+            observations.inserted.last().answers,
         )
     }
 
@@ -293,12 +294,14 @@ class CriteriaViewModelTest {
     fun whatWasStoredUnderACriterionTheCatalogueDroppedIsNotOfferedForCopying() = runTest {
         val retired = Criterion("RETIRED", CriterionKind.SINGLE)
         observations.insert(
-            rideId = 1,
-            startedAt = startedAt,
-            startKind = BoundaryKind.EXACT,
-            endedAt = startedAt + stretch,
-            endKind = BoundaryKind.EXACT,
-            values = Answers(mapOf(retired to setOf(CriterionValue("GONE")))),
+            Observation(
+                rideId = 1,
+                startedAt = startedAt,
+                startKind = BoundaryKind.EXACT,
+                endedAt = startedAt + stretch,
+                endKind = BoundaryKind.EXACT,
+                answers = Answers(mapOf(retired to setOf(CriterionValue("GONE")))),
+            ),
         )
 
         val vm = riding()
@@ -339,7 +342,7 @@ class CriteriaViewModelTest {
         assertEquals(2, observations.inserted.size)
         assertEquals(
             Answers(mapOf(users to setOf(cars))),
-            observations.inserted.last().values,
+            observations.inserted.last().answers,
         )
     }
 
@@ -484,7 +487,7 @@ class CriteriaViewModelTest {
         assertEquals(2, observations.inserted.size)
         assertEquals(
             Answers(mapOf(users to setOf(cars))),
-            observations.inserted.last().values,
+            observations.inserted.last().answers,
         )
         assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
     }
@@ -507,7 +510,7 @@ class CriteriaViewModelTest {
 
         assertEquals(
             Answers(mapOf(width to setOf(w2))),
-            observations.inserted.last().values,
+            observations.inserted.last().answers,
         )
     }
 
@@ -595,7 +598,7 @@ class CriteriaViewModelTest {
 
         assertEquals(
             Answers(mapOf(width to setOf(w1), users to setOf(cars))),
-            observations.inserted.last().values,
+            observations.inserted.last().answers,
         )
     }
 
@@ -646,7 +649,7 @@ class CriteriaViewModelTest {
         // The stretch just ridden is stored as it was described, ending where the value was picked.
         assertEquals(
             Answers(mapOf(width to setOf(w1), users to setOf(cars))),
-            stored.values,
+            stored.answers,
         )
         assertEquals(pickedAt.toEpochMilliseconds(), stored.endedAt.toEpochMilliseconds())
 
@@ -675,7 +678,7 @@ class CriteriaViewModelTest {
         assertEquals(2, observations.inserted.size)
         assertEquals(
             Answers(mapOf(users to setOf(cars))),
-            observations.inserted.last().values,
+            observations.inserted.last().answers,
         )
         assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
     }

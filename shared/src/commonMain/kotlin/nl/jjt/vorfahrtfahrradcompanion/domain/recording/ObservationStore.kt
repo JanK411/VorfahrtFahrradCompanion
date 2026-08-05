@@ -1,10 +1,7 @@
 package nl.jjt.vorfahrtfahrradcompanion.domain.recording
 
 import kotlinx.coroutines.flow.Flow
-import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.Answers
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredAnswers
-import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
-import kotlin.time.Instant
 
 /**
  * Where recorded segments are kept. The recorder hands over what the rider described and is told
@@ -13,14 +10,7 @@ import kotlin.time.Instant
  */
 interface ObservationStore {
 
-    suspend fun insert(
-        rideId: Long,
-        startedAt: Instant,
-        startKind: BoundaryKind,
-        endedAt: Instant,
-        endKind: BoundaryKind,
-        values: Answers,
-    )
+    suspend fun insert(observation: Observation)
 
     /**
      * What the segment stored last was described with, or null while nothing has been stored yet.

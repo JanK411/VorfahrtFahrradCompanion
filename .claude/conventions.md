@@ -23,9 +23,10 @@ db/observation            ObservationEntity, ObservationDao, RoomObservationStor
 db/patchnotes             PatchNotesStateEntity, PatchNotesStateDao, PatchNotesStateStore
 db/ride                   RideEntity, RideDao, RoomRideStore
 db/settings               SettingsEntity, SettingsDao, SettingsStore
-domain/criteria           Criterion, CriterionKind, Catalogue, Selections
+domain/criteria           Criterion, CriterionKind, CriterionValue, Catalogue, Answers, StoredAnswers
 domain/patchnotes         PatchNote, the patch note list, splitPatchNotes
-domain/recording          ObservationStore — the port both halves store through, and nothing else
+domain/recording          Observation and ObservationStore — what both halves store, and the port
+                          they store it through, and nothing else
 domain/recording/ride     Ride, RideSummary, RideRecorder, RideStore
 domain/recording/segment  Segment, Draft, SegmentOutcome, SegmentAction, SegmentRecorder,
                           BoundaryKind, EndTiming
