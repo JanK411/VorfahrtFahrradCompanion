@@ -30,7 +30,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 )
 data class ObservationEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val rideId: Long,
+    val rideId: String,
     val startedAtEpochMs: Long,
     val startKind: BoundaryKind,
     val endedAtEpochMs: Long,

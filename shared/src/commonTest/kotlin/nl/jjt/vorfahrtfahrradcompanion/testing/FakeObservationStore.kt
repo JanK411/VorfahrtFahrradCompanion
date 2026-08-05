@@ -19,7 +19,7 @@ class FakeObservationStore : ObservationStore {
         last.value = observation.answers.stored()
     }
 
-    override suspend fun countForRide(rideId: Long) = inserted.count { it.rideId == rideId }
+    override suspend fun countForRide(rideId: String) = inserted.count { it.rideId == rideId }
 
     override fun lastValues(): Flow<StoredAnswers?> = last
 }

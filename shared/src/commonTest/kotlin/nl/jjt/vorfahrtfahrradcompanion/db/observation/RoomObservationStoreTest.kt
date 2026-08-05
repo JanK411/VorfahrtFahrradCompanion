@@ -17,7 +17,7 @@ private val users = Criterion("ALLOWED_USERS", CriterionKind.MULTI)
 private val values = Answers(mapOf(users to setOf(CriterionValue("CARS"))))
 
 private fun observation(
-    rideId: Long,
+    rideId: String,
     startKind: BoundaryKind = BoundaryKind.EXACT,
     endKind: BoundaryKind = BoundaryKind.EXACT,
 ) = Observation(rideId, startedAt, startKind, endedAt, endKind, values)
@@ -29,10 +29,10 @@ class RoomObservationStoreTest {
 
     @Test
     fun aSegmentBecomesARowWithBothBoundariesInEpochMillis() = runTest {
-        store.insert(observation(rideId = 7, startKind = BoundaryKind.EXACT, endKind = BoundaryKind.EARLIER))
+        store.insert(observation(rideId = "ride-7", startKind = BoundaryKind.EXACT, endKind = BoundaryKind.EARLIER))
 
         val row = dao.rows.single()
-        assertEquals(7, row.rideId)
+        assertEquals("ride-7", row.rideId)
         assertEquals(startedAt.toEpochMilliseconds(), row.startedAtEpochMs)
         assertEquals(BoundaryKind.EXACT, row.startKind)
         assertEquals(endedAt.toEpochMilliseconds(), row.endedAtEpochMs)
@@ -45,7 +45,7 @@ class RoomObservationStoreTest {
      */
     @Test
     fun theAnswersAreStoredAsJsonKeyedByCriterionId() = runTest {
-        store.insert(observation(rideId = 1))
+        store.insert(observation(rideId = "ride-1"))
 
         assertEquals("""{"ALLOWED_USERS":["CARS"]}""", dao.rows.single().valuesJson)
     }
@@ -56,7 +56,7 @@ class RoomObservationStoreTest {
      */
     @Test
     fun theLastStoredAnswersAreReadBackWhole() = runTest {
-        store.insert(observation(rideId = 1))
+        store.insert(observation(rideId = "ride-1"))
 
         val read = store.lastValues().first()
 
@@ -71,12 +71,12 @@ class RoomObservationStoreTest {
 
     @Test
     fun segmentsAreCountedPerRide() = runTest {
-        store.insert(observation(rideId = 1))
-        store.insert(observation(rideId = 2))
-        store.insert(observation(rideId = 1))
+        store.insert(observation(rideId = "ride-1"))
+        store.insert(observation(rideId = "ride-2"))
+        store.insert(observation(rideId = "ride-1"))
 
-        assertEquals(2, store.countForRide(1))
-        assertEquals(1, store.countForRide(2))
-        assertEquals(0, store.countForRide(3))
+        assertEquals(2, store.countForRide("ride-1"))
+        assertEquals(1, store.countForRide("ride-2"))
+        assertEquals(0, store.countForRide("ride-3"))
     }
 }

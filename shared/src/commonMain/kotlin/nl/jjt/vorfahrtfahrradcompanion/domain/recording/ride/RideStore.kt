@@ -9,9 +9,9 @@ import kotlin.time.Instant
 interface RideStore {
 
     /** Opens a ride and returns the id the segments recorded during it belong to. */
-    suspend fun open(startedAt: Instant): Long
+    suspend fun open(startedAt: Instant): String
 
-    suspend fun close(id: Long, endedAt: Instant, name: String?)
+    suspend fun close(id: String, endedAt: Instant, name: String?)
 
-    suspend fun delete(id: Long)
+    suspend fun delete(id: String)
 }

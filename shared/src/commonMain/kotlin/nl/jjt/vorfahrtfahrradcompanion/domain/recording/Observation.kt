@@ -13,7 +13,7 @@ import kotlin.time.Instant
  * segment makes it a suggestion again, not part of this observation. See `SegmentRecorder.end`.
  */
 data class Observation(
-    val rideId: Long,
+    val rideId: String,
     val startedAt: Instant,
     val startKind: BoundaryKind,
     val endedAt: Instant,

@@ -295,7 +295,7 @@ class CriteriaViewModelTest {
         val retired = Criterion("RETIRED", CriterionKind.SINGLE)
         observations.insert(
             Observation(
-                rideId = 1,
+                rideId = "ride-1",
                 startedAt = startedAt,
                 startKind = BoundaryKind.EXACT,
                 endedAt = startedAt + stretch,

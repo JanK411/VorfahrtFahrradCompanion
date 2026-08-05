@@ -7,11 +7,11 @@ import androidx.room.Query
 @Dao
 interface RideDao {
     @Insert
-    suspend fun insert(entity: RideEntity): Long
+    suspend fun insert(entity: RideEntity)
 
     @Query("UPDATE rides SET endedAtEpochMs = :endedAtEpochMs, name = :name WHERE id = :id")
-    suspend fun close(id: Long, endedAtEpochMs: Long, name: String?)
+    suspend fun close(id: String, endedAtEpochMs: Long, name: String?)
 
     @Query("DELETE FROM rides WHERE id = :id")
-    suspend fun delete(id: Long)
+    suspend fun delete(id: String)
 }

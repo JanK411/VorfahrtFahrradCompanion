@@ -27,5 +27,5 @@ class RoomObservationStore(private val dao: ObservationDao) : ObservationStore {
     override fun lastValues(): Flow<StoredAnswers?> =
         dao.lastValuesJson().map { json -> json?.let { Json.decodeFromString<StoredAnswers>(it) } }
 
-    override suspend fun countForRide(rideId: Long): Int = dao.countForRide(rideId)
+    override suspend fun countForRide(rideId: String): Int = dao.countForRide(rideId)
 }

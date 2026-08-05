@@ -12,7 +12,7 @@ interface ObservationDao {
 
     /** How many segments a ride holds — what its closing summary tells the rider it amounts to. */
     @Query("SELECT COUNT(*) FROM observations WHERE rideId = :rideId")
-    suspend fun countForRide(rideId: Long): Int
+    suspend fun countForRide(rideId: String): Int
 
     /**
      * The values of the segment stored last, or null while nothing has been stored — what a fresh

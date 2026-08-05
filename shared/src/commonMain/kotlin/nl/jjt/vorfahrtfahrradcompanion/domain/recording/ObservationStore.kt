@@ -20,5 +20,5 @@ interface ObservationStore {
     fun lastValues(): Flow<StoredAnswers?>
 
     /** How many segments a ride holds — what its closing summary tells the rider it amounts to. */
-    suspend fun countForRide(rideId: Long): Int
+    suspend fun countForRide(rideId: String): Int
 }

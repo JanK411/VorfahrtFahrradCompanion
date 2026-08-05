@@ -29,7 +29,7 @@ class RideRecorder(
     val now: Instant get() = clock.now()
 
     /** The ride a segment ending now would belong to, or null while none is running. */
-    val openId: Long? get() = (_ride.value as? Ride.Open)?.id
+    val openId: String? get() = (_ride.value as? Ride.Open)?.id
 
     /**
      * Opens a ride. Ignored while one is already running.

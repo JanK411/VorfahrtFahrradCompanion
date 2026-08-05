@@ -89,3 +89,31 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         )
     }
 }
+
+/**
+ * v6 → v7: a ride is identified by a UUID minted on the device instead of an autoincrement row number,
+ * so a server collecting rides from several devices never sees the same id twice. Destructive, like the
+ * two reshapes before it: a row number cannot be turned into a UUID, and no ride recorded so far is
+ * worth carrying over.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("DROP TABLE IF EXISTS `observations`")
+        connection.execSQL("DROP TABLE IF EXISTS `rides`")
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `rides` " +
+                    "(`id` TEXT NOT NULL, `startedAtEpochMs` INTEGER NOT NULL, " +
+                    "`endedAtEpochMs` INTEGER, `name` TEXT, PRIMARY KEY(`id`))",
+        )
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `observations` " +
+                    "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `rideId` TEXT NOT NULL, " +
+                    "`startedAtEpochMs` INTEGER NOT NULL, `startKind` TEXT NOT NULL, " +
+                    "`endedAtEpochMs` INTEGER NOT NULL, `endKind` TEXT NOT NULL, `valuesJson` TEXT NOT NULL, " +
+                    "FOREIGN KEY(`rideId`) REFERENCES `rides`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_observations_rideId` ON `observations` (`rideId`)",
+        )
+    }
+}
