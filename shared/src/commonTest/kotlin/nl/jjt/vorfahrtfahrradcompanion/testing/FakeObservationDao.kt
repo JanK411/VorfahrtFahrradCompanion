@@ -18,4 +18,6 @@ class FakeObservationDao : ObservationDao {
     override suspend fun countForRide(rideId: String) = rows.count { it.rideId == rideId }
 
     override fun lastValuesJson(): Flow<String?> = last
+
+    override suspend fun forRide(rideId: String) = rows.filter { it.rideId == rideId }
 }

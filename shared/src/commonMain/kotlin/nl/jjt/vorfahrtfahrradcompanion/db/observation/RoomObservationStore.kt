@@ -6,6 +6,8 @@ import kotlinx.serialization.json.Json
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredAnswers
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Observation
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.StoredObservation
+import kotlin.time.Instant
 
 /**
  * Keeps segments in the observations table. The answers become a JSON column here rather than in
@@ -28,4 +30,15 @@ class RoomObservationStore(private val dao: ObservationDao) : ObservationStore {
         dao.lastValuesJson().map { json -> json?.let { Json.decodeFromString<StoredAnswers>(it) } }
 
     override suspend fun countForRide(rideId: String): Int = dao.countForRide(rideId)
+
+    override suspend fun forRide(rideId: String): List<StoredObservation> =
+        dao.forRide(rideId).map { row ->
+            StoredObservation(
+                startedAt = Instant.fromEpochMilliseconds(row.startedAtEpochMs),
+                startKind = row.startKind,
+                endedAt = Instant.fromEpochMilliseconds(row.endedAtEpochMs),
+                endKind = row.endKind,
+                answers = Json.decodeFromString(row.valuesJson),
+            )
+        }
 }

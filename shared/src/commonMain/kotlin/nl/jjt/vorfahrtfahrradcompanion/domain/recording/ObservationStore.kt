@@ -21,4 +21,11 @@ interface ObservationStore {
 
     /** How many segments a ride holds — what its closing summary tells the rider it amounts to. */
     suspend fun countForRide(rideId: String): Int
+
+    /**
+     * Everything recorded during [rideId], in the order it was recorded. Answers come back unresolved,
+     * because what is sent to a server has to be what the rider actually recorded rather than what
+     * today's catalogue still asks about.
+     */
+    suspend fun forRide(rideId: String): List<StoredObservation>
 }

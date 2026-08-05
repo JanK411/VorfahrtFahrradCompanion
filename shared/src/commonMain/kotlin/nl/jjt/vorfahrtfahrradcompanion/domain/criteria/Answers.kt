@@ -73,5 +73,11 @@ value class StoredAnswers(private val byCriterionId: Map<String, Set<CriterionVa
 
     operator fun get(criterionId: String): Set<CriterionValue>? = byCriterionId[criterionId]
 
+    /**
+     * All of them, for whatever has to walk the answers rather than ask after one — the wire format
+     * being the reason this exists. Still id-keyed: nothing here knows what kind of question each was.
+     */
+    val byId: Map<String, Set<CriterionValue>> get() = byCriterionId
+
     fun isEmpty(): Boolean = byCriterionId.isEmpty()
 }

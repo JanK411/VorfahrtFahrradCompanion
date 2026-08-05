@@ -21,4 +21,8 @@ interface ObservationDao {
      */
     @Query("SELECT valuesJson FROM observations ORDER BY id DESC LIMIT 1")
     fun lastValuesJson(): Flow<String?>
+
+    /** Everything recorded during one ride, in the order it was recorded — what a send is built from. */
+    @Query("SELECT * FROM observations WHERE rideId = :rideId ORDER BY id")
+    suspend fun forRide(rideId: String): List<ObservationEntity>
 }

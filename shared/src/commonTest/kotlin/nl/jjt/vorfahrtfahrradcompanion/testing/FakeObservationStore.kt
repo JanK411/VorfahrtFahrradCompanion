@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.StoredAnswers
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Observation
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ObservationStore
+import nl.jjt.vorfahrtfahrradcompanion.domain.recording.StoredObservation
 
 /** Keeps stored segments in a list, so a test can say what was written rather than what was called. */
 class FakeObservationStore : ObservationStore {
@@ -20,6 +21,12 @@ class FakeObservationStore : ObservationStore {
     }
 
     override suspend fun countForRide(rideId: String) = inserted.count { it.rideId == rideId }
+
+    override suspend fun forRide(rideId: String): List<StoredObservation> =
+        inserted.filter { it.rideId == rideId }.map {
+            // Through the id-keyed form again: what comes back out never carries the criterion kinds.
+            StoredObservation(it.startedAt, it.startKind, it.endedAt, it.endKind, it.answers.stored())
+        }
 
     override fun lastValues(): Flow<StoredAnswers?> = last
 }
