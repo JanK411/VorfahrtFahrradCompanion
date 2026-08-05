@@ -102,7 +102,7 @@ sealed interface SaveState {
 
 class CriteriaViewModel(
     private val api: CriteriaApi,
-    private val observations: SegmentRecorder,
+    private val segments: SegmentRecorder,
     private val rides: RideRecorder,
 ) : ViewModel() {
 
@@ -131,7 +131,7 @@ class CriteriaViewModel(
 
     /** Held apart from the state, so a reload of the catalogue does not lose it. */
     private val submitted =
-        observations.lastSubmitted.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        segments.lastSubmitted.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         load()
@@ -139,7 +139,7 @@ class CriteriaViewModel(
             submitted.collect { values -> updateReady { copy(submitted = values) } }
         }
         viewModelScope.launch {
-            observations.draft.collect { draft ->
+            segments.draft.collect { draft ->
                 updateReady {
                     copy(answers = draft.answers, approved = draft.approved, segment = draft.segment)
                 }
@@ -154,15 +154,15 @@ class CriteriaViewModel(
     fun retry() = load()
 
     fun onTap(criterion: Criterion, value: CriterionValue) {
-        observations.tap(criterion, value)
+        segments.tap(criterion, value)
         updateReady { copy(saveState = SaveState.Idle) }
 
         // A tap that cleared the last value leaves nothing to move on from, so the rider stays put.
-        if (observations.draft.value.answers[criterion].isNotEmpty()) _advances.tryEmit(criterion)
+        if (segments.draft.value.answers[criterion].isNotEmpty()) _advances.tryEmit(criterion)
     }
 
     /** Stands by [criterion] unchanged — the rider approving a whole criterion instead of a value. */
-    fun onApprove(criterion: Criterion) = observations.approve(criterion)
+    fun onApprove(criterion: Criterion) = segments.approve(criterion)
 
     /**
      * Fills the fresh segment in from the last one submitted. Nothing is approved by it: the copied
@@ -171,17 +171,17 @@ class CriteriaViewModel(
      */
     fun copyPrevious() {
         val values = (_state.value as? CriteriaUiState.Ready)?.copyable ?: return
-        observations.preselect(values)
+        segments.preselect(values)
     }
 
     /** Drops the values carried over but not approved, for a stretch unlike the one before it. */
-    fun clearCarriedOver() = observations.clearCarriedOver()
+    fun clearCarriedOver() = segments.clearCarriedOver()
 
     /** Stands by all of them instead, for the stretch that is exactly like the one before it. */
-    fun approveAll() = observations.approveAll()
+    fun approveAll() = segments.approveAll()
 
     /** Takes back whichever of the two the rider just pressed. */
-    fun undo() = observations.undo()
+    fun undo() = segments.undo()
 
     /** Opens the ride the segments will be recorded into. */
     fun startRide() {
@@ -208,7 +208,7 @@ class CriteriaViewModel(
         viewModelScope.launch { rides.end(summary.endedAt, name) }
     }
 
-    fun start(kind: BoundaryKind) = observations.start(kind)
+    fun start(kind: BoundaryKind) = segments.start(kind)
 
     /**
      * The rider pressing End or Start next. How well the press hit the boundary decides whether the
@@ -218,13 +218,13 @@ class CriteriaViewModel(
      */
     fun end(action: SegmentAction) {
         if (!canEnd()) return
-        updateReady { copy(pendingTiming = TimingRequest(action, observations.now)) }
+        updateReady { copy(pendingTiming = TimingRequest(action, segments.now)) }
     }
 
     /** The same press, with [timing] already answered on the button itself, which skips the question. */
     fun endAs(action: SegmentAction, timing: EndTiming) {
         if (!canEnd()) return
-        finish(TimingRequest(action, observations.now), timing)
+        finish(TimingRequest(action, segments.now), timing)
     }
 
     /** The rider answering how well they hit the boundary, in the question the press raised. */
@@ -240,8 +240,8 @@ class CriteriaViewModel(
     /** Nothing to end while one end is already being answered for, or being stored. */
     private fun canEnd(): Boolean {
         val ready = _state.value as? CriteriaUiState.Ready ?: return false
-        // Asked of the repository rather than the state, which only catches up with it a dispatch later.
-        return observations.draft.value.segment is Segment.Open &&
+        // Asked of the recorder rather than the state, which only catches up with it a dispatch later.
+        return segments.draft.value.segment is Segment.Open &&
                 ready.saveState !is SaveState.InFlight &&
                 ready.pendingTiming == null &&
                 ready.pendingEnd == null
@@ -252,7 +252,7 @@ class CriteriaViewModel(
         // Missed by longer than the grace: there is no telling where the stretch ended, so it is thrown
         // away rather than stored over ground it may well not cover.
         if (timing == EndTiming.TOO_LATE) {
-            if (observations.discardSegment()) _outcomes.tryEmit(SegmentOutcome.TOO_LATE)
+            if (segments.discardSegment()) _outcomes.tryEmit(SegmentOutcome.TOO_LATE)
             return
         }
 
@@ -273,7 +273,7 @@ class CriteriaViewModel(
      */
     fun confirmEnd(approve: Set<Criterion>) {
         val request = (_state.value as? CriteriaUiState.Ready)?.pendingEnd ?: return
-        observations.resolveCarriedOver(approve, request.asked.toSet() - approve)
+        segments.resolveCarriedOver(approve, request.asked.toSet() - approve)
         updateReady { copy(pendingEnd = null) }
         store(request)
     }
@@ -292,16 +292,16 @@ class CriteriaViewModel(
      */
     fun splitSegment(criterion: Criterion, value: CriterionValue) {
         if (!canEnd()) return
-        observations.approveAll()
-        store(EndRequest(BoundaryKind.EXACT, SegmentAction.START_NEXT, observations.now)) {
-            observations.carryOnWith(criterion, value)
+        segments.approveAll()
+        store(EndRequest(BoundaryKind.EXACT, SegmentAction.START_NEXT, segments.now)) {
+            segments.carryOnWith(criterion, value)
         }
     }
 
     /** Throws the open segment away — a stretch not worth recording, or one recorded wrong. */
     fun discardSegment() {
         updateReady { copy(pendingTiming = null, pendingEnd = null) }
-        if (observations.discardSegment()) _outcomes.tryEmit(SegmentOutcome.DISCARDED)
+        if (segments.discardSegment()) _outcomes.tryEmit(SegmentOutcome.DISCARDED)
     }
 
     /** [andThen] runs on the segment the end opened, once the one it closed is safely stored. */
@@ -310,7 +310,7 @@ class CriteriaViewModel(
             updateReady { copy(saveState = SaveState.InFlight) }
 
             try {
-                observations.end(request.kind, request.action, request.at)?.let(_outcomes::tryEmit)
+                segments.end(request.kind, request.action, request.at)?.let(_outcomes::tryEmit)
                 andThen()
                 updateReady { copy(saveState = SaveState.Idle) }
             } catch (e: Exception) {
@@ -323,7 +323,7 @@ class CriteriaViewModel(
         _state.value = CriteriaUiState.Loading
         viewModelScope.launch {
             _state.value = try {
-                val draft = observations.draft.value
+                val draft = segments.draft.value
                 CriteriaUiState.Ready(
                     catalogue = api.catalogue(),
                     answers = draft.answers,
