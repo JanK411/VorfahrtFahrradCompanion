@@ -1,7 +1,10 @@
 package nl.jjt.vorfahrtfahrradcompanion.service.http
 
+import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
+import nl.jjt.vorfahrtfahrradcompanion.domain.settings.Settings
 import nl.jjt.vorfahrtfahrradcompanion.ui.settings.ServerConnectionUiState
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.Test
@@ -35,6 +38,27 @@ class BaseUrlTest {
         assertEquals(
             "http://192.168.178.42:8080",
             ServerConnectionUiState(baseUrl = "192.168.178.42:8080").normalizedBaseUrl,
+        )
+    }
+
+    @Test
+    fun refusesSettingsNobodyFilledIn() {
+        val message = assertFailsWith<IllegalStateException> { SettingsStore.EMPTY.requireConfigured() }.message
+        assertTrue(message!!.contains("Settings"), "message=$message")
+    }
+
+    @Test
+    fun refusesCredentialsWithoutAUser() {
+        assertFailsWith<IllegalStateException> {
+            Settings(baseUrl = "https://vorfahrt.example.com", username = "", password = "secret").requireConfigured()
+        }
+    }
+
+    @Test
+    fun passesConfiguredSettingsThroughNormalized() {
+        assertEquals(
+            Settings("http://192.168.178.42:8080", "rider", "secret"),
+            Settings("192.168.178.42:8080/", "rider", "secret").requireConfigured(),
         )
     }
 }

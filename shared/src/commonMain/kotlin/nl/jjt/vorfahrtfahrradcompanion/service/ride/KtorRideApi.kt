@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.first
 import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsStore
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.StoredObservation
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.ride.RecordedRide
-import nl.jjt.vorfahrtfahrradcompanion.service.http.normalizeBaseUrl
+import nl.jjt.vorfahrtfahrradcompanion.service.http.requireConfigured
 
 /**
  * Posts a ride to the companion app's own endpoint, `POST {base}/companion-app/rides`. That group
@@ -22,7 +22,8 @@ import nl.jjt.vorfahrtfahrradcompanion.service.http.normalizeBaseUrl
  * denormalized into one envelope, which nothing in the admin API has a counterpart for.
  *
  * Anything but a 2xx is a failure and says so — what the server does with a ride it has already seen
- * is its own business, and needs no opinion here.
+ * is its own business, and needs no opinion here. A server that was never configured fails before
+ * the request, so an empty Settings screen never reaches the rider as a connection error.
  */
 class KtorRideApi(
     private val client: HttpClient,
@@ -30,10 +31,10 @@ class KtorRideApi(
 ) : RideApi {
 
     override suspend fun upload(ride: RecordedRide, observations: List<StoredObservation>) {
-        val s = settings.settings.first()
+        val s = settings.settings.first().requireConfigured()
         val response = client.post {
             url {
-                takeFrom(normalizeBaseUrl(s.baseUrl) ?: s.baseUrl)
+                takeFrom(s.baseUrl)
                 appendPathSegments("companion-app", "rides")
             }
             basicAuth(s.username, s.password)
