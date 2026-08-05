@@ -14,6 +14,9 @@ val patchNotes: List<PatchNote> = listOf(
                 "ride is only marked as sent once the server has actually confirmed it — if the send " +
                 "fails you are told, and the ride stays exactly where it was, ready to try again.",
             "A ride you have not ended yet cannot be sent, and says so when you tap it.",
+            "Sending a ride or loading the criteria before the server has been filled in now says " +
+                "exactly that, and points at Settings — where it used to report that some host could " +
+                "not be reached.",
             "The GPS screen has moved from its own tab into Settings → Location, which is where the " +
                 "rest of the diagnostics already live.",
         ),
