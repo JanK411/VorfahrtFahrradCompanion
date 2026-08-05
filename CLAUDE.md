@@ -10,8 +10,8 @@ from the server (cached in Room for offline use). Answers carry over from one se
 have to be approved. Observations are stored locally — there is no upload yet.
 
 Three bottom-bar tabs — criteria, ride, settings. The `commonMain` package tree, the layering rules and the naming
-vocabulary are in `.claude/conventions.md`, enforced by `.claude/conventions-check.sh`; read it before adding or
-moving a file.
+vocabulary are in `.claude/conventions.md`, enforced by `.claude/conventions-check.sh`; read it before adding or moving
+a file.
 
 **Android is the only target being developed.** iOS exists to keep a future port cheap.
 
@@ -108,11 +108,8 @@ ordering — not version parsing — is what matters; keep the list newest-first
 - Always use best practices. If the user asks something that violates best practices give a notice first and do not
   implement anything.
 - Don't commit any changes if I don't explicitly ask you to do so. But if I do, split your tasks into multiple small
-  commits and write proper commit messages. If you have a ticket number in context, the message should start with the
-  ticket number (for example "VF-123: <here the message>"). If you implemented a plan, reference the plan also in the
-  commit message. If the plan is fully implemented, add one commit in the end deleting the Markdown file of the plan.
+  commits and write proper commit messages. When executing plans, always commit.
+- Always commit with a ticket-number (for example "VF-123: <here the message>").
 - if you see something that should be refactored, do the refactoring instead of building bloat around. If we are still
   in discussion, discuss with me how the refactoring should be done. If you are already working on changes and I asked
   you to commit, then - if possible - do separate commits for the refactorings.
-- When you are in planning mode, don't just leave the planning mode, but send a message instead asking if I want to make
-  changes to the plan or if you can execute it.
