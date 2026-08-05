@@ -2,12 +2,14 @@ package nl.jjt.vorfahrtfahrradcompanion.db.observation
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.SerializationException
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.*
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.Observation
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.BoundaryKind
 import nl.jjt.vorfahrtfahrradcompanion.testing.FakeObservationDao
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -109,4 +111,32 @@ class RoomObservationStoreTest {
         assertEquals(values.stored(), read.answers)
         assertEquals(setOf(CriterionValue("CARS")), read.answers["ALLOWED_USERS"])
     }
+
+    /**
+     * Nothing writes a row this class cannot read — but a row that got there anyway must not take the
+     * criteria screen down with it, so the rider simply starts the next segment from nothing.
+     */
+    @Test
+    fun anUnreadableRowLeavesTheRiderWithoutCarriedOverAnswers() = runTest {
+        dao.insert(corruptRow(rideId = "ride-1"))
+
+        assertNull(store.lastValues().first())
+    }
+
+    /** The same row on the way to the server: rather no ride than one silently short a segment. */
+    @Test
+    fun anUnreadableRowFailsTheReadThatASendIsBuiltFrom() = runTest {
+        dao.insert(corruptRow(rideId = "ride-1"))
+
+        assertFailsWith<SerializationException> { store.forRide("ride-1") }
+    }
 }
+
+private fun corruptRow(rideId: String) = ObservationEntity(
+    rideId = rideId,
+    startedAtEpochMs = startedAt.toEpochMilliseconds(),
+    startKind = BoundaryKind.EXACT,
+    endedAtEpochMs = endedAt.toEpochMilliseconds(),
+    endKind = BoundaryKind.EXACT,
+    valuesJson = "{not json",
+)

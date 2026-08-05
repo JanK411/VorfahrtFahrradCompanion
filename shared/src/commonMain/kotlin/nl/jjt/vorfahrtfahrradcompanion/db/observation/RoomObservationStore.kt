@@ -26,11 +26,21 @@ class RoomObservationStore(private val dao: ObservationDao) : ObservationStore {
         ),
     )
 
+    /**
+     * A row that will not parse counts as no row at all. What this offers is a convenience — the
+     * answers a fresh segment is filled in from — and starting one empty beats an unreadable row
+     * throwing into a flow nobody collects with a catch, which takes the criteria screen down
+     * mid-ride. [forRide] is the opposite case and treats the same row differently.
+     */
     override fun lastValues(): Flow<StoredAnswers?> =
-        dao.lastValuesJson().map { json -> json?.let { Json.decodeFromString<StoredAnswers>(it) } }
+        dao.lastValuesJson().map { json -> json?.let(::decodeOrNull) }
 
     override suspend fun countForRide(rideId: String): Int = dao.countForRide(rideId)
 
+    /**
+     * Strict where [lastValues] is forgiving: a row that will not parse fails the whole read, rather
+     * than letting a ride go to the server with a segment quietly missing from it.
+     */
     override suspend fun forRide(rideId: String): List<StoredObservation> =
         dao.forRide(rideId).map { row ->
             StoredObservation(
@@ -38,7 +48,10 @@ class RoomObservationStore(private val dao: ObservationDao) : ObservationStore {
                 startKind = row.startKind,
                 endedAt = Instant.fromEpochMilliseconds(row.endedAtEpochMs),
                 endKind = row.endKind,
-                answers = Json.decodeFromString(row.valuesJson),
+                answers = Json.decodeFromString<StoredAnswers>(row.valuesJson),
             )
         }
+
+    private fun decodeOrNull(json: String): StoredAnswers? =
+        runCatching { Json.decodeFromString<StoredAnswers>(json) }.getOrNull()
 }
