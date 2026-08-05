@@ -20,6 +20,11 @@ interface RideUploader {
  * Collects the ride's observations, posts them, and records the send **only** once the server has
  * confirmed it. Nothing about the stored ride changes on a failure — which is what makes a ride that
  * timed out halfway indistinguishable from one never sent, and pressing send again safe.
+ *
+ * This is where a thrown failure becomes a returned one, and [RideApi] keeps throwing rather than
+ * answering with a `Result` of its own. Reading the observations and marking the ride can fail too,
+ * and all three failures mean the same thing to the rider, so one catch covers them — leaving a
+ * single place that has to remember to let a cancellation through.
  */
 class SendingRideUploader(
     private val api: RideApi,
