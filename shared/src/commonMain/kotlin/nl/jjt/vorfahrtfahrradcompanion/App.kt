@@ -30,6 +30,7 @@ import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.CriteriaScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.location.LocationScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.navigation.*
 import nl.jjt.vorfahrtfahrradcompanion.ui.patchnotes.PatchNotesScreen
+import nl.jjt.vorfahrtfahrradcompanion.ui.rides.RidesScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.settings.ServerConnectionScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.settings.SettingsScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.theme.AppTheme
@@ -44,6 +45,7 @@ import org.koin.dsl.koinConfiguration
 /** Bottom-bar destinations. [PatchNotesRoute] is a sub-page reached from Settings, not a tab. */
 private enum class Tab(val label: String, val icon: ImageVector, val route: Any) {
     CRITERIA("Criteria", Icons.AutoMirrored.Filled.List, CriteriaRoute),
+    RIDES("Rides", BicycleIcon, RidesRoute),
     SETTINGS("Settings", Icons.Filled.Settings, SettingsRoute),
 }
 
@@ -154,6 +156,8 @@ fun App(additionalModules: List<Module> = emptyList()) {
                                 modifier = Modifier.fillMaxSize().padding(padding),
                             ) {
                                 composable<CriteriaRoute> { CriteriaScreen(Modifier.fillMaxSize()) }
+
+                                composable<RidesRoute> { RidesScreen(Modifier.fillMaxSize()) }
 
                                 composable<SettingsRoute> {
                                     SettingsScreen(

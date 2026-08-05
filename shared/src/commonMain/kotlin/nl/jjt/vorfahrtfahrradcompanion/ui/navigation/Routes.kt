@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 data object CriteriaRoute
 
 @Serializable
+data object RidesRoute
+
+@Serializable
 data object SettingsRoute
 
 /** A sub-page pushed onto the back stack from a tab; each owns the title shown in the top bar. */
