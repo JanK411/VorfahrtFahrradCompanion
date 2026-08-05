@@ -1,5 +1,6 @@
 package nl.jjt.vorfahrtfahrradcompanion.ui.rides
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,14 +8,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,17 +42,39 @@ import kotlin.time.Instant
 fun RidesScreen(modifier: Modifier = Modifier) {
     val viewModel: RidesViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    if (state.rides.isEmpty()) {
-        NoRidesYet(modifier)
-        return
+    state.message?.let { message ->
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            viewModel.messageShown()
+        }
     }
 
-    LazyColumn(modifier = modifier.fillMaxSize()) {
-        items(state.rides, key = RecordedRide::id) { ride ->
-            RideRow(ride)
-            HorizontalDivider()
+    state.prompt?.let { prompt ->
+        SendRideDialog(
+            prompt = prompt,
+            onConfirm = viewModel::promptConfirmed,
+            onDismiss = viewModel::promptDismissed,
+        )
+    }
+
+    Box(modifier.fillMaxSize()) {
+        if (state.rides.isEmpty()) {
+            NoRidesYet(Modifier.fillMaxSize())
+        } else {
+            LazyColumn(Modifier.fillMaxSize()) {
+                items(state.rides, key = RecordedRide::id) { ride ->
+                    RideRow(
+                        ride = ride,
+                        sending = ride.id in state.sending,
+                        onClick = { viewModel.rideTapped(ride) },
+                    )
+                    HorizontalDivider()
+                }
+            }
         }
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -61,10 +90,15 @@ private fun NoRidesYet(modifier: Modifier = Modifier) {
     }
 }
 
+/** The whole row is the tap target — a ride is sent by tapping it, never by a button beside it. */
 @Composable
-private fun RideRow(ride: RecordedRide) {
+private fun RideRow(ride: RecordedRide, sending: Boolean, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            // Not while it is going: a slow connection must not become two sends.
+            .clickable(enabled = !sending, onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -76,7 +110,11 @@ private fun RideRow(ride: RecordedRide) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        StateBadge(ride.state)
+        if (sending) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        } else {
+            StateBadge(ride.state)
+        }
     }
 }
 
@@ -108,7 +146,7 @@ private fun RecordedRide.subtitle(): String {
 private val MONTHS =
     listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
-private fun Instant.asDate(): String {
+internal fun Instant.asDate(): String {
     val date = toLocalDateTime(TimeZone.currentSystemDefault()).date
     return "${date.day} ${MONTHS[date.month.ordinal]}"
 }

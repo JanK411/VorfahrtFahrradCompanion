@@ -14,8 +14,9 @@ import kotlin.time.Instant
  * not survive a bottom-bar tab switch. Like the draft, it is memory only and does not outlive the
  * process.
  *
- * TODO: pick a ride back up that the app was killed in the middle of. Its row is written when the ride
- *  opens and so is still there, sitting open — but nothing goes looking for it yet.
+ * TODO(VF-23): pick a ride back up that the app was killed in the middle of. Its row is written when the
+ *  ride opens and so is still there, sitting open — but nothing goes looking for it yet, and the rides
+ *  list can only report it as open.
  */
 class RideRecorder(
     private val store: RideStore,
