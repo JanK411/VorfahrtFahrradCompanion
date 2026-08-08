@@ -68,7 +68,7 @@ jobs:
           fi
           curl -sS --fail-with-body -X POST https://content.dropboxapi.com/2/files/upload \
             --header "Authorization: Bearer $token" \
-            --header "Dropbox-API-Arg: {\"path\":\"/builds/${{ steps.apk.outputs.name }}\",\"mode\":\"overwrite\",\"mute\":true}" \
+            --header "Dropbox-API-Arg: {\"path\":\"/builds/vorfahrt_fahrrad_companion/${{ steps.apk.outputs.name }}\",\"mode\":\"overwrite\",\"mute\":true}" \
             --header "Content-Type: application/octet-stream" \
             --data-binary @"${{ steps.apk.outputs.path }}" > /dev/null
 
