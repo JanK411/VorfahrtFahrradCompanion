@@ -107,9 +107,3 @@ ordering — not version parsing — is what matters; keep the list newest-first
 - Always running in IntelliJ. Use IntelliJ MCP when necessary.
 - Always use best practices. If the user asks something that violates best practices give a notice first and do not
   implement anything.
-- Don't commit any changes if I don't explicitly ask you to do so. But if I do, split your tasks into multiple small
-  commits and write proper commit messages. When executing plans, always commit.
-- Always commit with a ticket-number (for example "VF-123: <here the message>").
-- if you see something that should be refactored, do the refactoring instead of building bloat around. If we are still
-  in discussion, discuss with me how the refactoring should be done. If you are already working on changes and I asked
-  you to commit, then - if possible - do separate commits for the refactorings.
