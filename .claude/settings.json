@@ -38,5 +38,17 @@
       "mcp__ide__getDiagnostics",
       "Bash(.claude/conventions-check.sh)"
     ]
+  },
+  "extraKnownMarketplaces": {
+    "jjt-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "JanK411/jjtPlugins"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "kotlin-development@jjt-plugins": true
   }
 }
