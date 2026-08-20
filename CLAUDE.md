@@ -10,8 +10,7 @@ from the server (cached in Room for offline use). Answers carry over from one se
 have to be approved. Observations are stored locally — there is no upload yet.
 
 Three bottom-bar tabs — criteria, ride, settings. The `commonMain` package tree, the layering rules and the naming
-vocabulary are in `.claude/conventions.md`, enforced by `.claude/conventions-check.sh`; read it before adding or moving
-a file.
+vocabulary are in `.claude/conventions.md`; read it before adding or moving a file.
 
 **Android is the only target being developed.** iOS exists to keep a future port cheap.
 

@@ -1,90 +1,121 @@
 # Conventions
 
-Everything is under `nl.jjt.vorfahrtfahrradcompanion`, in `shared/src/{commonMain,androidMain,iosMain}`
-unless noted. `commonTest` mirrors the package of whatever it tests, plus `testing`.
 
-The tree below is a manifest, not a snapshot: **a package that is not on the list is a violation, not
-a new convention.** A rule that has to change is changed here first, then in the code.
+Everything is under `nl.jjt.vorfahrtfahrradcompanion`, in `shared/src/{commonMain,androidMain,iosMain}`.
+`androidApp` holds host plumbing only. Tests mirror the package of what they test.
 
-```shell
-.claude/conventions-check.sh
-```
+The trees below are a manifest, not a snapshot: **a folder that is not on them is a violation, not a
+new convention.** A rule that has to change is changed here first, then in the code.
 
-Prints one line per violation as `path:line  rule  detail`. Run it after moving files and before
-committing a refactoring.
+The `conventions` skill from the `kotlin-development` plugin prints the actual tree to compare
+against these. Run it after moving files and before committing a structural change.
 
 ## Folder structure
 
 ```
-(root)                    App.kt, the composition root — and in androidApp, MainActivity
-db                        AppDatabase, AppDatabaseConstructor, Migrations, AndroidAppDatabase
-db/catalogue              CatalogueCacheEntity, CatalogueCacheDao, CatalogueCacheStore
-db/observation            ObservationEntity, ObservationDao, RoomObservationStore
-db/patchnotes             PatchNotesStateEntity, PatchNotesStateDao, PatchNotesStateStore
-db/ride                   RideEntity, RideDao, RoomRideStore
-db/settings               SettingsEntity, SettingsDao, SettingsStore
-domain/criteria           Criterion, CriterionKind, CriterionValue, Catalogue, Answers, StoredAnswers
-domain/patchnotes         PatchNote, the patch note list, splitPatchNotes
-domain/recording          Observation, StoredObservation and ObservationStore — what both halves store,
-                          and the port they store it through, and nothing else
-domain/recording/ride     Ride, RecordedRide, RideState, RideSummary, RideRecorder, RideStore
-domain/recording/segment  Segment, Draft, SegmentOutcome, SegmentAction, SegmentRecorder,
-                          BoundaryKind, EndTiming
-domain/settings           Settings
-service/http              HttpClient, HttpClientEngine (expect/actual), TransportSecurity, BaseUrl
-service/criteria          CriteriaApi, KtorCriteriaApi, CachingCriteriaApi, CatalogueDto
-service/connection        ConnectionTester
-service/ride              RideApi, KtorRideApi, RideUploader, RideUploadDto
-ui/navigation             Routes, NavigationGate/LeaveGuard, ConfirmPrompt
-ui/theme                  AppTheme, Spotlight, LocalNight, BicycleIcon
-ui/common                 HoldMenu, ElapsedSeconds, TimeOfDay, DimWhenIdle, KeepScreenAwake,
-                          SystemBarIcons
-ui/criteria               CriteriaScreen and its cards, buttons, dialogs, CriteriaViewModel
-ui/location               LocationScreen, LocationViewModel
-ui/patchnotes             PatchNotesScreen, PatchNotesViewModel
-ui/rides                  RidesScreen, RidesViewModel
-ui/settings               SettingsScreen, ServerConnectionScreen, ServerConnectionViewModel
-util/location             Location, LocationProvider, LocationPermissions, LocationSettings
-                          + Android*/Ios*
-util/platform             ScreenAwake, ScreenBrightness, SystemBars, SystemCacheMarker + Android*/Ios*
-util/daylight             Sun, Daylight
-util/di                   AppModules, AndroidModule — one module per layer, named <layer>Module
-testing                   (commonTest only) the fakes, one Fake<Interface> per file
+shared/src/commonMain/kotlin/nl/jjt/vorfahrtfahrradcompanion
+│                               App.kt, the composition root — the only file at the root
+├── db                          AppDatabase, its constructor and Migrations; one folder per table
+│   ├── catalogue               the cached criteria catalogue
+│   ├── observation             what was answered for a segment
+│   ├── patchnotes              which patch note the user last saw
+│   ├── ride                    the recorded rides
+│   └── settings                the single settings row
+├── domain                      depends on nothing else in the app, and on no framework
+│   ├── criteria                what a rider is asked and what an answer may be
+│   ├── patchnotes              the changelog shown in Settings
+│   ├── recording               what a ride and a segment both store, and the port they store it
+│   │   │                         through — and nothing else
+│   │   ├── ride                one thing the rider starts and ends
+│   │   └── segment             one stretch recorded inside a ride
+│   └── settings                what the rider configured
+├── service                     talking to the server
+│   ├── connection              the one-shot reachability check
+│   ├── criteria                fetching the catalogue, and caching it
+│   ├── http                    the client, its engine (expect/actual), base URL and transport rules
+│   └── ride                    uploading a recorded ride
+├── ui                          Compose — the only place @Composable appears, App.kt aside
+│   ├── common                  widgets and effects no single screen owns
+│   ├── criteria                the criteria tab: screen, cards, dialogs, ViewModel
+│   ├── location                the location/permission screen
+│   ├── navigation              routes and the guard that gates leaving a screen
+│   ├── patchnotes              the What's New sub-page
+│   ├── rides                   the ride tab
+│   ├── settings                the settings tab and the server connection sub-page
+│   └── theme                   AppTheme and what only it defines
+└── util                        holds folders only, never files
+    ├── daylight                is it light out
+    ├── di                      one Koin module per layer, named <layer>Module
+    ├── location                where the rider is, and whether we may ask
+    └── platform                what the device does to itself: screen, bars, cache
 ```
 
-**`util` holds packages, never files.** A file that would sit directly in it belongs in a sub-package
-that answers a question, or in the layer it actually serves.
+`androidMain` and `iosMain` mirror this tree exactly, and hold only `actual`s and platform
+implementations — `Android<X>.kt` / `Ios<X>.kt` beside the `commonMain` interface's path, plus
+`MainViewController.kt` at the iOS root.
 
-**`domain/recording` is split by what owns the state.** A ride is one thing the rider starts and ends;
-a segment is one of the many stretches recorded inside it, with its own boundaries, draft and outcome.
-Separate lifetimes, separate recorders, separate packages. What neither half owns alone stays in
-`domain/recording` — a new file there has to earn that spot the same way.
+**`util` holds folders, never files.** A file that would sit directly in it belongs in a folder that
+answers a question, or in the layer it actually serves. That restriction is the whole reason a
+folder named `util` is allowed here at all.
+
+**`domain/recording` is split by what owns the state.** A ride and a segment have separate
+lifetimes, separate recorders, separate folders. What neither owns alone stays in
+`domain/recording`, and a new file there has to earn that spot the same way.
+
+## Where tests live
+
+```
+shared/src/commonTest/kotlin/nl/jjt/vorfahrtfahrradcompanion
+├── …                           mirrors commonMain: a test sits in the folder of its subject
+└── testing                     the fakes, one Fake<Interface> per file — no tests here
+```
+
+A test is `<Subject>Test.kt` with a `<Subject>.kt` at the mirrored path in `commonMain`. `testing` is
+the one folder that is not a mirror: what its files share is that they stand in for a port, not a
+subject.
 
 ## What may depend on what
 
 - **`domain` depends on nothing else in the app**, and on no framework: no `db`, `service`, `ui`,
   `di`, and no Room, Ktor, Compose or Lifecycle. It declares the interfaces it needs and lets `db`
   implement them.
-- Everything else may depend on `db`. Only `domain` is held to purity.
-- `androidx.room` appears only under `db`; a `<X>Dao` is used only inside its own `db/<feature>`
-  package, and everything outside talks to a Store.
+- Everything else may depend on `domain`. Only `domain` is held to purity.
+- **Room stays in `db`.** `androidx.room` appears only under `db`, an `X<Dao>` is used only inside
+  its own `db/<feature>` folder, and everything outside talks to a Store.
+- **Ktor stays in `service`.**
 - `@Composable` only under `ui`, `util/location` (the permission state) and `App.kt`.
 - No `java.*`, `android.*` or `javax.*` in `commonMain`.
 
-## Local vocabulary
+## Vocabulary
 
-- **`Store`** persists (only in `db`), **`Recorder`** owns in-memory recording state that outlives a
-  tab switch (only under `domain/recording`), **`Api`** talks HTTP and **`Tester`** performs a
-  one-shot check (only in `service`), **`ViewModel`/`Screen`/`Dialog`** only in `ui`.
-- The `Room` prefix means one thing: *an interface of this name is declared outside `db`*.
-  `SettingsStore` and `PatchNotesStateStore` have no consumer in `domain`, so they get no port and no
-  prefix.
-- **`Repository` is not used.** It once named both a DAO wrapper and an in-memory engine, which is
-  the ambiguity this vocabulary exists to remove.
-- Exactly one `<Screen>UiState` per ViewModel — what its `state` flow emits. Auxiliary state types
-  keep plain names (`SaveState`, `ConnectionTestState`) and nothing else ends in `UiState`. Sealed
-  state hierarchies are named after the concept with the states nested inside: `Ride { Idle, Open }`.
-- Table names are `snake_case` of the concept, pluralised when the table holds many rows: `rides`,
-  `observations`, `settings`, `catalogue_cache`, `patch_notes_state`.
-- A `commonMain` interface with an Android implementation must have an iOS one too, even if its body
-  is `TODO("iOS not implemented")` — that stub is the whole iOS investment.
+Each suffix means one thing and implies its folder: **`Store`** persists (only in `db`),
+**`Recorder`** owns in-memory recording state that outlives a tab switch (only under
+`domain/recording`), **`Api`** talks HTTP and **`Tester`** performs a one-shot check (only in
+`service`), **`ViewModel`**, **`Screen`** and **`Dialog`** only in `ui`.
+
+The `Room` prefix means one thing: *an interface of this name is declared outside `db`*.
+`SettingsStore` and `PatchNotesStateStore` have no consumer in `domain`, so they get no port and no
+prefix.
+
+**`Repository` is retired.** It once named both a DAO wrapper and an in-memory engine, which is the
+ambiguity this vocabulary exists to remove. `Util`, `Utils`, `Helper` and `Common` are retired as
+file names for the same reason — `ui/common` survives as a folder because a widget's own name still
+says what it is.
+
+Exactly one `<Screen>UiState` per ViewModel — what its `state` flow emits. Auxiliary state types
+keep plain names (`SaveState`, `ConnectionTestState`) and nothing else ends in `UiState`. Sealed
+state hierarchies are named after the concept with the states nested inside: `Ride { Idle, Open }`.
+
+Table names are `snake_case` of the concept, pluralised when the table holds many rows: `rides`,
+`observations`, `settings`, `catalogue_cache`, `patch_notes_state`.
+
+## Not checked mechanically
+
+Nothing here is enforced by a script — the `conventions` skill prints the tree, and the rest is read.
+
+- **A `commonMain` interface with an Android implementation must have an iOS one too**, even if its
+  body is `TODO("iOS not implemented")`. That stub is the whole iOS investment.
+- **File name matches its top-level declaration.** One public thing per file, named after it —
+  Compose's idiom of several small `@Composable`s in one file holds only where they exist for the
+  one the file is named after.
+- **Test names read as sentences**, without a `test`/`should` prefix.

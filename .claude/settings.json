@@ -35,8 +35,7 @@
       "mcp__idea__analyze_calls",
       "mcp__idea__get_symbol_info",
       "mcp__idea__list_directory_tree",
-      "mcp__ide__getDiagnostics",
-      "Bash(.claude/conventions-check.sh)"
+      "mcp__ide__getDiagnostics"
     ]
   },
   "extraKnownMarketplaces": {
