@@ -26,6 +26,7 @@ import nl.jjt.vorfahrtfahrradcompanion.ui.location.LocationViewModel
 import nl.jjt.vorfahrtfahrradcompanion.ui.patchnotes.PatchNotesViewModel
 import nl.jjt.vorfahrtfahrradcompanion.ui.rides.RidesViewModel
 import nl.jjt.vorfahrtfahrradcompanion.ui.settings.ServerConnectionViewModel
+import nl.jjt.vorfahrtfahrradcompanion.ui.settings.SettingsViewModel
 import nl.jjt.vorfahrtfahrradcompanion.util.daylight.Daylight
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
@@ -68,6 +69,7 @@ val uiModule = module {
     viewModel { TillCriteriaViewModel(get(), get(), get()) }
     viewModel { LocationViewModel(get(), get()) }
     viewModel { ServerConnectionViewModel(get(), get()) }
+    viewModel { SettingsViewModel(get()) }
     viewModel { PatchNotesViewModel(get()) }
     viewModel { RidesViewModel(get(), get()) }
 }

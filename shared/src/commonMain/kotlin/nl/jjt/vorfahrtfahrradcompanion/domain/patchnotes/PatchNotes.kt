@@ -3,6 +3,18 @@ package nl.jjt.vorfahrtfahrradcompanion.domain.patchnotes
 /** Newest first. Prepend a new entry on every user-visible change (see CLAUDE.md). */
 val patchNotes: List<PatchNote> = listOf(
     PatchNote(
+        version = "1.10",
+        date = "2026-08-21",
+        changes = listOf(
+            "The criteria screen now comes in two designs, Jan and Till, so they can be ridden " +
+                "against each other and the better one kept. Settings → Categorising picks which " +
+                "one you get; Jan is the screen you have been using all along.",
+            "Both designs record exactly the same thing into exactly the same place, so switching " +
+                "between them changes nothing you have already recorded, and a segment you are part " +
+                "way through carries over to the other one with its answers intact.",
+        ),
+    ),
+    PatchNote(
         version = "1.9",
         date = "2026-08-05",
         changes = listOf(
