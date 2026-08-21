@@ -22,7 +22,7 @@ import nl.jjt.vorfahrtfahrradcompanion.db.settings.SettingsEntity
         ObservationEntity::class,
         RideEntity::class,
     ],
-    version = 8,
+    version = 9,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

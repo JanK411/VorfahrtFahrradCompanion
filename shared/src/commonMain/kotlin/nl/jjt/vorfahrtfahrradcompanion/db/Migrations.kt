@@ -127,3 +127,13 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         connection.execSQL("ALTER TABLE `rides` ADD COLUMN `uploadedAtEpochMs` INTEGER")
     }
 }
+
+/**
+ * v8 → v9: records which design of the criteria screen the rider is being shown. Additive — a rider
+ * upgrading keeps the one they have been riding with all along, which is what the default says.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `settings` ADD COLUMN `categorization` TEXT NOT NULL DEFAULT 'JAN'")
+    }
+}
