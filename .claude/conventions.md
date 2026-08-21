@@ -36,7 +36,9 @@ shared/src/commonMain/kotlin/nl/jjt/vorfahrtfahrradcompanion
 │   └── ride                    uploading a recorded ride
 ├── ui                          Compose — the only place @Composable appears, App.kt aside
 │   ├── common                  widgets and effects no single screen owns
-│   ├── criteria                the criteria tab: screen, cards, dialogs, ViewModel
+│   ├── criteria                the criteria tab: the two designs of it, and what both read
+│   │   ├── jan                  one design: screen, cards, dialogs, ViewModel
+│   │   └── till                 the other, its own copy of all four
 │   ├── location                the location/permission screen
 │   ├── navigation              routes and the guard that gates leaving a screen
 │   ├── patchnotes              the What's New sub-page
@@ -62,6 +64,15 @@ folder named `util` is allowed here at all.
 lifetimes, separate recorders, separate folders. What neither owns alone stays in
 `domain/recording`, and a new file there has to earn that spot the same way.
 
+**`ui/criteria` is split by design.** Jan and Till are two designs of the categorising-while-riding
+workflow, being ridden against each other; which one the rider gets is picked under Settings. Each
+owns its `<Design>CriteriaScreen`, `<Design>CriteriaViewModel` and `<Design>CriteriaUiState`, and the
+cards and dialogs that screen is made of — a change to one must not touch the other. The split stops
+at `ui`: both record through the same `SegmentRecorder`, `RideRecorder` and `ObservationStore` into
+the same table, so what a segment means does not depend on which design described it. What sits
+directly in `ui/criteria` is what neither owns alone — the entry point that picks between them, and
+`Criterion.label()`.
+
 ## Where tests live
 
 ```
@@ -72,7 +83,8 @@ shared/src/commonTest/kotlin/nl/jjt/vorfahrtfahrradcompanion
 
 A test is `<Subject>Test.kt` with a `<Subject>.kt` at the mirrored path in `commonMain`. `testing` is
 the one folder that is not a mirror: what its files share is that they stand in for a port, not a
-subject.
+subject. A design's tests mirror its design folder, so Jan's and Till's copies sit apart the same way
+the screens they cover do.
 
 ## What may depend on what
 
