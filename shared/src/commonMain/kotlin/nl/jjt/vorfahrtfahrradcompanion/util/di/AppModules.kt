@@ -21,6 +21,7 @@ import nl.jjt.vorfahrtfahrradcompanion.service.ride.RideUploader
 import nl.jjt.vorfahrtfahrradcompanion.service.ride.SendingRideUploader
 import nl.jjt.vorfahrtfahrradcompanion.service.http.platformHttpClientEngine
 import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.jan.JanCriteriaViewModel
+import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.till.TillCriteriaViewModel
 import nl.jjt.vorfahrtfahrradcompanion.ui.location.LocationViewModel
 import nl.jjt.vorfahrtfahrradcompanion.ui.patchnotes.PatchNotesViewModel
 import nl.jjt.vorfahrtfahrradcompanion.ui.rides.RidesViewModel
@@ -64,6 +65,7 @@ val serviceModule = module {
 
 val uiModule = module {
     viewModel { JanCriteriaViewModel(get(), get(), get()) }
+    viewModel { TillCriteriaViewModel(get(), get(), get()) }
     viewModel { LocationViewModel(get(), get()) }
     viewModel { ServerConnectionViewModel(get(), get()) }
     viewModel { PatchNotesViewModel(get()) }
