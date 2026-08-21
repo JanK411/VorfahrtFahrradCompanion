@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria.jan
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +21,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.*
+import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.label
 
 /** The one precise target on a row; everything else about it opens the criterion up. */
 private val APPROVE_BUTTON_SIZE = 56.dp

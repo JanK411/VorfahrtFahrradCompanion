@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria.jan
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,7 +33,7 @@ private val stretch = 3.minutes
 
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class CriteriaViewModelTest {
+class JanCriteriaViewModelTest {
 
     private val observations = FakeObservationStore()
     private val rideStore = FakeRideStore()
@@ -45,13 +45,13 @@ class CriteriaViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm(): CriteriaViewModel {
+    private fun vm(): JanCriteriaViewModel {
         val rides = RideRecorder(rideStore, observations, clock)
-        return CriteriaViewModel(FakeCriteriaApi(catalogue), SegmentRecorder(observations, rides, clock), rides)
+        return JanCriteriaViewModel(FakeCriteriaApi(catalogue), SegmentRecorder(observations, rides, clock), rides)
     }
 
     /** A view model with a ride already running — the only state in which segments can be recorded. */
-    private fun TestScope.riding(): CriteriaViewModel {
+    private fun TestScope.riding(): JanCriteriaViewModel {
         val vm = vm()
         vm.startRide()
         testScheduler.advanceUntilIdle()
@@ -117,7 +117,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(emptyList(), observations.inserted)
-        assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
+        assertEquals(Segment.Idle, (vm.state.value as JanCriteriaUiState.Ready).segment)
     }
 
     @Test
@@ -129,7 +129,7 @@ class CriteriaViewModelTest {
         vm.start(BoundaryKind.EARLIER)
         testScheduler.advanceUntilIdle()
 
-        val segment = (vm.state.value as CriteriaUiState.Ready).segment
+        val segment = (vm.state.value as JanCriteriaUiState.Ready).segment
         assertEquals(Segment.Open(startedAt, BoundaryKind.EXACT), segment)
     }
 
@@ -145,7 +145,7 @@ class CriteriaViewModelTest {
 
         // The end of one stretch is the start of the next — including how late it was marked, and the
         // step back that being late is worth.
-        val segment = (vm.state.value as CriteriaUiState.Ready).segment
+        val segment = (vm.state.value as JanCriteriaUiState.Ready).segment
         assertEquals(Segment.Open(startedAt + stretch - LATE_END_GRACE, BoundaryKind.EARLIER), segment)
         assertEquals(BoundaryKind.EARLIER, stored.endKind)
     }
@@ -178,14 +178,14 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // Tapping what is already there says "yes, this one too" — it must not toggle CARS off.
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(setOf(cars), ready.answers[users])
         assertEquals(listOf(users), ready.describing)
 
         // Approved now, so a second tap is an ordinary one and does toggle.
         vm.onTap(users, cars)
         testScheduler.advanceUntilIdle()
-        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).answers[users])
+        assertEquals(emptySet(), (vm.state.value as JanCriteriaUiState.Ready).answers[users])
     }
 
     @Test
@@ -196,7 +196,7 @@ class CriteriaViewModelTest {
         vm.onApprove(users)
         testScheduler.advanceUntilIdle()
 
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(setOf(cars), ready.answers[users])
         assertEquals(listOf(users), ready.describing)
         assertEquals(emptyList(), ready.carriedOver)
@@ -208,7 +208,7 @@ class CriteriaViewModelTest {
 
         aSegmentThenTheNext(vm)
 
-        val state = vm.state.value as CriteriaUiState.Ready
+        val state = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(setOf(cars), state.answers[users])
         assertEquals(SaveState.Idle, state.saveState)
         // Carried over, but no longer approved: the previous segment's answer is only a suggestion now.
@@ -228,7 +228,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // Ending the survey outright: whatever is described next starts from scratch.
-        val state = vm.state.value as CriteriaUiState.Ready
+        val state = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(Segment.Idle, state.segment)
         assertEquals(emptyList(), state.carriedOver)
         assertEquals(emptySet(), state.answers[users])
@@ -258,7 +258,7 @@ class CriteriaViewModelTest {
         vm.start(BoundaryKind.EXACT)
         testScheduler.advanceUntilIdle()
 
-        assertNull((vm.state.value as CriteriaUiState.Ready).copyable)
+        assertNull((vm.state.value as JanCriteriaUiState.Ready).copyable)
     }
 
     @Test
@@ -269,14 +269,14 @@ class CriteriaViewModelTest {
 
         assertEquals(
             Answers(mapOf(width to setOf(w1), users to setOf(cars))),
-            (vm.state.value as CriteriaUiState.Ready).copyable,
+            (vm.state.value as JanCriteriaUiState.Ready).copyable,
         )
 
         vm.copyPrevious()
         testScheduler.advanceUntilIdle()
 
         // Copied in as suggestions, exactly where carried-over values land: up for review, not stored.
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(setOf(cars), ready.answers[users])
         assertEquals(setOf(w1), ready.answers[width])
         assertEquals(emptySet(), ready.approved)
@@ -308,7 +308,7 @@ class CriteriaViewModelTest {
         vm.start(BoundaryKind.EXACT)
         testScheduler.advanceUntilIdle()
 
-        assertNull((vm.state.value as CriteriaUiState.Ready).copyable)
+        assertNull((vm.state.value as JanCriteriaUiState.Ready).copyable)
     }
 
     @Test
@@ -319,12 +319,12 @@ class CriteriaViewModelTest {
         vm.onTap(width, w2)
         testScheduler.advanceUntilIdle()
 
-        assertNull((vm.state.value as CriteriaUiState.Ready).copyable)
+        assertNull((vm.state.value as JanCriteriaUiState.Ready).copyable)
 
         // And the action itself holds to that, whatever put it in front of the rider.
         vm.copyPrevious()
         testScheduler.advanceUntilIdle()
-        assertEquals(emptySet(), (vm.state.value as CriteriaUiState.Ready).answers[users])
+        assertEquals(emptySet(), (vm.state.value as JanCriteriaUiState.Ready).answers[users])
     }
 
     @Test
@@ -358,12 +358,12 @@ class CriteriaViewModelTest {
 
         // Nothing is stored on the press alone — the segment waits on the timing.
         assertEquals(emptyList(), observations.inserted)
-        assertEquals(SegmentAction.STOP, (vm.state.value as CriteriaUiState.Ready).pendingTiming?.action)
+        assertEquals(SegmentAction.STOP, (vm.state.value as JanCriteriaUiState.Ready).pendingTiming?.action)
 
         vm.answerTiming(EndTiming.PRECISE)
         testScheduler.advanceUntilIdle()
 
-        assertNull((vm.state.value as CriteriaUiState.Ready).pendingTiming)
+        assertNull((vm.state.value as JanCriteriaUiState.Ready).pendingTiming)
         assertEquals(BoundaryKind.EXACT, stored.endKind)
     }
 
@@ -398,7 +398,7 @@ class CriteriaViewModelTest {
         vm.cancelTiming()
         testScheduler.advanceUntilIdle()
 
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertNull(ready.pendingTiming)
         assertEquals(emptyList(), observations.inserted)
         assertEquals(Segment.Open(startedAt, BoundaryKind.EXACT), ready.segment)
@@ -418,7 +418,7 @@ class CriteriaViewModelTest {
 
         assertEquals(emptyList(), observations.inserted)
         assertEquals(listOf(SegmentOutcome.TOO_LATE), outcomes)
-        assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
+        assertEquals(Segment.Idle, (vm.state.value as JanCriteriaUiState.Ready).segment)
     }
 
     @Test
@@ -433,7 +433,7 @@ class CriteriaViewModelTest {
 
         // The slide answers one question; what is carried over is still the other, and the step back
         // survives it.
-        assertNotNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
+        assertNotNull((vm.state.value as JanCriteriaUiState.Ready).pendingEnd)
 
         vm.confirmEnd(approve = setOf(users))
         testScheduler.advanceUntilIdle()
@@ -468,7 +468,7 @@ class CriteriaViewModelTest {
 
         // Only the first segment is stored; the second waits on an answer.
         assertEquals(1, observations.inserted.size)
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(listOf(users), ready.carriedOver)
         assertEquals(BoundaryKind.EXACT, ready.pendingEnd?.kind)
         assertEquals(SegmentAction.STOP, ready.pendingEnd?.action)
@@ -489,7 +489,7 @@ class CriteriaViewModelTest {
             Answers(mapOf(users to setOf(cars))),
             observations.inserted.last().answers,
         )
-        assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
+        assertNull((vm.state.value as JanCriteriaUiState.Ready).pendingEnd)
     }
 
     @Test
@@ -502,7 +502,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // The question keeps the list it opened with, so editing one does not take it out of the answer.
-        assertEquals(listOf(width, users), (vm.state.value as CriteriaUiState.Ready).pendingEnd?.asked)
+        assertEquals(listOf(width, users), (vm.state.value as JanCriteriaUiState.Ready).pendingEnd?.asked)
 
         vm.onTap(width, w2)
         vm.confirmEnd(approve = setOf(width))
@@ -556,7 +556,7 @@ class CriteriaViewModelTest {
         vm.cancelEnd()
         testScheduler.advanceUntilIdle()
 
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertNull(ready.pendingEnd)
         assertEquals(Segment.Open(startedAt + stretch, BoundaryKind.EXACT), ready.segment)
         assertEquals(listOf(users), ready.carriedOver)
@@ -572,7 +572,7 @@ class CriteriaViewModelTest {
         vm.clearCarriedOver()
         testScheduler.advanceUntilIdle()
 
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(emptySet(), ready.answers[users])
         assertEquals(setOf(w2), ready.answers[width])
         assertEquals(emptyList(), ready.carriedOver)
@@ -588,7 +588,7 @@ class CriteriaViewModelTest {
         vm.approveAll()
         testScheduler.advanceUntilIdle()
 
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(emptyList(), ready.carriedOver)
         assertEquals(listOf(width, users), ready.describing)
 
@@ -613,7 +613,7 @@ class CriteriaViewModelTest {
         vm.undo()
         testScheduler.advanceUntilIdle()
 
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(listOf(users), ready.carriedOver)
         assertEquals(listOf(width), ready.describing)
     }
@@ -628,7 +628,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         // Back to carried over and waiting for a nod, exactly as before the clear.
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(setOf(cars), ready.answers[users])
         assertEquals(listOf(users), ready.carriedOver)
     }
@@ -655,7 +655,7 @@ class CriteriaViewModelTest {
 
         // And the next one is already described: the same, but for the one thing that changed — and
         // stood by, so it can be ended without being asked about any of it.
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(Segment.Open(pickedAt, BoundaryKind.EXACT), ready.segment)
         assertEquals(setOf(w2), ready.answers[width])
         assertEquals(setOf(cars), ready.answers[users])
@@ -680,7 +680,7 @@ class CriteriaViewModelTest {
             Answers(mapOf(users to setOf(cars))),
             observations.inserted.last().answers,
         )
-        assertNull((vm.state.value as CriteriaUiState.Ready).pendingEnd)
+        assertNull((vm.state.value as JanCriteriaUiState.Ready).pendingEnd)
     }
 
     @Test
@@ -693,7 +693,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(emptyList(), observations.inserted)
-        assertEquals(Segment.Idle, (vm.state.value as CriteriaUiState.Ready).segment)
+        assertEquals(Segment.Idle, (vm.state.value as JanCriteriaUiState.Ready).segment)
     }
 
     @Test
@@ -711,7 +711,7 @@ class CriteriaViewModelTest {
         assertEquals(emptyList(), observations.inserted)
         assertEquals(listOf(SegmentOutcome.DISCARDED), outcomes)
 
-        val ready = vm.state.value as CriteriaUiState.Ready
+        val ready = vm.state.value as JanCriteriaUiState.Ready
         assertEquals(Segment.Idle, ready.segment)
         assertEquals(emptySet(), ready.answers[users])
         assertNull(ready.pendingEnd)
@@ -733,7 +733,7 @@ class CriteriaViewModelTest {
     fun theFlowMovesDownTheListThenComesBackForWhatWasSkipped() {
         val criteria = (1..5).map { Criterion("C$it", CriterionKind.SINGLE) }
         val values = listOf(CriterionValue("A"), CriterionValue("B"))
-        val state = CriteriaUiState.Ready(
+        val state = JanCriteriaUiState.Ready(
             Catalogue(criteria.associateWith { values }),
             approved = setOf(criteria[0], criteria[1], criteria[3]),
         )
@@ -769,7 +769,7 @@ class CriteriaViewModelTest {
     }
 
     /** Rides one segment with [users] = CARS and leaves the next one open, inheriting it unapproved. */
-    private fun TestScope.aSegmentThenTheNext(vm: CriteriaViewModel) {
+    private fun TestScope.aSegmentThenTheNext(vm: JanCriteriaViewModel) {
         vm.onTap(users, cars)
         vm.start(BoundaryKind.EXACT)
         clock += stretch
@@ -885,7 +885,7 @@ class CriteriaViewModelTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(emptyList(), rideStore.rows)
-        assertEquals(Ride.Idle, (vm.state.value as CriteriaUiState.Ready).ride)
+        assertEquals(Ride.Idle, (vm.state.value as JanCriteriaUiState.Ready).ride)
     }
 
     @Test
@@ -900,10 +900,10 @@ class CriteriaViewModelTest {
 
         assertNull(vm.endingRide.value)
         assertNull(storedRide.endedAt)
-        assertTrue((vm.state.value as CriteriaUiState.Ready).ride is Ride.Open)
+        assertTrue((vm.state.value as JanCriteriaUiState.Ready).ride is Ride.Open)
     }
 
-    private fun TestScope.recordASegment(vm: CriteriaViewModel) {
+    private fun TestScope.recordASegment(vm: JanCriteriaViewModel) {
         vm.onTap(users, cars)
         vm.start(BoundaryKind.EXACT)
         clock += stretch
@@ -915,7 +915,7 @@ class CriteriaViewModelTest {
      * Stores one segment describing both criteria, ends the survey, and opens a fresh segment — one
      * with nothing carried over, which is where copying the previous one is offered.
      */
-    private fun TestScope.aSubmittedSegmentThenAFreshOne(vm: CriteriaViewModel) {
+    private fun TestScope.aSubmittedSegmentThenAFreshOne(vm: JanCriteriaViewModel) {
         vm.onTap(width, w1)
         vm.onTap(users, cars)
         vm.start(BoundaryKind.EXACT)
@@ -927,7 +927,7 @@ class CriteriaViewModelTest {
     }
 
     /** Rides one segment with both criteria filled, so both carry over into the next one. */
-    private fun TestScope.bothCarriedOverIntoTheNextSegment(vm: CriteriaViewModel) {
+    private fun TestScope.bothCarriedOverIntoTheNextSegment(vm: JanCriteriaViewModel) {
         vm.onTap(width, w1)
         vm.onTap(users, cars)
         vm.start(BoundaryKind.EXACT)

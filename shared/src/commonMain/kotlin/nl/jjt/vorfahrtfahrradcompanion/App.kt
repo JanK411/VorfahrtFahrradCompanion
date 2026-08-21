@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.Segment
 import nl.jjt.vorfahrtfahrradcompanion.domain.recording.segment.SegmentRecorder
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.DimWhenIdle
-import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.CriteriaScreen
+import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.jan.JanCriteriaScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.location.LocationScreen
 import nl.jjt.vorfahrtfahrradcompanion.ui.navigation.*
 import nl.jjt.vorfahrtfahrradcompanion.ui.patchnotes.PatchNotesScreen
@@ -155,7 +155,7 @@ fun App(additionalModules: List<Module> = emptyList()) {
                                 startDestination = CriteriaRoute,
                                 modifier = Modifier.fillMaxSize().padding(padding),
                             ) {
-                                composable<CriteriaRoute> { CriteriaScreen(Modifier.fillMaxSize()) }
+                                composable<CriteriaRoute> { JanCriteriaScreen(Modifier.fillMaxSize()) }
 
                                 composable<RidesRoute> { RidesScreen(Modifier.fillMaxSize()) }
 

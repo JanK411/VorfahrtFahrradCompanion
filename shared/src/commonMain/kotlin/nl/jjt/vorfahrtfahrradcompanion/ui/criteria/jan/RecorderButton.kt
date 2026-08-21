@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria.jan
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*

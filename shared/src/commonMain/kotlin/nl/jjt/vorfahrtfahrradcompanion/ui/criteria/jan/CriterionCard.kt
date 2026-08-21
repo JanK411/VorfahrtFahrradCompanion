@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria.jan
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -34,6 +34,7 @@ import nl.jjt.vorfahrtfahrradcompanion.domain.criteria.CriterionValue
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.HoldMenuOption
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.WindowOrigin
 import nl.jjt.vorfahrtfahrradcompanion.ui.common.holdAndSlide
+import nl.jjt.vorfahrtfahrradcompanion.ui.criteria.label
 import nl.jjt.vorfahrtfahrradcompanion.ui.theme.Spotlight
 import kotlin.math.abs
 
@@ -49,7 +50,7 @@ internal enum class CriterionState {
     APPROVED,
 }
 
-internal fun CriteriaUiState.Ready.stateOf(criterion: Criterion): CriterionState = when {
+internal fun JanCriteriaUiState.Ready.stateOf(criterion: Criterion): CriterionState = when {
     answers[criterion].isEmpty() -> CriterionState.OPEN
     criterion in approved -> CriterionState.APPROVED
     else -> CriterionState.CARRIED_OVER

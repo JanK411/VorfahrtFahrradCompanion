@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria.jan
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -67,8 +67,8 @@ internal class CriteriaActions(
 // TODO VF-116: guard an open segment with a LeaveGuard (see ServerConnectionScreen), so navigating away
 //  mid-segment asks first instead of relying on the repository quietly holding on to it.
 @Composable
-fun CriteriaScreen(modifier: Modifier = Modifier) {
-    val viewModel: CriteriaViewModel = koinViewModel()
+fun JanCriteriaScreen(modifier: Modifier = Modifier) {
+    val viewModel: JanCriteriaViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val endingRide by viewModel.endingRide.collectAsStateWithLifecycle()
 
@@ -99,11 +99,11 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
     }
 
     when (val s = state) {
-        CriteriaUiState.Loading -> Box(modifier.fillMaxSize(), Alignment.Center) {
+        JanCriteriaUiState.Loading -> Box(modifier.fillMaxSize(), Alignment.Center) {
             CircularProgressIndicator()
         }
 
-        is CriteriaUiState.Failed -> Column(
+        is JanCriteriaUiState.Failed -> Column(
             modifier = modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -112,14 +112,14 @@ fun CriteriaScreen(modifier: Modifier = Modifier) {
             Button(onClick = viewModel::retry) { Text("Retry") }
         }
 
-        is CriteriaUiState.Ready ->
+        is JanCriteriaUiState.Ready ->
             Catalogue(s, viewModel.outcomes, viewModel.advances, actions, modifier)
     }
 }
 
 @Composable
 private fun Catalogue(
-    state: CriteriaUiState.Ready,
+    state: JanCriteriaUiState.Ready,
     outcomes: Flow<SegmentOutcome>,
     advances: Flow<Criterion>,
     actions: CriteriaActions,
@@ -443,7 +443,7 @@ private const val CLEAR_CARRIED_OVER_KEY = "clear-carried-over"
 private const val APPROVE_ALL_KEY = "approve-all"
 
 /** Where a criterion sits in the list, counting the clear button that leads it while there is one. */
-private fun CriteriaUiState.Ready.rowOf(criterion: Criterion?): Int {
+private fun JanCriteriaUiState.Ready.rowOf(criterion: Criterion?): Int {
     val index = catalogue.criteria.indexOf(criterion)
     return if (index < 0) -1 else index + if (carriedOver.isEmpty()) 0 else 1
 }

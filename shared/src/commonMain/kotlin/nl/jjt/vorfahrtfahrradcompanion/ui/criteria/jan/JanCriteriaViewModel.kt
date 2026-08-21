@@ -1,4 +1,4 @@
-package nl.jjt.vorfahrtfahrradcompanion.ui.criteria
+package nl.jjt.vorfahrtfahrradcompanion.ui.criteria.jan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,9 +13,9 @@ import nl.jjt.vorfahrtfahrradcompanion.service.criteria.CriteriaApi
 import kotlin.time.Duration
 import kotlin.time.Instant
 
-sealed interface CriteriaUiState {
-    data object Loading : CriteriaUiState
-    data class Failed(val message: String) : CriteriaUiState
+sealed interface JanCriteriaUiState {
+    data object Loading : JanCriteriaUiState
+    data class Failed(val message: String) : JanCriteriaUiState
     data class Ready(
         val catalogue: Catalogue,
         val answers: Answers = Answers(),
@@ -26,7 +26,7 @@ sealed interface CriteriaUiState {
         val pendingTiming: TimingRequest? = null,
         val pendingEnd: EndRequest? = null,
         val submitted: StoredAnswers? = null,
-    ) : CriteriaUiState {
+    ) : JanCriteriaUiState {
 
         /** Approved for this segment and holding values — exactly what ending it would store. */
         val describing: List<Criterion> get() = catalogue.criteria.filter { it in approved && it.hasValues }
@@ -100,14 +100,14 @@ sealed interface SaveState {
     data class Error(val message: String) : SaveState
 }
 
-class CriteriaViewModel(
+class JanCriteriaViewModel(
     private val api: CriteriaApi,
     private val segments: SegmentRecorder,
     private val rides: RideRecorder,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<CriteriaUiState>(CriteriaUiState.Loading)
-    val state: StateFlow<CriteriaUiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow<JanCriteriaUiState>(JanCriteriaUiState.Loading)
+    val state: StateFlow<JanCriteriaUiState> = _state.asStateFlow()
 
     /**
      * The ride the rider is being asked to sign off, or null while none is being ended. It sits beside
@@ -150,7 +150,7 @@ class CriteriaViewModel(
         }
     }
 
-    /** Reloads the catalogue; reachable from [CriteriaUiState.Failed], where no cached copy was available. */
+    /** Reloads the catalogue; reachable from [JanCriteriaUiState.Failed], where no cached copy was available. */
     fun retry() = load()
 
     fun onTap(criterion: Criterion, value: CriterionValue) {
@@ -167,10 +167,10 @@ class CriteriaViewModel(
     /**
      * Fills the fresh segment in from the last one submitted. Nothing is approved by it: the copied
      * values land where carried-over ones do, up for review one at a time. Ignored once the rider has
-     * entered anything, which is when [CriteriaUiState.Ready.copyable] stops offering it.
+     * entered anything, which is when [JanCriteriaUiState.Ready.copyable] stops offering it.
      */
     fun copyPrevious() {
-        val values = (_state.value as? CriteriaUiState.Ready)?.copyable ?: return
+        val values = (_state.value as? JanCriteriaUiState.Ready)?.copyable ?: return
         segments.preselect(values)
     }
 
@@ -212,7 +212,7 @@ class CriteriaViewModel(
 
     /**
      * The rider pressing End or Start next. How well the press hit the boundary decides whether the
-     * stretch is worth keeping at all, so it is asked as a [CriteriaUiState.Ready.pendingTiming] before
+     * stretch is worth keeping at all, so it is asked as a [JanCriteriaUiState.Ready.pendingTiming] before
      * anything else happens — see [answerTiming]. The boundary is stamped here, at the press.
      * See [SegmentRecorder.end] for what [action] does.
      */
@@ -229,7 +229,7 @@ class CriteriaViewModel(
 
     /** The rider answering how well they hit the boundary, in the question the press raised. */
     fun answerTiming(timing: EndTiming) {
-        val request = (_state.value as? CriteriaUiState.Ready)?.pendingTiming ?: return
+        val request = (_state.value as? JanCriteriaUiState.Ready)?.pendingTiming ?: return
         updateReady { copy(pendingTiming = null) }
         finish(request, timing)
     }
@@ -239,7 +239,7 @@ class CriteriaViewModel(
 
     /** Nothing to end while one end is already being answered for, or being stored. */
     private fun canEnd(): Boolean {
-        val ready = _state.value as? CriteriaUiState.Ready ?: return false
+        val ready = _state.value as? JanCriteriaUiState.Ready ?: return false
         // Asked of the recorder rather than the state, which only catches up with it a dispatch later.
         return segments.draft.value.segment is Segment.Open &&
                 ready.saveState !is SaveState.InFlight &&
@@ -262,7 +262,7 @@ class CriteriaViewModel(
 
     /** Stores the segment, or asks about the criteria still carried over if there are any. */
     private fun ask(request: EndRequest) {
-        val ready = _state.value as? CriteriaUiState.Ready ?: return
+        val ready = _state.value as? JanCriteriaUiState.Ready ?: return
         if (ready.carriedOver.isEmpty()) store(request)
         else updateReady { copy(pendingEnd = request.copy(asked = ready.carriedOver)) }
     }
@@ -272,7 +272,7 @@ class CriteriaViewModel(
      * the question put up loses its values, edits made in the question included.
      */
     fun confirmEnd(approve: Set<Criterion>) {
-        val request = (_state.value as? CriteriaUiState.Ready)?.pendingEnd ?: return
+        val request = (_state.value as? JanCriteriaUiState.Ready)?.pendingEnd ?: return
         segments.resolveCarriedOver(approve, request.asked.toSet() - approve)
         updateReady { copy(pendingEnd = null) }
         store(request)
@@ -320,11 +320,11 @@ class CriteriaViewModel(
     }
 
     private fun load() {
-        _state.value = CriteriaUiState.Loading
+        _state.value = JanCriteriaUiState.Loading
         viewModelScope.launch {
             _state.value = try {
                 val draft = segments.draft.value
-                CriteriaUiState.Ready(
+                JanCriteriaUiState.Ready(
                     catalogue = api.catalogue(),
                     answers = draft.answers,
                     approved = draft.approved,
@@ -333,14 +333,14 @@ class CriteriaViewModel(
                     submitted = submitted.value,
                 )
             } catch (e: Exception) {
-                CriteriaUiState.Failed(e.message ?: "Could not load the criterion catalogue")
+                JanCriteriaUiState.Failed(e.message ?: "Could not load the criterion catalogue")
             }
         }
     }
 
     private fun fail(message: String) = updateReady { copy(saveState = SaveState.Error(message)) }
 
-    private fun updateReady(edit: CriteriaUiState.Ready.() -> CriteriaUiState.Ready) {
-        _state.update { if (it is CriteriaUiState.Ready) it.edit() else it }
+    private fun updateReady(edit: JanCriteriaUiState.Ready.() -> JanCriteriaUiState.Ready) {
+        _state.update { if (it is JanCriteriaUiState.Ready) it.edit() else it }
     }
 }
